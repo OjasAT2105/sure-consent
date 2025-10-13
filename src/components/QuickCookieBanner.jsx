@@ -2,12 +2,12 @@ import { Container } from "@bsf/force-ui";
 
 const QuickCookieBanner = () => {
   return (
-    <Container className="p-4">
-      <h2 className="text-xl font-semibold mb-4">Quick Cookie Banner</h2>
-      <div className="bg-white border rounded-lg p-6 shadow-sm">
+    <div>
+      <h2 className="text-2xl font-semibold mb-6 text-gray-800">Quick Cookie Banner</h2>
+      <div className="bg-white border rounded-lg p-6 shadow-sm" style={{'--tw-border-opacity': 1, borderColor: 'rgb(229 231 235 / var(--tw-border-opacity))'}}>
         <p>Quick Cookie Banner configuration content goes here.</p>
       </div>
-    </Container>
+    </div>
   );
 };
 

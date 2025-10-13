@@ -48,9 +48,9 @@ const Settings = () => {
   };
 
   return (
-    <Container className="p-4">
-      <div className="bg-white border rounded-lg p-6 shadow-sm">
-        <h2 className="text-xl font-semibold mb-4">Settings</h2>
+    <div>
+      <h2 className="text-2xl font-semibold mb-6 text-gray-800">Settings</h2>
+      <div className="bg-white border rounded-lg p-6 shadow-sm" style={{'--tw-border-opacity': 1, borderColor: 'rgb(229 231 235 / var(--tw-border-opacity))'}}>
         
         <div className="flex items-center justify-between">
           <div>
@@ -63,7 +63,7 @@ const Settings = () => {
           />
         </div>
       </div>
-    </Container>
+    </div>
   );
 };
 

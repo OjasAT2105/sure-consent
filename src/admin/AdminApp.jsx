@@ -40,11 +40,11 @@ const AdminApp = () => {
   };
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="flex">
+      <div className="flex mt-0">
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
-        <div className="flex-1">
+        <div className="flex-1 p-6">
           {renderContent()}
         </div>
       </div>
