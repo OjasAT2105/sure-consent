@@ -198,7 +198,30 @@ function sure_consent_get_banner_status() {
     }
 
     $enabled = get_option( 'sure_consent_banner_enabled', false );
-    wp_send_json_success( array( 'enabled' => (bool) $enabled ) );
+    $preview = get_option( 'sure_consent_preview_enabled', false );
+    wp_send_json_success( array( 'enabled' => (bool) $enabled, 'preview' => (bool) $preview ) );
+}
+
+/**
+ * AJAX handler for preview toggle.
+ */
+add_action( 'wp_ajax_sure_consent_toggle_preview', 'sure_consent_handle_preview_toggle' );
+
+function sure_consent_handle_preview_toggle() {
+    // Verify nonce
+    if ( ! wp_verify_nonce( $_POST['nonce'], 'sure_consent_nonce' ) ) {
+        wp_die( 'Security check failed' );
+    }
+
+    // Check user permissions
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'Insufficient permissions' );
+    }
+
+    $enabled = sanitize_text_field( $_POST['enabled'] );
+    update_option( 'sure_consent_preview_enabled', $enabled === '1' );
+
+    wp_send_json_success( array( 'preview' => $enabled === '1' ) );
 }
 
 /**

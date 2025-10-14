@@ -9,6 +9,7 @@ import {
   ScanLine,
   CaseLower,
   GlobeLock,
+  LayoutList,
 } from "lucide-react";
 
 const Navigation = ({ activeTab, setActiveTab }) => {
@@ -19,8 +20,12 @@ const Navigation = ({ activeTab, setActiveTab }) => {
       key="expanded"
       collapsible
       onCollapseChange={setIsCollapsed}
-      className="bg-white border-r mt-6"
-      style={{ border: '1px solid rgb(229 231 235)', '--tw-border-opacity': 1, borderColor: 'rgb(229 231 235 / var(--tw-border-opacity))'}}
+      className="bg-white border-r w-[100%]"
+      style={{
+        border: "1px solid rgb(229 231 235)",
+        "--tw-border-opacity": 1,
+        borderColor: "rgb(229 231 235 / var(--tw-border-opacity))",
+      }}
     >
       <Sidebar.Header></Sidebar.Header>
       <Sidebar.Body>
@@ -79,6 +84,17 @@ const Navigation = ({ activeTab, setActiveTab }) => {
                   >
                     <CaseLower size={16} />
                     <span className="text-sm">Content</span>
+                  </div>
+                  <div
+                    className={`p-2 flex items-center gap-3 cursor-pointer rounded-md hover:bg-slate-100 text-gray-600 ${
+                      activeTab === "banner-layout"
+                        ? "bg-slate-100 font-semibold"
+                        : ""
+                    }`}
+                    onClick={() => setActiveTab("banner-layout")}
+                  >
+                    <LayoutList size={16} />
+                    <span className="text-sm">Layout</span>
                   </div>
                   <div
                     className={`p-2 flex items-center gap-3 cursor-pointer rounded-md hover:bg-slate-100 text-gray-600 ${
