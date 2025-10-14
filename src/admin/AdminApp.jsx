@@ -1,7 +1,8 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "../components/Header";
 import Navigation from "../components/Navigation";
 import PreviewBanner from "../components/PreviewBanner";
+import ActionCard from "../components/ActionCard";
 import Dashboard from "../components/Dashboard";
 import QuickCookieBanner from "../components/QuickCookieBanner";
 import CookieSettings from "../components/CookieSettings";
@@ -12,15 +13,10 @@ import ScannedCookies from "../components/ScannedCookies";
 import ConsentLogs from "../components/ConsentLogs";
 import GeoRules from "../components/GeoRules";
 import Settings from "../components/Settings";
-
-// Global state context for tracking changes
-const AppStateContext = createContext();
-
-export const useAppState = () => useContext(AppStateContext);
+import { SettingsProvider } from "../contexts/SettingsContext";
 
 const AdminApp = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [hasChanges, setHasChanges] = useState(false);
 
   // Initialize tab from URL params
   useEffect(() => {
@@ -46,7 +42,6 @@ const AdminApp = () => {
     // Listen for browser back/forward navigation
     const handlePopState = () => {
       setActiveTab(getTabFromUrl());
-      setHasChanges(false);
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -59,7 +54,6 @@ const AdminApp = () => {
     const url = new URL(window.location);
     url.searchParams.set("tab", tab);
     window.history.replaceState({}, "", url);
-    setHasChanges(false); // Reset changes when switching tabs
   };
 
   const renderContent = () => {
@@ -90,7 +84,7 @@ const AdminApp = () => {
   };
 
   return (
-    <AppStateContext.Provider value={{ hasChanges, setHasChanges }}>
+    <SettingsProvider>
       <div className="sureconsent-styles min-h-screen bg-gray-50">
         <Header />
         <div className="">
@@ -101,12 +95,15 @@ const AdminApp = () => {
                 setActiveTab={handleTabChange}
               />
             </div>
-            <div className="flex-1">{renderContent()}</div>
+            <div className="flex-1">
+              <ActionCard />
+              {renderContent()}
+            </div>
           </div>
         </div>
         <PreviewBanner />
       </div>
-    </AppStateContext.Provider>
+    </SettingsProvider>
   );
 };
 

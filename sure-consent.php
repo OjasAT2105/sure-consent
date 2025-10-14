@@ -54,6 +54,11 @@ register_deactivation_hook( __FILE__, 'deactivate_sure_consent' );
 require plugin_dir_path( __FILE__ ) . 'includes/class-sure-consent.php';
 
 /**
+ * Settings handler.
+ */
+require plugin_dir_path( __FILE__ ) . 'admin/class-sure-consent-settings.php';
+
+/**
  * Begin plugin execution.
  */
 function run_sure_consent() {
@@ -157,72 +162,22 @@ function sureconsent_enqueue_public_assets() {
         array(),
         SURE_CONSENT_VERSION
     );
+
+    // Localize script for AJAX
+    wp_localize_script(
+        'sureconsent-public',
+        'sureConsentAjax',
+        array(
+            'ajaxurl' => admin_url( 'admin-ajax.php' ),
+            'nonce'   => wp_create_nonce( 'sure_consent_nonce' ),
+        )
+    );
 }
 
 /**
- * AJAX handler for banner toggle.
+ * Include AJAX handlers
  */
-add_action( 'wp_ajax_sure_consent_toggle_banner', 'sure_consent_handle_banner_toggle' );
-
-function sure_consent_handle_banner_toggle() {
-    // Verify nonce
-    if ( ! wp_verify_nonce( $_POST['nonce'], 'sure_consent_nonce' ) ) {
-        wp_die( 'Security check failed' );
-    }
-
-    // Check user permissions
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( 'Insufficient permissions' );
-    }
-
-    $enabled = sanitize_text_field( $_POST['enabled'] );
-    update_option( 'sure_consent_banner_enabled', $enabled === '1' );
-
-    wp_send_json_success( array( 'enabled' => $enabled === '1' ) );
-}
-
-/**
- * AJAX handler to get banner status.
- */
-add_action( 'wp_ajax_sure_consent_get_banner_status', 'sure_consent_get_banner_status' );
-
-function sure_consent_get_banner_status() {
-    // Verify nonce
-    if ( ! wp_verify_nonce( $_POST['nonce'], 'sure_consent_nonce' ) ) {
-        wp_die( 'Security check failed' );
-    }
-
-    // Check user permissions
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( 'Insufficient permissions' );
-    }
-
-    $enabled = get_option( 'sure_consent_banner_enabled', false );
-    $preview = get_option( 'sure_consent_preview_enabled', false );
-    wp_send_json_success( array( 'enabled' => (bool) $enabled, 'preview' => (bool) $preview ) );
-}
-
-/**
- * AJAX handler for preview toggle.
- */
-add_action( 'wp_ajax_sure_consent_toggle_preview', 'sure_consent_handle_preview_toggle' );
-
-function sure_consent_handle_preview_toggle() {
-    // Verify nonce
-    if ( ! wp_verify_nonce( $_POST['nonce'], 'sure_consent_nonce' ) ) {
-        wp_die( 'Security check failed' );
-    }
-
-    // Check user permissions
-    if ( ! current_user_can( 'manage_options' ) ) {
-        wp_die( 'Insufficient permissions' );
-    }
-
-    $enabled = sanitize_text_field( $_POST['enabled'] );
-    update_option( 'sure_consent_preview_enabled', $enabled === '1' );
-
-    wp_send_json_success( array( 'preview' => $enabled === '1' ) );
-}
+require_once plugin_dir_path( __FILE__ ) . 'admin/class-sure-consent-ajax.php';
 
 /**
  * Add React root div to footer for public cookie banner.

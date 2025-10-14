@@ -1,110 +1,21 @@
 import { useState, useEffect } from "react";
-import { Switch, Button } from "@bsf/force-ui";
-import { useAppState } from "../admin/AdminApp";
+import { Switch } from "@bsf/force-ui";
+import { useSettings } from "../contexts/SettingsContext";
 
 const CookieSettings = () => {
-  const [bannerEnabled, setBannerEnabled] = useState(false);
-  const [previewEnabled, setPreviewEnabled] = useState(false);
+  const { getCurrentValue, updateSetting } = useSettings();
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [originalState, setOriginalState] = useState({ banner: false, preview: false });
-  const { setHasChanges } = useAppState() || {};
 
-  // Load current setting on component mount
   useEffect(() => {
-    fetchBannerStatus();
+    setIsLoading(false);
   }, []);
 
-  const fetchBannerStatus = async () => {
-    try {
-      const response = await fetch(window.sureConsentAjax?.ajaxurl || '/wp-admin/admin-ajax.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          action: 'sure_consent_get_banner_status',
-          nonce: window.sureConsentAjax?.nonce || ''
-        })
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setBannerEnabled(data.data.enabled);
-        setPreviewEnabled(data.data.preview);
-        setOriginalState({ banner: data.data.enabled, preview: data.data.preview });
-      }
-    } catch (error) {
-      console.error('Failed to fetch banner status:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleBannerToggle = (checked) => {
-    setBannerEnabled(checked);
-    checkForChanges(checked, previewEnabled);
+    updateSetting('banner_enabled', checked);
   };
 
-  const handlePreviewToggle = async (checked) => {
-    setPreviewEnabled(checked);
-    checkForChanges(bannerEnabled, checked);
-    
-    // Save preview state immediately
-    try {
-      await fetch(window.sureConsentAjax?.ajaxurl || '/wp-admin/admin-ajax.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          action: 'sure_consent_toggle_preview',
-          enabled: checked ? '1' : '0',
-          nonce: window.sureConsentAjax?.nonce || ''
-        })
-      });
-    } catch (error) {
-      console.error('Failed to save preview state:', error);
-    }
-  };
-
-  const checkForChanges = (banner, preview) => {
-    const hasChanges = banner !== originalState.banner || preview !== originalState.preview;
-    setHasChanges?.(hasChanges);
-  };
-
-  const handleSaveChanges = async () => {
-    setIsSaving(true);
-    
-    try {
-      const response = await fetch(window.sureConsentAjax?.ajaxurl || '/wp-admin/admin-ajax.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          action: 'sure_consent_toggle_banner',
-          enabled: bannerEnabled ? '1' : '0',
-          nonce: window.sureConsentAjax?.nonce || ''
-        })
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setOriginalState({ banner: bannerEnabled, preview: previewEnabled });
-        setHasChanges?.(false);
-      } else {
-        // Revert on error
-        setBannerEnabled(originalState.banner);
-        console.error('Failed to save settings');
-      }
-    } catch (error) {
-      // Revert on error
-      setBannerEnabled(originalState.banner);
-      console.error('Failed to save settings:', error);
-    } finally {
-      setIsSaving(false);
-    }
+  const handlePreviewToggle = (checked) => {
+    updateSetting('preview_enabled', checked);
   };
 
   if (isLoading) {
@@ -134,9 +45,8 @@ const CookieSettings = () => {
             </p>
           </div>
           <Switch
-            checked={bannerEnabled}
+            checked={getCurrentValue('banner_enabled') || false}
             onChange={handleBannerToggle}
-            disabled={isSaving}
           />
         </div>
         
@@ -148,25 +58,11 @@ const CookieSettings = () => {
             </p>
           </div>
           <Switch
-            checked={previewEnabled}
+            checked={getCurrentValue('preview_enabled') || false}
             onChange={handlePreviewToggle}
-            disabled={isSaving}
           />
         </div>
-        
 
-        
-        {(bannerEnabled !== originalState.banner) && (
-          <div className="flex justify-end pt-4 border-t">
-            <Button
-              onClick={handleSaveChanges}
-              disabled={isSaving}
-              className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 transition-colors"
-            >
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
