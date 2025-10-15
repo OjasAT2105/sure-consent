@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Header from "../components/Header";
-import Navigation from "../components/Navigation";
+import TopNavigation from "../components/TopNavigation";
 import PreviewBanner from "../components/PreviewBanner";
 import ActionCard from "../components/ActionCard";
 import Dashboard from "../components/Dashboard";
@@ -14,91 +13,158 @@ import ConsentLogs from "../components/ConsentLogs";
 import GeoRules from "../components/GeoRules";
 import Settings from "../components/Settings";
 import { SettingsProvider } from "../contexts/SettingsContext";
+import { Sidebar } from "@bsf/force-ui";
 
 const AdminApp = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeSubTab, setActiveSubTab] = useState("");
 
-  // Initialize tab from URL params
   useEffect(() => {
-    const getTabFromUrl = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tab = urlParams.get("tab");
-      const validTabs = [
-        "dashboard",
-        "quick-cookie-banner",
-        "cookie-settings",
-        "banner-content",
-        "banner-design",
-        "scanned-cookies",
-        "consent-logs",
-        "geo-rules",
-        "settings",
-      ];
-      return validTabs.includes(tab) ? tab : "dashboard";
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get("tab") || "dashboard";
+    
+    const validTabs = ["dashboard", "banner", "settings", "analytics", "advanced"];
+    const mainTab = validTabs.includes(tab) ? tab : "dashboard";
+    
+    setActiveTab(mainTab);
+    
+    // Set default subtab
+    const defaultSubTabs = {
+      banner: "quick-setup",
+      settings: "categories", 
+      analytics: "logs",
+      advanced: "geo-rules"
     };
-
-    setActiveTab(getTabFromUrl());
-
-    // Listen for browser back/forward navigation
-    const handlePopState = () => {
-      setActiveTab(getTabFromUrl());
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    setActiveSubTab(defaultSubTabs[mainTab] || "");
   }, []);
 
-  // Update URL when tab changes
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+    
+    const defaultSubTabs = {
+      banner: "quick-setup",
+      settings: "categories", 
+      analytics: "logs",
+      advanced: "geo-rules"
+    };
+    
+    setActiveSubTab(defaultSubTabs[tab] || "");
+    
     const url = new URL(window.location);
     url.searchParams.set("tab", tab);
-    window.history.replaceState({}, "", url);
+    window.history.pushState({}, "", url);
+  };
+
+  const handleSubTabChange = (subTab) => {
+    setActiveSubTab(subTab);
   };
 
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
         return <Dashboard />;
-      case "quick-cookie-banner":
-        return <QuickCookieBanner />;
-      case "cookie-settings":
-        return <CookieSettings />;
-      case "banner-content":
-        return <BannerContent />;
-      case "banner-layout":
-        return <BannerLayout />;
-      case "banner-design":
-        return <BannerDesign />;
-      case "scanned-cookies":
-        return <ScannedCookies />;
-      case "consent-logs":
-        return <ConsentLogs />;
-      case "geo-rules":
-        return <GeoRules />;
+      case "banner":
+        switch (activeSubTab) {
+          case "quick-setup":
+            return <QuickCookieBanner />;
+          case "content":
+            return <BannerContent />;
+          case "layout":
+            return <BannerLayout />;
+          case "design":
+            return <BannerDesign />;
+          default:
+            return <QuickCookieBanner />;
+        }
       case "settings":
-        return <Settings />;
+        switch (activeSubTab) {
+          case "categories":
+            return <CookieSettings />;
+          case "scanned":
+            return <ScannedCookies />;
+          default:
+            return <CookieSettings />;
+        }
+      case "analytics":
+        switch (activeSubTab) {
+          case "logs":
+            return <ConsentLogs />;
+          case "reports":
+            return <ConsentLogs />; // Placeholder for now
+          default:
+            return <ConsentLogs />;
+        }
+      case "advanced":
+        switch (activeSubTab) {
+          case "geo-rules":
+            return <GeoRules />;
+          case "scripts":
+            return <Settings />; // Placeholder for now
+          default:
+            return <GeoRules />;
+        }
       default:
         return <Dashboard />;
     }
   };
 
+  const subNavItems = {
+    banner: [
+      { name: "Quick Setup", path: "quick-setup" },
+      { name: "Content", path: "content" },
+      { name: "Layout", path: "layout" },
+      { name: "Design", path: "design" },
+    ],
+    settings: [
+      { name: "Cookie Categories", path: "categories" },
+      { name: "Scanned Cookies", path: "scanned" },
+    ],
+    analytics: [
+      { name: "Consent Logs", path: "logs" },
+      { name: "Reports", path: "reports" },
+    ],
+    advanced: [
+      { name: "Geo Rules", path: "geo-rules" },
+      { name: "Custom Scripts", path: "scripts" },
+    ],
+  };
+
   return (
     <SettingsProvider>
       <div className="sureconsent-styles min-h-screen bg-gray-50">
-        <Header />
-        <div className="">
-          <div className="flex gap-12 mt-6">
-            <div className="w-[15%] min-w-48">
-              <Navigation
-                activeTab={activeTab}
-                setActiveTab={handleTabChange}
-              />
-            </div>
-            <div className="flex-1">
-              <ActionCard />
-              {renderContent()}
-            </div>
+        <TopNavigation
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          activeSubTab={activeSubTab}
+          setActiveSubTab={handleSubTabChange}
+        />
+        <div className="flex">
+          {subNavItems[activeTab] && (
+            <Sidebar className="w-64 bg-white border-r">
+              <Sidebar.Body>
+                <Sidebar.Item>
+                  <div className="p-4">
+                    {subNavItems[activeTab].map((item) => (
+                      <div
+                        key={item.name}
+                        onClick={() => handleSubTabChange(item.path)}
+                        className={`p-2 mb-1 cursor-pointer rounded text-sm ${
+                          activeSubTab === item.path
+                            ? "bg-blue-50 text-blue-600 font-medium"
+                            : "text-gray-600 hover:bg-gray-50"
+                        }`}
+                      >
+                        {item.name}
+                      </div>
+                    ))}
+                  </div>
+                </Sidebar.Item>
+              </Sidebar.Body>
+            </Sidebar>
+          )}
+          <div className="flex-1 px-8 py-6">
+            <ActionCard />
+            {renderContent()}
           </div>
         </div>
         <PreviewBanner />

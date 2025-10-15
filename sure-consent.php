@@ -72,7 +72,7 @@ function run_sure_consent() {
 add_action( 'admin_menu', 'sureconsent_add_admin_menu' );
 
 function sureconsent_add_admin_menu() {
-    // Main menu only
+    // Main menu with submenus
     add_menu_page(
         __( 'SureConsent', 'sureconsent' ),
         __( 'SureConsent', 'sureconsent' ),
@@ -81,6 +81,52 @@ function sureconsent_add_admin_menu() {
         'sureconsent_dashboard_page',
         'dashicons-shield-alt',
         58
+    );
+    
+    // Add submenu pages
+    add_submenu_page(
+        'sureconsent',
+        __( 'Dashboard', 'sureconsent' ),
+        __( 'Dashboard', 'sureconsent' ),
+        'manage_options',
+        'sureconsent',
+        'sureconsent_dashboard_page'
+    );
+    
+    add_submenu_page(
+        'sureconsent',
+        __( 'Cookie Banner', 'sureconsent' ),
+        __( 'Cookie Banner', 'sureconsent' ),
+        'manage_options',
+        'sureconsent-banner',
+        'sureconsent_dashboard_page'
+    );
+    
+    add_submenu_page(
+        'sureconsent',
+        __( 'Cookie Settings', 'sureconsent' ),
+        __( 'Cookie Settings', 'sureconsent' ),
+        'manage_options',
+        'sureconsent-settings',
+        'sureconsent_dashboard_page'
+    );
+    
+    add_submenu_page(
+        'sureconsent',
+        __( 'Analytics', 'sureconsent' ),
+        __( 'Analytics', 'sureconsent' ),
+        'manage_options',
+        'sureconsent-analytics',
+        'sureconsent_dashboard_page'
+    );
+    
+    add_submenu_page(
+        'sureconsent',
+        __( 'Advanced', 'sureconsent' ),
+        __( 'Advanced', 'sureconsent' ),
+        'manage_options',
+        'sureconsent-advanced',
+        'sureconsent_dashboard_page'
     );
 }
 
@@ -103,9 +149,13 @@ function sureconsent_dashboard_page() {
 add_action( 'admin_enqueue_scripts', 'sureconsent_enqueue_admin_assets' );
 
 function sureconsent_enqueue_admin_assets( $hook ) {
-    // Load scripts only on SureConsent page
+    // Load scripts only on SureConsent pages
     $allowed_hooks = array(
         'toplevel_page_sureconsent',
+        'sureconsent_page_sureconsent-banner',
+        'sureconsent_page_sureconsent-settings',
+        'sureconsent_page_sureconsent-analytics',
+        'sureconsent_page_sureconsent-advanced',
     );
 
     if ( ! in_array( $hook, $allowed_hooks, true ) ) {
