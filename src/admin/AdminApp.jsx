@@ -1,7 +1,25 @@
-import React, { useState, useEffect } from "react";
-import TopNavigation from "../components/TopNavigation";
-import PreviewBanner from "../components/PreviewBanner";
-import ActionCard from "../components/ActionCard";
+import React, { useState, useEffect, Fragment } from "react";
+import { SettingsProvider } from "../contexts/SettingsContext";
+import {
+  Topbar,
+  Sidebar,
+  Badge,
+  Button,
+  HamburgerMenu,
+  Accordion,
+} from "@bsf/force-ui";
+import {
+  CircleHelp,
+  Megaphone,
+  Shield,
+  Cookie,
+  BarChart3,
+  Settings as SettingsIcon,
+  Palette,
+  CaseLower,
+  Hourglass,
+  LayoutList,
+} from "lucide-react";
 import Dashboard from "../components/Dashboard";
 import QuickCookieBanner from "../components/QuickCookieBanner";
 import CookieSettings from "../components/CookieSettings";
@@ -12,163 +30,386 @@ import ScannedCookies from "../components/ScannedCookies";
 import ConsentLogs from "../components/ConsentLogs";
 import GeoRules from "../components/GeoRules";
 import Settings from "../components/Settings";
-import { SettingsProvider } from "../contexts/SettingsContext";
-import { Sidebar } from "@bsf/force-ui";
+import ActionCard from "../components/ActionCard";
+import PreviewBanner from "../components/PreviewBanner";
 
 const AdminApp = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [activeSubTab, setActiveSubTab] = useState("");
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [activePath, setActivePath] = useState("/dashboard");
+
+  // Navigation configuration similar to SureRank
+  const navLinks = [
+    {
+      section: "Dashboard",
+      sectionId: "dashboard",
+      links: [
+        {
+          label: "Dashboard",
+          path: "/dashboard",
+          icon: Shield,
+        },
+      ],
+    },
+    {
+      section: "Cookie Settings",
+      sectionId: "settings",
+      links: [
+        {
+          label: "Cookie Categories",
+          path: "/settings/categories",
+          icon: SettingsIcon,
+        },
+      ],
+    },
+    {
+      section: "Cookie Banner",
+      sectionId: "banner",
+      links: [
+        {
+          label: "Quick Setup",
+          path: "/banner/quick-setup",
+          icon: Hourglass,
+        },
+        {
+          label: "Content",
+          path: "/banner/content",
+          icon: CaseLower,
+        },
+        {
+          label: "Layout",
+          path: "/banner/layout",
+          icon: LayoutList,
+        },
+        {
+          label: "Design",
+          path: "/banner/design",
+          icon: Palette,
+        },
+      ],
+    },
+
+    {
+      section: "Analytics",
+      sectionId: "analytics",
+      links: [
+        {
+          label: "Consent Logs",
+          path: "/analytics/logs",
+          icon: BarChart3,
+        },
+        {
+          label: "Reports",
+          path: "/analytics/reports",
+          icon: BarChart3,
+        },
+      ],
+    },
+    {
+      section: "Advanced",
+      sectionId: "advanced",
+      links: [
+        {
+          label: "Geo Rules",
+          path: "/advanced/geo-rules",
+          icon: SettingsIcon,
+        },
+        {
+          label: "Custom Scripts",
+          path: "/advanced/scripts",
+          icon: SettingsIcon,
+        },
+      ],
+    },
+  ];
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get("tab") || "dashboard";
-    
-    const validTabs = ["dashboard", "banner", "settings", "analytics", "advanced"];
-    const mainTab = validTabs.includes(tab) ? tab : "dashboard";
-    
-    setActiveTab(mainTab);
-    
-    // Set default subtab
-    const defaultSubTabs = {
-      banner: "quick-setup",
-      settings: "categories", 
-      analytics: "logs",
-      advanced: "geo-rules"
-    };
-    setActiveSubTab(defaultSubTabs[mainTab] || "");
+    const subtab = urlParams.get("subtab");
+
+    // Find the section and set the appropriate path
+    const section = navLinks.find((nav) => nav.sectionId === tab);
+    if (section && section.links.length > 0) {
+      setActiveSection(tab);
+
+      // If subtab is specified, find the matching path
+      if (subtab) {
+        const matchingLink = section.links.find(
+          (link) =>
+            link.path.includes(subtab) || link.path.split("/").pop() === subtab
+        );
+        if (matchingLink) {
+          setActivePath(matchingLink.path);
+        } else {
+          setActivePath(section.links[0].path);
+        }
+      } else {
+        setActivePath(section.links[0].path);
+      }
+    } else {
+      setActiveSection("dashboard");
+      setActivePath("/dashboard");
+    }
   }, []);
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-    
-    const defaultSubTabs = {
-      banner: "quick-setup",
-      settings: "categories", 
-      analytics: "logs",
-      advanced: "geo-rules"
-    };
-    
-    setActiveSubTab(defaultSubTabs[tab] || "");
-    
-    const url = new URL(window.location);
-    url.searchParams.set("tab", tab);
-    window.history.pushState({}, "", url);
+  const handlePathChange = (path) => {
+    setActivePath(path);
+
+    // Find which section this path belongs to
+    const section = navLinks.find((nav) =>
+      nav.links.some((link) => link.path === path)
+    );
+
+    if (section) {
+      setActiveSection(section.sectionId);
+
+      // Extract subtab from path
+      const pathParts = path.split("/");
+      const subtab = pathParts[pathParts.length - 1];
+
+      // Update URL with both tab and subtab
+      const url = new URL(window.location);
+      url.searchParams.set("tab", section.sectionId);
+      if (subtab && subtab !== section.sectionId) {
+        url.searchParams.set("subtab", subtab);
+      } else {
+        url.searchParams.delete("subtab");
+      }
+      window.history.pushState({}, "", url);
+    }
   };
 
-  const handleSubTabChange = (subTab) => {
-    setActiveSubTab(subTab);
+  const handleSectionChange = (sectionId) => {
+    const section = navLinks.find((nav) => nav.sectionId === sectionId);
+    if (section && section.links.length > 0) {
+      setActiveSection(sectionId);
+      setActivePath(section.links[0].path);
+
+      // Update URL and clear subtab when changing main section
+      const url = new URL(window.location);
+      url.searchParams.set("tab", sectionId);
+      url.searchParams.delete("subtab"); // Clear subtab when changing main section
+      window.history.pushState({}, "", url);
+    }
   };
 
   const renderContent = () => {
-    switch (activeTab) {
-      case "dashboard":
+    switch (activePath) {
+      case "/dashboard":
         return <Dashboard />;
-      case "banner":
-        switch (activeSubTab) {
-          case "quick-setup":
-            return <QuickCookieBanner />;
-          case "content":
-            return <BannerContent />;
-          case "layout":
-            return <BannerLayout />;
-          case "design":
-            return <BannerDesign />;
-          default:
-            return <QuickCookieBanner />;
-        }
-      case "settings":
-        switch (activeSubTab) {
-          case "categories":
-            return <CookieSettings />;
-          case "scanned":
-            return <ScannedCookies />;
-          default:
-            return <CookieSettings />;
-        }
-      case "analytics":
-        switch (activeSubTab) {
-          case "logs":
-            return <ConsentLogs />;
-          case "reports":
-            return <ConsentLogs />; // Placeholder for now
-          default:
-            return <ConsentLogs />;
-        }
-      case "advanced":
-        switch (activeSubTab) {
-          case "geo-rules":
-            return <GeoRules />;
-          case "scripts":
-            return <Settings />; // Placeholder for now
-          default:
-            return <GeoRules />;
-        }
+      case "/banner/quick-setup":
+        return <QuickCookieBanner />;
+      case "/banner/content":
+        return <BannerContent />;
+      case "/banner/layout":
+        return <BannerLayout />;
+      case "/banner/design":
+        return <BannerDesign />;
+      case "/settings/categories":
+        return <CookieSettings />;
+      case "/settings/scanned":
+        return <ScannedCookies />;
+      case "/analytics/logs":
+        return <ConsentLogs />;
+      case "/analytics/reports":
+        return <ConsentLogs />; // Placeholder
+      case "/advanced/geo-rules":
+        return <GeoRules />;
+      case "/advanced/scripts":
+        return <Settings />; // Placeholder
       default:
         return <Dashboard />;
     }
   };
 
-  const subNavItems = {
-    banner: [
-      { name: "Quick Setup", path: "quick-setup" },
-      { name: "Content", path: "content" },
-      { name: "Layout", path: "layout" },
-      { name: "Design", path: "design" },
-    ],
-    settings: [
-      { name: "Cookie Categories", path: "categories" },
-      { name: "Scanned Cookies", path: "scanned" },
-    ],
-    analytics: [
-      { name: "Consent Logs", path: "logs" },
-      { name: "Reports", path: "reports" },
-    ],
-    advanced: [
-      { name: "Geo Rules", path: "geo-rules" },
-      { name: "Custom Scripts", path: "scripts" },
-    ],
+  // Get active section for sidebar
+  const activeNavSection = navLinks.find(
+    (nav) => nav.sectionId === activeSection
+  );
+  const filteredNavLinks = activeNavSection ? [activeNavSection] : [];
+
+  // Top navbar links
+  const topNavbarLinks = navLinks.map((nav) => ({
+    label: nav.section,
+    path: nav.links[0].path,
+    active: nav.sectionId === activeSection,
+    sectionId: nav.sectionId,
+  }));
+
+  const NavLink = ({ path, children, icon: Icon }) => {
+    const isActive = activePath === path;
+
+    return (
+      <div
+        onClick={() => handlePathChange(path)}
+        className={`flex items-center justify-start gap-2.5 py-2 pl-2.5 pr-2 text-text-secondary [&_svg]:text-icon-secondary hover:bg-background-secondary rounded-md text-base font-normal no-underline cursor-pointer focus:outline-none focus:shadow-none transition ease-in-out duration-150 [&_svg]:size-5 ${
+          isActive
+            ? "bg-background-secondary text-text-primary [&_svg]:text-brand-800"
+            : ""
+        }`}
+        role="menuitem"
+        tabIndex={0}
+      >
+        {Icon && <Icon className="size-4" />}
+        {children}
+      </div>
+    );
+  };
+
+  const SidebarSection = ({ section, links }) => {
+    if (!links?.length) {
+      return null;
+    }
+
+    return (
+      <Sidebar.Item
+        key={section}
+        arrow
+        heading={section}
+        open={true}
+        className="space-y-0.5"
+      >
+        {links.map(({ path, label, icon: Icon }) => (
+          <NavLink key={path} path={path} icon={Icon}>
+            {label}
+          </NavLink>
+        ))}
+      </Sidebar.Item>
+    );
+  };
+
+  const SidebarNavigation = ({ navLinks = [] }) => {
+    return (
+      <div className="h-full w-full">
+        <Sidebar borderOn className="!h-full w-full p-4">
+          <Sidebar.Body>
+            <Sidebar.Item role="navigation" aria-label="Main Navigation">
+              {navLinks.map(({ section, links }) => (
+                <SidebarSection key={section} section={section} links={links} />
+              ))}
+            </Sidebar.Item>
+          </Sidebar.Body>
+        </Sidebar>
+      </div>
+    );
   };
 
   return (
     <SettingsProvider>
-      <div className="sureconsent-styles min-h-screen bg-gray-50">
-        <TopNavigation
-          activeTab={activeTab}
-          setActiveTab={handleTabChange}
-          activeSubTab={activeSubTab}
-          setActiveSubTab={handleSubTabChange}
-        />
-        <div className="flex">
-          {subNavItems[activeTab] && (
-            <Sidebar className="w-64 bg-white border-r">
-              <Sidebar.Body>
-                <Sidebar.Item>
-                  <div className="p-4">
-                    {subNavItems[activeTab].map((item) => (
-                      <div
-                        key={item.name}
-                        onClick={() => handleSubTabChange(item.path)}
-                        className={`p-2 mb-1 cursor-pointer rounded text-sm ${
-                          activeSubTab === item.path
-                            ? "bg-blue-50 text-blue-600 font-medium"
-                            : "text-gray-600 hover:bg-gray-50"
-                        }`}
+      <Fragment>
+        <div className="sureconsent-styles grid max-[782px]:grid-rows-[64px_calc(100dvh_-_110px)] grid-rows-[64px_calc(100dvh_-_96px)] min-h-screen bg-background-secondary">
+          {/* Header */}
+          <Topbar
+            className="w-auto min-h-[unset] h-16 border-b border-border-subtle p-0 relative bg-white"
+            gap={0}
+          >
+            <Topbar.Left className="p-5">
+              <Topbar.Item className="flex md:hidden">
+                <HamburgerMenu className="lg:hidden">
+                  <HamburgerMenu.Toggle className="size-6" />
+                  <HamburgerMenu.Options>
+                    {topNavbarLinks.map((option) => (
+                      <HamburgerMenu.Option
+                        key={option.label}
+                        onClick={() => handleSectionChange(option.sectionId)}
+                        active={option.active}
                       >
-                        {item.name}
-                      </div>
+                        {option.label}
+                      </HamburgerMenu.Option>
                     ))}
-                  </div>
-                </Sidebar.Item>
-              </Sidebar.Body>
-            </Sidebar>
+                  </HamburgerMenu.Options>
+                </HamburgerMenu>
+              </Topbar.Item>
+              <Topbar.Item>
+                <div
+                  onClick={() => handlePathChange("/dashboard")}
+                  className="flex items-center gap-3 cursor-pointer"
+                >
+                  <svg
+                    fill="none"
+                    height="32"
+                    viewBox="0 0 25 24"
+                    width="32"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      clipRule="evenodd"
+                      d="M12.5 24C19.1275 24 24.5 18.6273 24.5 11.9999C24.5 5.37255 19.1275 0 12.5 0C5.87259 0 0.5 5.37255 0.5 11.9999C0.5 18.6273 5.87259 24 12.5 24ZM12.5517 5.99996C11.5882 5.99996 10.2547 6.55101 9.5734 7.23073L7.7229 9.07688H16.9465L20.0307 5.99996H12.5517ZM15.4111 16.7692C14.7298 17.4489 13.3964 17.9999 12.4328 17.9999H4.95388L8.03804 14.923H17.2616L15.4111 16.7692ZM18.4089 10.6153H6.18418L5.60673 11.1923C4.23941 12.423 4.64495 13.3846 6.5598 13.3846H18.8176L19.3952 12.8076C20.7492 11.5841 20.3237 10.6153 18.4089 10.6153Z"
+                      fill="#6B21A8"
+                      fillRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </Topbar.Item>
+            </Topbar.Left>
+
+            <Topbar.Middle align="left" className="h-full">
+              <Topbar.Item className="h-full gap-4 hidden md:flex">
+                {topNavbarLinks.map(({ path, label, active, sectionId }) => (
+                  <button
+                    key={path}
+                    onClick={() => handleSectionChange(sectionId)}
+                    className={`relative content-center no-underline h-full py-0 px-3 m-0 bg-transparent outline-none shadow-none border-0 focus:outline-none text-text-secondary text-sm font-medium cursor-pointer transition-colors duration-150 hover:text-text-primary ${
+                      active ? "text-text-primary" : ""
+                    }`}
+                  >
+                    {label}
+                    {active && (
+                      <span className="absolute bottom-0 left-0 w-full h-px bg-brand-800" />
+                    )}
+                  </button>
+                ))}
+              </Topbar.Item>
+            </Topbar.Middle>
+
+            <Topbar.Right className="p-5">
+              <Topbar.Item>
+                <Badge label="V 1.0.0" size="xs" variant="neutral" />
+              </Topbar.Item>
+              <Topbar.Item>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  icon={<CircleHelp />}
+                  onClick={() =>
+                    window.open("https://sureconsent.com/docs", "_blank")
+                  }
+                />
+              </Topbar.Item>
+              <Topbar.Item>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  icon={<Megaphone />}
+                  onClick={() =>
+                    window.open("https://sureconsent.com/whats-new", "_blank")
+                  }
+                />
+              </Topbar.Item>
+            </Topbar.Right>
+          </Topbar>
+
+          {/* Main Content */}
+          {activeSection === "dashboard" ? (
+            <div className="w-full min-h-[calc(100vh-64px)] bg-background-secondary p-5">
+              <main className="w-full">
+                {renderContent()}
+              </main>
+            </div>
+          ) : (
+            <div className="w-full min-h-[calc(100vh-64px)] grid grid-cols-[290px_1fr]">
+              <SidebarNavigation navLinks={filteredNavLinks} />
+              <div className="bg-background-secondary p-5 min-h-full">
+                <main className="mx-auto max-w-[768px]">
+                  {(activeSection === "banner" || activeSection === "settings") && <ActionCard />}
+                  {renderContent()}
+                </main>
+              </div>
+            </div>
           )}
-          <div className="flex-1 px-8 py-6">
-            <ActionCard />
-            {renderContent()}
-          </div>
         </div>
         <PreviewBanner />
-      </div>
+      </Fragment>
     </SettingsProvider>
   );
 };

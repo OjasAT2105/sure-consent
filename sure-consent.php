@@ -72,7 +72,6 @@ function run_sure_consent() {
 add_action( 'admin_menu', 'sureconsent_add_admin_menu' );
 
 function sureconsent_add_admin_menu() {
-    // Main menu with submenus
     add_menu_page(
         __( 'SureConsent', 'sureconsent' ),
         __( 'SureConsent', 'sureconsent' ),
@@ -82,52 +81,6 @@ function sureconsent_add_admin_menu() {
         'dashicons-shield-alt',
         58
     );
-    
-    // Add submenu pages
-    add_submenu_page(
-        'sureconsent',
-        __( 'Dashboard', 'sureconsent' ),
-        __( 'Dashboard', 'sureconsent' ),
-        'manage_options',
-        'sureconsent',
-        'sureconsent_dashboard_page'
-    );
-    
-    add_submenu_page(
-        'sureconsent',
-        __( 'Cookie Banner', 'sureconsent' ),
-        __( 'Cookie Banner', 'sureconsent' ),
-        'manage_options',
-        'sureconsent-banner',
-        'sureconsent_dashboard_page'
-    );
-    
-    add_submenu_page(
-        'sureconsent',
-        __( 'Cookie Settings', 'sureconsent' ),
-        __( 'Cookie Settings', 'sureconsent' ),
-        'manage_options',
-        'sureconsent-settings',
-        'sureconsent_dashboard_page'
-    );
-    
-    add_submenu_page(
-        'sureconsent',
-        __( 'Analytics', 'sureconsent' ),
-        __( 'Analytics', 'sureconsent' ),
-        'manage_options',
-        'sureconsent-analytics',
-        'sureconsent_dashboard_page'
-    );
-    
-    add_submenu_page(
-        'sureconsent',
-        __( 'Advanced', 'sureconsent' ),
-        __( 'Advanced', 'sureconsent' ),
-        'manage_options',
-        'sureconsent-advanced',
-        'sureconsent_dashboard_page'
-    );
 }
 
 /**
@@ -135,9 +88,7 @@ function sureconsent_add_admin_menu() {
  */
 function sureconsent_dashboard_page() {
     ?>
-    <div class="wrap">
-        <div id="sureconsent-admin-root"></div>
-    </div>
+    <div id="sureconsent-admin-root"></div>
     <?php
 }
 
@@ -235,10 +186,8 @@ require_once plugin_dir_path( __FILE__ ) . 'admin/class-sure-consent-ajax.php';
 add_action( 'wp_footer', 'sureconsent_add_public_root' );
 
 function sureconsent_add_public_root() {
-    // Only show banner if enabled
-    if ( get_option( 'sure_consent_banner_enabled', false ) ) {
-        echo '<div id="sureconsent-public-root"></div>';
-    }
+    // Always add the root div - the React app will handle visibility
+    echo '<div id="sureconsent-public-root"></div>';
 }
 
 run_sure_consent();

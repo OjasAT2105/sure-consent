@@ -15,6 +15,7 @@ const ActionCard = () => {
   };
 
   const togglePreview = () => {
+    console.log('Toggle preview clicked:', { previewEnabled, newValue: !previewEnabled }); // Debug log
     updateSetting('preview_enabled', !previewEnabled);
   };
 
@@ -29,15 +30,13 @@ const ActionCard = () => {
           >
             {previewEnabled ? 'Hide Preview' : 'Show Preview'}
           </Button>
-          {hasChanges && (
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 transition-colors"
-            >
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          )}
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || isSaving}
+            className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
+          </Button>
         </div>
       </div>
     </>

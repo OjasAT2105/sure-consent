@@ -24,7 +24,11 @@ class Sure_Consent_Settings {
         'banner_color' => '#1f2937',
         'text_color' => '#ffffff',
         'accept_button_color' => '#2563eb',
-        'decline_button_color' => 'transparent'
+        'decline_button_color' => 'transparent',
+        'notice_type' => 'banner',
+        'notice_position' => 'bottom',
+        'enable_banner' => false,
+        'show_preview' => false
     );
 
     /**
@@ -141,6 +145,8 @@ class Sure_Consent_Settings {
         switch ($key) {
             case 'banner_enabled':
             case 'preview_enabled':
+            case 'enable_banner':
+            case 'show_preview':
                 return (bool) $value;
             
             case 'banner_text':
@@ -150,6 +156,13 @@ class Sure_Consent_Settings {
             
             case 'banner_position':
                 return in_array($value, array('top', 'bottom')) ? $value : 'bottom';
+            
+            case 'notice_type':
+                return in_array($value, array('banner', 'box', 'popup')) ? $value : 'banner';
+            
+            case 'notice_position':
+                $valid_positions = array('top', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right');
+                return in_array($value, $valid_positions) ? $value : 'bottom';
             
             case 'banner_color':
             case 'text_color':

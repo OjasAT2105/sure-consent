@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Switch } from "@bsf/force-ui";
 import { useSettings } from "../contexts/SettingsContext";
 
+
 const CookieSettings = () => {
   const { getCurrentValue, updateSetting } = useSettings();
   const [isLoading, setIsLoading] = useState(true);
@@ -62,6 +63,8 @@ const CookieSettings = () => {
             onChange={handlePreviewToggle}
           />
         </div>
+
+
 
       </div>
     </div>

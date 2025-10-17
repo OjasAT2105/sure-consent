@@ -40,10 +40,17 @@ const Settings = () => {
     })
     .then(response => response.json())
     .then(data => {
-      if (!data.success) {
+      if (data.success) {
+        console.log('Banner enabled status updated:', checked);
+      } else {
         // Revert on error
         setBannerEnabled(!checked);
+        console.error('Failed to update banner status');
       }
+    })
+    .catch(error => {
+      console.error('Error updating banner status:', error);
+      setBannerEnabled(!checked);
     });
   };
 

@@ -17,6 +17,7 @@ class Sure_Consent_Ajax {
         add_action('wp_ajax_sure_consent_toggle_banner', array(__CLASS__, 'toggle_banner'));
         add_action('wp_ajax_sure_consent_toggle_preview', array(__CLASS__, 'toggle_preview'));
         add_action('wp_ajax_sure_consent_get_banner_status', array(__CLASS__, 'get_banner_status'));
+        add_action('wp_ajax_sure_consent_get_settings', array(__CLASS__, 'get_settings'));
         add_action('wp_ajax_sure_consent_get_public_settings', array(__CLASS__, 'get_public_settings'));
         add_action('wp_ajax_nopriv_sure_consent_get_public_settings', array(__CLASS__, 'get_public_settings'));
     }
@@ -56,11 +57,45 @@ class Sure_Consent_Ajax {
                 }
             }
         }
+        
+        // Also save directly as options for immediate access
+        foreach ($settings_data as $key => $value) {
+            $option_name = 'sure_consent_' . $key;
+            delete_option($option_name); // Delete first to ensure update works
+            add_option($option_name, $value);
+            $saved_value = get_option($option_name);
+            error_log('SureConsent - Saved: ' . $option_name . ' = ' . print_r($value, true) . ' (verified: ' . print_r($saved_value, true) . ')');
+        }
 
         wp_send_json_success(array(
             'message' => 'All settings saved successfully',
             'settings' => $updated
         ));
+    }
+
+    /**
+     * Get admin settings
+     */
+    public static function get_settings() {
+        if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        $settings = array(
+            'message_heading' => get_option('sure_consent_message_heading', ''),
+            'message_description' => get_option('sure_consent_message_description', ''),
+            'notice_type' => get_option('sure_consent_notice_type', 'banner'),
+            'notice_position' => get_option('sure_consent_notice_position', 'bottom'),
+            'preview_enabled' => get_option('sure_consent_preview_enabled', false),
+            'enable_banner' => get_option('sure_consent_enable_banner', false),
+            'show_preview' => get_option('sure_consent_show_preview', false)
+        );
+        
+        wp_send_json_success($settings);
     }
 
     /**
@@ -120,13 +155,25 @@ class Sure_Consent_Ajax {
      * Get public settings (no auth required)
      */
     public static function get_public_settings() {
-        if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
-            wp_die('Security check failed');
+        // Allow public access - check nonce only if provided
+        if (isset($_POST['nonce']) && !empty($_POST['nonce'])) {
+            if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+                wp_die('Security check failed');
+            }
         }
+
+        $notice_type = get_option('sure_consent_notice_type', 'banner');
+        $notice_position = get_option('sure_consent_notice_position', 'bottom');
+        $banner_enabled = get_option('sure_consent_banner_enabled', false) || get_option('sure_consent_enable_banner', false);
+        
+        error_log('SureConsent - Getting public settings: notice_type=' . $notice_type . ', notice_position=' . $notice_position . ', enabled=' . ($banner_enabled ? 'true' : 'false'));
 
         $settings = array(
             'message_heading' => get_option('sure_consent_message_heading', ''),
-            'message_description' => get_option('sure_consent_message_description', 'This website uses cookies to improve your experience. We\'ll assume you\'re ok with this, but you can opt-out if you wish.')
+            'message_description' => get_option('sure_consent_message_description', 'This website uses cookies to improve your experience. We\'ll assume you\'re ok with this, but you can opt-out if you wish.'),
+            'notice_type' => $notice_type,
+            'notice_position' => $notice_position,
+            'banner_enabled' => $banner_enabled
         );
         
         wp_send_json_success($settings);
