@@ -26,6 +26,7 @@ import CookieSettings from "../components/CookieSettings";
 import BannerContent from "../components/BannerContent";
 import BannerLayout from "../components/BannerLayout";
 import BannerDesign from "../components/BannerDesign";
+import Design from "../components/Design";
 import ScannedCookies from "../components/ScannedCookies";
 import ConsentLogs from "../components/ConsentLogs";
 import GeoRules from "../components/GeoRules";
@@ -204,7 +205,7 @@ const AdminApp = () => {
       case "/banner/layout":
         return <BannerLayout />;
       case "/banner/design":
-        return <BannerDesign />;
+        return <Design />;
       case "/settings/categories":
         return <CookieSettings />;
       case "/settings/scanned":
@@ -260,6 +261,8 @@ const AdminApp = () => {
     if (!links?.length) {
       return null;
     }
+
+
 
     return (
       <Sidebar.Item
@@ -397,18 +400,20 @@ const AdminApp = () => {
               </main>
             </div>
           ) : (
-            <div className="w-full min-h-[calc(100vh-64px)] grid grid-cols-[290px_1fr]">
+            <div className="w-full h-[calc(100vh-64px)] grid grid-cols-[290px_1fr]">
               <SidebarNavigation navLinks={filteredNavLinks} />
-              <div className="bg-background-secondary p-5 min-h-full">
-                <main className="mx-auto max-w-[768px]">
-                  {(activeSection === "banner" || activeSection === "settings") && <ActionCard />}
-                  {renderContent()}
-                </main>
+              <div className="bg-background-secondary overflow-y-auto">
+                <div className="p-5">
+                  <main className="mx-auto max-w-[768px]">
+                    {(activeSection === "banner" || activeSection === "settings") && <ActionCard />}
+                    {renderContent()}
+                  </main>
+                </div>
               </div>
             </div>
           )}
         </div>
-        <PreviewBanner />
+        {(activeSection === "banner" || activeSection === "settings") && <PreviewBanner />}
       </Fragment>
     </SettingsProvider>
   );

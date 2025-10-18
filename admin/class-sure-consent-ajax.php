@@ -92,7 +92,18 @@ class Sure_Consent_Ajax {
             'notice_position' => get_option('sure_consent_notice_position', 'bottom'),
             'preview_enabled' => get_option('sure_consent_preview_enabled', false),
             'enable_banner' => get_option('sure_consent_enable_banner', false),
-            'show_preview' => get_option('sure_consent_show_preview', false)
+            'show_preview' => get_option('sure_consent_show_preview', false),
+            'banner_bg_color' => get_option('sure_consent_banner_bg_color', '#1f2937'),
+            'bg_opacity' => get_option('sure_consent_bg_opacity', '100'),
+            'text_color' => get_option('sure_consent_text_color', '#ffffff'),
+            'border_style' => get_option('sure_consent_border_style', 'solid'),
+            'border_width' => get_option('sure_consent_border_width', '1'),
+            'border_color' => get_option('sure_consent_border_color', '#000000'),
+            'border_radius' => get_option('sure_consent_border_radius', '8'),
+            'font' => get_option('sure_consent_font', 'Arial'),
+            'bg_image' => get_option('sure_consent_bg_image', ''),
+            'accept_btn_color' => get_option('sure_consent_accept_btn_color', '#2563eb'),
+            'decline_btn_color' => get_option('sure_consent_decline_btn_color', 'transparent')
         );
         
         wp_send_json_success($settings);
@@ -173,7 +184,18 @@ class Sure_Consent_Ajax {
             'message_description' => get_option('sure_consent_message_description', 'This website uses cookies to improve your experience. We\'ll assume you\'re ok with this, but you can opt-out if you wish.'),
             'notice_type' => $notice_type,
             'notice_position' => $notice_position,
-            'banner_enabled' => $banner_enabled
+            'banner_enabled' => $banner_enabled,
+            'banner_bg_color' => get_option('sure_consent_banner_bg_color', '#1f2937'),
+            'bg_opacity' => get_option('sure_consent_bg_opacity', '100'),
+            'text_color' => get_option('sure_consent_text_color', '#ffffff'),
+            'border_style' => get_option('sure_consent_border_style', 'solid'),
+            'border_width' => get_option('sure_consent_border_width', '1'),
+            'border_color' => get_option('sure_consent_border_color', '#000000'),
+            'border_radius' => get_option('sure_consent_border_radius', '8'),
+            'font' => get_option('sure_consent_font', 'Arial'),
+            'bg_image' => get_option('sure_consent_bg_image', ''),
+            'accept_btn_color' => get_option('sure_consent_accept_btn_color', '#2563eb'),
+            'decline_btn_color' => get_option('sure_consent_decline_btn_color', 'transparent')
         );
         
         wp_send_json_success($settings);

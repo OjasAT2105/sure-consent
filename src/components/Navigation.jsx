@@ -10,10 +10,13 @@ import {
   CaseLower,
   GlobeLock,
   LayoutList,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 const Navigation = ({ activeTab, setActiveTab }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isDesignOpen, setIsDesignOpen] = useState(true);
 
   return (
     <Sidebar
@@ -96,16 +99,59 @@ const Navigation = ({ activeTab, setActiveTab }) => {
                     <LayoutList size={16} />
                     <span className="text-sm">Layout</span>
                   </div>
-                  <div
-                    className={`p-2 flex items-center gap-3 cursor-pointer rounded-md hover:bg-slate-100 text-gray-600 ${
-                      activeTab === "banner-design"
-                        ? "bg-slate-100 font-semibold"
-                        : ""
-                    }`}
-                    onClick={() => setActiveTab("banner-design")}
-                  >
-                    <Palette size={16} />
-                    <span className="text-sm">Design</span>
+                  <div>
+                    <div
+                      className="p-2 flex items-center gap-3 cursor-pointer rounded-md hover:bg-slate-100 text-gray-600"
+                      onClick={() => setIsDesignOpen(!isDesignOpen)}
+                    >
+                      <Palette size={16} />
+                      <span className="text-sm flex-1">Design</span>
+                      {isDesignOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </div>
+                    {isDesignOpen && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        <div
+                          className={`p-2 flex items-center gap-2 cursor-pointer rounded-md hover:bg-slate-100 text-gray-600 text-xs ${
+                            activeTab === "design-cookie-bar" ? "bg-slate-100 font-semibold" : ""
+                          }`}
+                          onClick={() => setActiveTab("design-cookie-bar")}
+                        >
+                          Cookie Bar Design
+                        </div>
+                        <div
+                          className={`p-2 flex items-center gap-2 cursor-pointer rounded-md hover:bg-slate-100 text-gray-600 text-xs ${
+                            activeTab === "design-accept-btn" ? "bg-slate-100 font-semibold" : ""
+                          }`}
+                          onClick={() => setActiveTab("design-accept-btn")}
+                        >
+                          Accept Button
+                        </div>
+                        <div
+                          className={`p-2 flex items-center gap-2 cursor-pointer rounded-md hover:bg-slate-100 text-gray-600 text-xs ${
+                            activeTab === "design-accept-all-btn" ? "bg-slate-100 font-semibold" : ""
+                          }`}
+                          onClick={() => setActiveTab("design-accept-all-btn")}
+                        >
+                          Accept All Button
+                        </div>
+                        <div
+                          className={`p-2 flex items-center gap-2 cursor-pointer rounded-md hover:bg-slate-100 text-gray-600 text-xs ${
+                            activeTab === "design-decline-btn" ? "bg-slate-100 font-semibold" : ""
+                          }`}
+                          onClick={() => setActiveTab("design-decline-btn")}
+                        >
+                          Decline Button
+                        </div>
+                        <div
+                          className={`p-2 flex items-center gap-2 cursor-pointer rounded-md hover:bg-slate-100 text-gray-600 text-xs ${
+                            activeTab === "design-settings-btn" ? "bg-slate-100 font-semibold" : ""
+                          }`}
+                          onClick={() => setActiveTab("design-settings-btn")}
+                        >
+                          Cookie Settings Button
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
