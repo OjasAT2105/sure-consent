@@ -152,8 +152,6 @@
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
-  width: auto !important;
-  max-width: none !important;
 }
 
 .sureconsent-preview-banner[data-preview="true"] {

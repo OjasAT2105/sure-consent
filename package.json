@@ -27,7 +27,9 @@
   },
   "dependencies": {
     "@bsf/force-ui": "git+https://github.com/brainstormforce/force-ui#1.7.6",
+    "prismjs": "^1.30.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-simple-code-editor": "^0.14.1"
   }
 }

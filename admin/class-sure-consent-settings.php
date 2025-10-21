@@ -16,7 +16,7 @@ class Sure_Consent_Settings {
         'banner_enabled' => false,
         'preview_enabled' => false,
         'message_heading' => '',
-        'message_description' => 'This website uses cookies to improve your experience. We\'ll assume you\'re ok with this, but you can opt-out if you wish.',
+        'message_description' => 'We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.',
         'banner_text' => 'We use cookies to enhance your browsing experience and analyze our traffic. By clicking "Accept All", you consent to our use of cookies.',
         'accept_button_text' => 'Accept All',
         'decline_button_text' => 'Decline',

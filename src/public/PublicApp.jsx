@@ -3,9 +3,10 @@ import React, { useState, useEffect } from "react";
 const PublicApp = () => {
   const [showBanner, setShowBanner] = useState(false);
   const [bannerEnabled, setBannerEnabled] = useState(false);
+  const [customCSS, setCustomCSS] = useState("");
   const [messageHeading, setMessageHeading] = useState("");
   const [messageDescription, setMessageDescription] = useState(
-    "This website uses cookies to improve your experience. We'll assume you're ok with this, but you can opt-out if you wish."
+    "We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy."
   );
   const [noticeType, setNoticeType] = useState("banner");
   const [noticePosition, setNoticePosition] = useState("bottom");
@@ -47,7 +48,7 @@ const PublicApp = () => {
 
   // Decline button properties
   const [declineBtnText, setDeclineBtnText] = useState("Decline");
-  const [declineBtnTextColor, setDeclineBtnTextColor] = useState("#ffffff");
+  const [declineBtnTextColor, setDeclineBtnTextColor] = useState("#000000");
   const [declineBtnShowAs, setDeclineBtnShowAs] = useState("button");
   const [declineBtnBgOpacity, setDeclineBtnBgOpacity] = useState("100");
   const [declineBtnBorderStyle, setDeclineBtnBorderStyle] = useState("solid");
@@ -63,6 +64,42 @@ const PublicApp = () => {
   useEffect(() => {
     fetchSettings();
   }, []);
+
+  // Inject custom CSS
+  useEffect(() => {
+    console.log("PublicApp - Custom CSS:", customCSS);
+
+    // Remove existing custom CSS if any
+    const existingStyle = document.getElementById(
+      "sureconsent-custom-css-public"
+    );
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    // Add new custom CSS if provided
+    if (customCSS && customCSS.trim()) {
+      const style = document.createElement("style");
+      style.id = "sureconsent-custom-css-public";
+      // Add comment and ensure it loads with highest priority
+      style.textContent = `/* SureConsent Custom CSS - Public */\n${customCSS}`;
+      document.head.appendChild(style);
+      console.log("PublicApp - Custom CSS injected successfully!");
+      console.log("PublicApp - CSS content:", style.textContent);
+    } else {
+      console.log("PublicApp - No custom CSS to inject");
+    }
+
+    // Cleanup on unmount
+    return () => {
+      const styleToRemove = document.getElementById(
+        "sureconsent-custom-css-public"
+      );
+      if (styleToRemove) {
+        styleToRemove.remove();
+      }
+    };
+  }, [customCSS]);
 
   const fetchSettings = async () => {
     console.log("PublicApp - Fetching frontend settings...");
@@ -83,7 +120,7 @@ const PublicApp = () => {
         const heading = data.data.message_heading || "";
         const description =
           data.data.message_description ||
-          "This website uses cookies to improve your experience. We'll assume you're ok with this, but you can opt-out if you wish.";
+          "We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.";
         const type = data.data.notice_type || "banner";
         const position = data.data.notice_position || "bottom";
         const enabled = data.data.banner_enabled || false;
@@ -129,7 +166,7 @@ const PublicApp = () => {
 
         // Decline button properties
         const declineText = data.data.decline_btn_text || "Decline";
-        const declineTextColor = data.data.decline_btn_text_color || "#ffffff";
+        const declineTextColor = data.data.decline_btn_text_color || "#000000";
         const declineShowAs = data.data.decline_btn_show_as || "button";
         const declineBgOpacity = data.data.decline_btn_bg_opacity || "100";
         const declineBorderStyle =
@@ -138,6 +175,9 @@ const PublicApp = () => {
           data.data.decline_btn_border_color || "#6b7280";
         const declineBorderWidth = data.data.decline_btn_border_width || "1";
         const declineBorderRadius = data.data.decline_btn_border_radius || "4";
+
+        // Custom CSS
+        const customCSSValue = data.data.custom_css || "";
 
         setMessageHeading(heading);
         setMessageDescription(description);
@@ -194,6 +234,9 @@ const PublicApp = () => {
         setDeclineBtnBorderColor(declineBorderColor);
         setDeclineBtnBorderWidth(declineBorderWidth);
         setDeclineBtnBorderRadius(declineBorderRadius);
+
+        // Set custom CSS
+        setCustomCSS(customCSSValue);
 
         // Set button order
         const order = data.data.button_order || "decline,accept,accept_all";
@@ -259,7 +302,7 @@ const PublicApp = () => {
       const baseStyles = {
         position: "fixed",
         zIndex: highZIndex,
-        width: "280px",
+        width: "600px",
         maxWidth: "90vw",
         pointerEvents: "auto",
       };
@@ -284,7 +327,7 @@ const PublicApp = () => {
         left: "50%",
         transform: "translate(-50%, -50%)",
         zIndex: highZIndex,
-        width: "400px",
+        width: "600px",
         maxWidth: "90vw",
         pointerEvents: "auto",
       };
@@ -365,7 +408,7 @@ const PublicApp = () => {
         visibility: "visible",
         opacity: 1,
       }}
-      className="sureconsent-public-banner"
+      className="sureconsent-public-banner sureconsent-banner"
       data-banner="true"
     >
       <div
@@ -440,6 +483,8 @@ const PublicApp = () => {
               window.innerWidth < 768
                 ? "100%"
                 : "auto",
+            justifyContent: "flex-start",
+            alignItems: "center",
           }}
         >
           {buttonOrder
@@ -449,6 +494,7 @@ const PublicApp = () => {
                   return (
                     <button
                       key="decline"
+                      className="sureconsent-decline-btn"
                       onClick={handleDecline}
                       style={getButtonStyles(
                         declineBtnColor,
@@ -468,6 +514,7 @@ const PublicApp = () => {
                   return (
                     <button
                       key="accept"
+                      className="sureconsent-accept-btn"
                       onClick={handleAccept}
                       style={getButtonStyles(
                         acceptBtnColor,
@@ -487,6 +534,7 @@ const PublicApp = () => {
                   return acceptAllEnabled ? (
                     <button
                       key="accept_all"
+                      className="sureconsent-accept-all-btn"
                       onClick={handleAccept}
                       style={getButtonStyles(
                         acceptAllBtnBgColor,

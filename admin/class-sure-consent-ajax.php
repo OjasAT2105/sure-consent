@@ -93,7 +93,7 @@ class Sure_Consent_Ajax {
         
         $settings = array(
             'message_heading' => (string) get_option('sure_consent_message_heading', ''),
-            'message_description' => (string) get_option('sure_consent_message_description', ''),
+            'message_description' => (string) get_option('sure_consent_message_description', 'We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.'),
             'notice_type' => (string) get_option('sure_consent_notice_type', 'banner'),
             'notice_position' => (string) get_option('sure_consent_notice_position', 'bottom'),
             'preview_enabled' => (bool) get_option('sure_consent_preview_enabled', false),
@@ -109,7 +109,9 @@ class Sure_Consent_Ajax {
             'font' => (string) get_option('sure_consent_font', 'Arial'),
             'banner_logo' => (string) get_option('sure_consent_banner_logo', ''),
             'accept_btn_color' => (string) get_option('sure_consent_accept_btn_color', '#2563eb'),
-            'decline_btn_color' => (string) get_option('sure_consent_decline_btn_color', 'transparent')
+            'decline_btn_color' => (string) get_option('sure_consent_decline_btn_color', 'transparent'),
+            'custom_css' => (string) get_option('sure_consent_custom_css', ''),
+            'banner_design_template' => (string) get_option('sure_consent_banner_design_template', 'default')
         );
         
         error_log('SureConsent - Sending settings response: ' . print_r($settings, true));
@@ -188,7 +190,7 @@ class Sure_Consent_Ajax {
 
         $settings = array(
             'message_heading' => (string) get_option('sure_consent_message_heading', ''),
-            'message_description' => (string) get_option('sure_consent_message_description', 'This website uses cookies to improve your experience. We\'ll assume you\'re ok with this, but you can opt-out if you wish.'),
+            'message_description' => (string) get_option('sure_consent_message_description', 'We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.'),
             'notice_type' => (string) $notice_type,
             'notice_position' => (string) $notice_position,
             'banner_enabled' => (bool) $banner_enabled,
@@ -222,14 +224,15 @@ class Sure_Consent_Ajax {
             'accept_all_btn_border_radius' => (string) get_option('sure_consent_accept_all_btn_border_radius', '4'),
             'decline_btn_color' => (string) get_option('sure_consent_decline_btn_color', 'transparent'),
             'decline_btn_text' => (string) get_option('sure_consent_decline_btn_text', 'Decline'),
-            'decline_btn_text_color' => (string) get_option('sure_consent_decline_btn_text_color', '#ffffff'),
+            'decline_btn_text_color' => (string) get_option('sure_consent_decline_btn_text_color', '#000000'),
             'decline_btn_show_as' => (string) get_option('sure_consent_decline_btn_show_as', 'button'),
             'decline_btn_bg_opacity' => (string) get_option('sure_consent_decline_btn_bg_opacity', '100'),
             'decline_btn_border_style' => (string) get_option('sure_consent_decline_btn_border_style', 'solid'),
             'decline_btn_border_color' => (string) get_option('sure_consent_decline_btn_border_color', '#6b7280'),
             'decline_btn_border_width' => (string) get_option('sure_consent_decline_btn_border_width', '1'),
             'decline_btn_border_radius' => (string) get_option('sure_consent_decline_btn_border_radius', '4'),
-            'button_order' => (string) get_option('sure_consent_button_order', 'decline,accept,accept_all')
+            'button_order' => (string) get_option('sure_consent_button_order', 'decline,accept,accept_all'),
+            'custom_css' => (string) get_option('sure_consent_custom_css', '')
         );
         
         wp_send_json_success($settings);

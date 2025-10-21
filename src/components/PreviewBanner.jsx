@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useSettings } from "../contexts/SettingsContext";
+import { useEffect } from "react";
 
 const PreviewBanner = () => {
   const { getCurrentValue, isLoaded } = useSettings();
-  const [showCCPAPopup, setShowCCPAPopup] = useState(false);
   const previewEnabled = getCurrentValue("preview_enabled");
-  const complianceLaw = getCurrentValue("compliance_law") || { name: "GDPR" };
+  const customCSS = getCurrentValue("custom_css") || "";
   const messageHeading = getCurrentValue("message_heading") || "Cookie Notice";
   const messageDescription =
     getCurrentValue("message_description") ||
-    "This website uses cookies to improve your experience. We'll assume you're ok with this, but you can opt-out if you wish.";
+    "We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.";
   const noticeType = getCurrentValue("notice_type") || "banner";
   const noticePosition = getCurrentValue("notice_position") || "bottom";
   const bannerBgColor = getCurrentValue("banner_bg_color") || "#1f2937";
@@ -63,7 +63,7 @@ const PreviewBanner = () => {
   // Decline button properties
   const declineBtnText = getCurrentValue("decline_btn_text") || "Decline";
   const declineBtnTextColor =
-    getCurrentValue("decline_btn_text_color") || "#ffffff";
+    getCurrentValue("decline_btn_text_color") || "#000000";
   const declineBtnShowAs = getCurrentValue("decline_btn_show_as") || "button";
   const declineBtnBgOpacity =
     getCurrentValue("decline_btn_bg_opacity") || "100";
@@ -84,6 +84,42 @@ const PreviewBanner = () => {
   );
   console.log("the value is -> ", bannerBgColor);
   console.log("the value textColor is -> ", textColor);
+
+  // Inject custom CSS
+  useEffect(() => {
+    console.log("PreviewBanner - Custom CSS:", customCSS);
+
+    // Remove existing custom CSS if any
+    const existingStyle = document.getElementById(
+      "sureconsent-custom-css-preview"
+    );
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    // Add new custom CSS if provided
+    if (customCSS && customCSS.trim()) {
+      const style = document.createElement("style");
+      style.id = "sureconsent-custom-css-preview";
+      // Add comment and ensure it loads with highest priority
+      style.textContent = `/* SureConsent Custom CSS - Preview */\n${customCSS}`;
+      document.head.appendChild(style);
+      console.log("PreviewBanner - Custom CSS injected successfully!");
+      console.log("PreviewBanner - CSS content:", style.textContent);
+    } else {
+      console.log("PreviewBanner - No custom CSS to inject");
+    }
+
+    // Cleanup on unmount
+    return () => {
+      const styleToRemove = document.getElementById(
+        "sureconsent-custom-css-preview"
+      );
+      if (styleToRemove) {
+        styleToRemove.remove();
+      }
+    };
+  }, [customCSS]);
 
   // Don't render until settings are loaded OR if preview is explicitly disabled
   if (!isLoaded) {
@@ -128,7 +164,7 @@ const PreviewBanner = () => {
       const baseStyles = {
         position: "fixed",
         zIndex: highZIndex,
-        width: "280px",
+        width: "600px",
         maxWidth: "90vw",
         pointerEvents: "auto",
       };
@@ -153,7 +189,7 @@ const PreviewBanner = () => {
         left: "50%",
         transform: "translate(-50%, -50%)",
         zIndex: highZIndex,
-        width: "400px",
+        width: "600px",
         maxWidth: "90vw",
         pointerEvents: "auto",
       };
@@ -229,7 +265,7 @@ const PreviewBanner = () => {
         visibility: "visible",
         opacity: 1,
       }}
-      className="sureconsent-preview-banner"
+      className="sureconsent-preview-banner sureconsent-banner"
       data-preview="true"
     >
       <div
@@ -304,6 +340,7 @@ const PreviewBanner = () => {
               decline: (
                 <button
                   key="decline"
+                  className="sureconsent-decline-btn"
                   style={getButtonStyles(
                     declineBtnColor,
                     declineBtnBgOpacity,
@@ -321,6 +358,7 @@ const PreviewBanner = () => {
               accept: (
                 <button
                   key="accept"
+                  className="sureconsent-accept-btn"
                   style={getButtonStyles(
                     acceptBtnColor,
                     acceptBtnBgOpacity,
@@ -338,6 +376,7 @@ const PreviewBanner = () => {
               accept_all: acceptAllEnabled ? (
                 <button
                   key="accept_all"
+                  className="sureconsent-accept-all-btn"
                   style={getButtonStyles(
                     acceptAllBtnBgColor,
                     acceptAllBtnBgOpacity,
@@ -359,76 +398,6 @@ const PreviewBanner = () => {
           })()}
         </div>
       </div>
-
-      {/* CCPA Opt-out Popup */}
-      {showCCPAPopup && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            zIndex: 999999999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              padding: "24px",
-              borderRadius: "8px",
-              maxWidth: "400px",
-              width: "90%",
-              textAlign: "center",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "18px",
-                fontWeight: "600",
-                marginBottom: "16px",
-                color: "#111827",
-              }}
-            >
-              Do you really wish to opt-out?
-            </h3>
-            <div
-              style={{ display: "flex", gap: "12px", justifyContent: "center" }}
-            >
-              <button
-                onClick={() => setShowCCPAPopup(false)}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#6b7280",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => setShowCCPAPopup(false)}
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#dc2626",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

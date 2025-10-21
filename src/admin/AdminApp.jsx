@@ -27,6 +27,8 @@ import QuickCookieBanner from "../components/QuickCookieBanner";
 import CookieSettings from "../components/CookieSettings";
 import BannerContent from "../components/BannerContent";
 import BannerLayout from "../components/BannerLayout";
+import CustomCSS from "../components/CustomCSS";
+import BannerDesignSelector from "../components/BannerDesignSelector";
 
 import Design from "../components/Design";
 import ScannedCookies from "../components/ScannedCookies";
@@ -118,6 +120,16 @@ const AdminApp = () => {
           label: "Design",
           path: "/banner/design",
           icon: Palette,
+        },
+        {
+          label: "Customize",
+          path: "/banner/customize",
+          icon: Palette,
+        },
+        {
+          label: "Custom CSS",
+          path: "/banner/custom-css",
+          icon: SettingsIcon,
         },
       ],
     },
@@ -236,7 +248,11 @@ const AdminApp = () => {
       case "/banner/layout":
         return <BannerLayout />;
       case "/banner/design":
+        return <BannerDesignSelector />;
+      case "/banner/customize":
         return <Design />;
+      case "/banner/custom-css":
+        return <CustomCSS />;
       case "/settings/general":
         return <CookieSettings />;
       case "/settings/laws":
