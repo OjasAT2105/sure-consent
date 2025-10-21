@@ -1,11 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 const SettingsContext = createContext();
 
 export const useSettings = () => {
   const context = useContext(SettingsContext);
   if (!context) {
-    throw new Error('useSettings must be used within a SettingsProvider');
+    throw new Error("useSettings must be used within a SettingsProvider");
   }
   return context;
 };
@@ -15,6 +15,7 @@ export const SettingsProvider = ({ children }) => {
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pendingChanges, setPendingChanges] = useState({});
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Load initial settings
   useEffect(() => {
@@ -22,84 +23,174 @@ export const SettingsProvider = ({ children }) => {
   }, []);
 
   const loadSettings = async () => {
+    console.log("Loading settings...", {
+      ajaxurl: window.sureConsentAjax?.ajaxurl,
+      nonce: window.sureConsentAjax?.nonce,
+    });
     try {
-      const response = await fetch(window.sureConsentAjax?.ajaxurl || '/wp-admin/admin-ajax.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          action: 'sure_consent_get_settings',
-          nonce: window.sureConsentAjax?.nonce || ''
-        })
-      });
-      
+      const response = await fetch(
+        window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "sure_consent_get_settings",
+            nonce: window.sureConsentAjax?.nonce || "",
+          }),
+        }
+      );
+
       const data = await response.json();
+      console.log("AJAX response:", data);
       if (data.success) {
-        setSettings(data.data);
+        // Ensure all values are properly processed
+        const processedSettings = { ...data.data };
+        console.log("Raw settings from server:", data.data);
+        // Convert boolean values
+        if (typeof processedSettings.preview_enabled === "string") {
+          processedSettings.preview_enabled =
+            processedSettings.preview_enabled === "1" ||
+            processedSettings.preview_enabled === "true" ||
+            processedSettings.preview_enabled === true;
+        } else if (typeof processedSettings.preview_enabled === "boolean") {
+          // Keep it as is
+        } else {
+          // Default to false if not set
+          processedSettings.preview_enabled = false;
+        }
+        // Ensure all other values are strings (not null/undefined)
+        Object.keys(processedSettings).forEach((key) => {
+          if (
+            processedSettings[key] === null ||
+            processedSettings[key] === undefined
+          ) {
+            processedSettings[key] = "";
+          }
+        });
+        console.log("Processed settings:", processedSettings);
+        setSettings(processedSettings);
+        setIsLoaded(true);
+      } else {
+        console.error(
+          "Failed to load settings - response not successful:",
+          data
+        );
+        setIsLoaded(true);
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      console.error("Failed to load settings:", error);
+      setIsLoaded(true); // Set loaded even on error to prevent infinite loading
     }
   };
 
   const updateSetting = (key, value) => {
-    setPendingChanges(prev => ({
+    console.log("SettingsContext - updateSetting:", key, value);
+    setPendingChanges((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
+
+    // For preview_enabled, also update settings immediately for instant UI feedback
+    if (key === "preview_enabled") {
+      setSettings((prev) => ({
+        ...prev,
+        [key]: value,
+      }));
+      // Also save immediately to backend
+      saveSettingImmediately(key, value);
+    }
+
     setHasChanges(true);
+  };
+
+  const saveSettingImmediately = async (key, value) => {
+    try {
+      const response = await fetch(
+        window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "sure_consent_save_all_settings",
+            nonce: window.sureConsentAjax?.nonce || "",
+            settings: JSON.stringify({ [key]: value }),
+          }),
+        }
+      );
+
+      const data = await response.json();
+      console.log("Immediate save response for", key, ":", data);
+    } catch (error) {
+      console.error("Failed to save setting immediately:", error);
+    }
   };
 
   const saveSettings = async () => {
     if (Object.keys(pendingChanges).length === 0) {
-      return { success: true, message: 'No changes to save' };
+      return { success: true, message: "No changes to save" };
     }
 
     setIsSaving(true);
-    
+
     try {
-      const response = await fetch(window.sureConsentAjax?.ajaxurl || '/wp-admin/admin-ajax.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          action: 'sure_consent_save_all_settings',
-          nonce: window.sureConsentAjax?.nonce || '',
-          settings: JSON.stringify(pendingChanges)
-        })
-      });
-      
+      const response = await fetch(
+        window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "sure_consent_save_all_settings",
+            nonce: window.sureConsentAjax?.nonce || "",
+            settings: JSON.stringify(pendingChanges),
+          }),
+        }
+      );
+
       const data = await response.json();
-      
+
       if (data.success) {
-        setSettings(prev => ({ ...prev, ...pendingChanges }));
+        // Update settings with the saved changes
+        const updatedSettings = { ...settings, ...pendingChanges };
+        setSettings(updatedSettings);
         setPendingChanges({});
         setHasChanges(false);
         return { success: true, message: data.data.message };
       } else {
-        return { success: false, message: data.data || 'Failed to save settings' };
+        return {
+          success: false,
+          message: data.data || "Failed to save settings",
+        };
       }
     } catch (error) {
-      console.error('Failed to save settings:', error);
-      return { success: false, message: 'Network error occurred' };
+      console.error("Failed to save settings:", error);
+      return { success: false, message: "Network error occurred" };
     } finally {
       setIsSaving(false);
     }
   };
 
   const getCurrentValue = (key) => {
-    return pendingChanges.hasOwnProperty(key) ? pendingChanges[key] : settings[key];
+    const value = pendingChanges.hasOwnProperty(key)
+      ? pendingChanges[key]
+      : settings[key];
+    return value;
   };
 
   const value = {
     settings,
     hasChanges,
     isSaving,
+    isLoaded,
     updateSetting,
     saveSettings,
-    getCurrentValue
+    getCurrentValue,
+    loadSettings,
   };
 
   return (

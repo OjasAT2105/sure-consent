@@ -2,8 +2,7 @@ import { Button, Toaster, toast } from "@bsf/force-ui";
 import { useSettings } from "../contexts/SettingsContext";
 
 const ActionCard = () => {
-  const { hasChanges, isSaving, saveSettings, getCurrentValue, updateSetting } = useSettings();
-  const previewEnabled = getCurrentValue('preview_enabled');
+  const { hasChanges, isSaving, saveSettings } = useSettings();
 
   const handleSave = async () => {
     const result = await saveSettings();
@@ -14,30 +13,19 @@ const ActionCard = () => {
     }
   };
 
-  const togglePreview = () => {
-    console.log('Toggle preview clicked:', { previewEnabled, newValue: !previewEnabled }); // Debug log
-    updateSetting('preview_enabled', !previewEnabled);
-  };
+
 
   return (
     <>
       <Toaster position="top-right" design="stack" theme="light" autoDismiss={true} dismissAfter={5000} />
-      <div className="bg-white border rounded-lg shadow-sm mb-6" style={{'--tw-border-opacity': 1, borderColor: 'rgb(229 231 235 / var(--tw-border-opacity))'}}>
-        <div className="p-4 flex justify-end gap-3">
-          <Button
-            onClick={togglePreview}
-            className="bg-gray-600 hover:bg-gray-700 text-white border-gray-600 transition-colors"
-          >
-            {previewEnabled ? 'Hide Preview' : 'Show Preview'}
-          </Button>
+      <div className="flex justify-start gap-3 mt-6">
           <Button
             onClick={handleSave}
             disabled={!hasChanges || isSaving}
-            className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border disabled:border-gray-300"
           >
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>
-        </div>
       </div>
     </>
   );

@@ -1,5 +1,16 @@
 import { Container, Label, Button, Badge } from "@bsf/force-ui";
-import { Ticket, MessageSquare, Star, Info, Shield, Cookie, BarChart3, Settings, Palette } from "lucide-react";
+import {
+  Ticket,
+  MessageSquare,
+  Star,
+  Info,
+  Shield,
+  Cookie,
+  BarChart3,
+  Settings,
+  Palette,
+} from "lucide-react";
+import { useSettings } from "../contexts/SettingsContext";
 
 const quickLinks = [
   {
@@ -116,10 +127,7 @@ const SureFormsIcon = (props) => (
       d="M5.71094 8.57031H12.8538V11.4274H7.13952L5.71094 12.856V11.4274V8.57031Z"
       fill="white"
     />
-    <path
-      d="M5.71094 12.8516H9.99664V15.7087H5.71094V12.8516Z"
-      fill="white"
-    />
+    <path d="M5.71094 12.8516H9.99664V15.7087H5.71094V12.8516Z" fill="white" />
   </svg>
 );
 
@@ -159,17 +167,11 @@ const PluginCard = ({ item }) => (
     >
       <Container.Item>
         <Container className="items-start gap-1.5 p-1">
-          <Container.Item
-            className="flex mt-0.5"
-            grow={0}
-            shrink={0}
-          >
+          <Container.Item className="flex mt-0.5" grow={0} shrink={0}>
             <item.icon className="size-5" />
           </Container.Item>
           <Container.Item className="flex">
-            <Label className="text-sm font-medium">
-              {item.name}
-            </Label>
+            <Label className="text-sm font-medium">{item.name}</Label>
           </Container.Item>
         </Container>
       </Container.Item>
@@ -186,9 +188,9 @@ const PluginCard = ({ item }) => (
           className="p-1 focus:[box-shadow:none] hover:no-underline"
           size="sm"
           variant="outline"
-          disabled={item.status === 'active'}
+          disabled={item.status === "active"}
         >
-          {item.status === 'active' ? 'Activated' : 'Install & Activate'}
+          {item.status === "active" ? "Activated" : "Install & Activate"}
         </Button>
       </Container.Item>
     </Container>
@@ -198,10 +200,15 @@ const PluginCard = ({ item }) => (
 const PieChart = ({ data }) => {
   const total = data.reduce((sum, item) => sum + item.value, 0);
   let cumulativePercentage = 0;
-  
+
   return (
     <div className="flex items-center justify-center">
-      <svg width="120" height="120" viewBox="0 0 42 42" className="transform -rotate-90">
+      <svg
+        width="120"
+        height="120"
+        viewBox="0 0 42 42"
+        className="transform -rotate-90"
+      >
         <circle
           cx="21"
           cy="21"
@@ -215,7 +222,7 @@ const PieChart = ({ data }) => {
           const strokeDasharray = `${percentage} ${100 - percentage}`;
           const strokeDashoffset = -cumulativePercentage;
           cumulativePercentage += percentage;
-          
+
           return (
             <circle
               key={index}
@@ -237,6 +244,23 @@ const PieChart = ({ data }) => {
 };
 
 const Dashboard = () => {
+  const { getCurrentValue, updateSetting, saveSettings } = useSettings();
+  const bannerEnabled =
+    getCurrentValue("banner_enabled") ||
+    getCurrentValue("enable_banner") ||
+    false;
+
+  const toggleBanner = async () => {
+    const newValue = !bannerEnabled;
+    updateSetting("banner_enabled", newValue);
+    updateSetting("enable_banner", newValue);
+    // Save immediately
+    const result = await saveSettings();
+    if (result.success) {
+      console.log("Banner status updated:", newValue);
+    }
+  };
+
   const consentData = [
     { label: "Accepted", value: 65, color: "#10b981" },
     { label: "Rejected", value: 25, color: "#ef4444" },
@@ -299,24 +323,60 @@ const Dashboard = () => {
             gap="md"
           >
             <Container.Item>
-              <Label className="text-lg font-semibold text-text-primary">
-                Cookie Banner Status
-              </Label>
+              <Container align="center" justify="between">
+                <Label className="text-lg font-semibold text-text-primary">
+                  Cookie Banner Status
+                </Label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bannerEnabled}
+                    onChange={toggleBanner}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`relative w-11 h-6 rounded-full transition-colors ${
+                      bannerEnabled ? "bg-green-600" : "bg-gray-300"
+                    }`}
+                  >
+                    <div
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                        bannerEnabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    ></div>
+                  </div>
+                  <span className="ml-3 text-sm font-medium text-gray-700">
+                    {bannerEnabled ? "Enabled" : "Disabled"}
+                  </span>
+                </label>
+              </Container>
             </Container.Item>
             <Container.Item>
               <Container className="gap-4">
                 <Container.Item className="flex-1">
                   <Container direction="column" className="gap-2">
-                    <Label className="text-sm text-text-secondary">Status</Label>
+                    <Label className="text-sm text-text-secondary">
+                      Frontend Status
+                    </Label>
                     <Container align="center" className="gap-2">
-                      <Badge label="Active" size="sm" variant="success" />
-                      <Label className="text-sm">Banner is running</Label>
+                      <Badge
+                        label={bannerEnabled ? "Active" : "Inactive"}
+                        size="sm"
+                        variant={bannerEnabled ? "success" : "neutral"}
+                      />
+                      <Label className="text-sm">
+                        {bannerEnabled
+                          ? "Banner is running on your website"
+                          : "Banner is disabled"}
+                      </Label>
                     </Container>
                   </Container>
                 </Container.Item>
                 <Container.Item className="flex-1">
                   <Container direction="column" className="gap-2">
-                    <Label className="text-sm text-text-secondary">Compliance</Label>
+                    <Label className="text-sm text-text-secondary">
+                      Compliance
+                    </Label>
                     <Container align="center" className="gap-2">
                       <Badge label="GDPR" size="sm" variant="neutral" />
                       <Label className="text-sm">EU compliance enabled</Label>
@@ -328,7 +388,7 @@ const Dashboard = () => {
           </Container>
         </Container>
       </Container.Item>
-      
+
       <Container.Item className="col-span-4 flex flex-col gap-6">
         {/* Extend Your Website */}
         <Container
@@ -380,11 +440,7 @@ const Dashboard = () => {
                 className="p-2 gap-1 items-center bg-background-primary rounded-md shadow-sm cursor-pointer hover:bg-gray-50"
                 onClick={() => {
                   if (link.external) {
-                    window.open(
-                      link.link,
-                      "_blank",
-                      "noopener,noreferrer"
-                    );
+                    window.open(link.link, "_blank", "noopener,noreferrer");
                   } else {
                     window.location.href = link.link;
                   }
@@ -396,9 +452,7 @@ const Dashboard = () => {
                   containerType="flex"
                   direction="row"
                 >
-                  <Container.Item className="flex">
-                    {link.icon}
-                  </Container.Item>
+                  <Container.Item className="flex">{link.icon}</Container.Item>
                   <Container.Item className="flex">
                     <Label className="py-0 px-1 font-normal cursor-pointer hover:text-link-primary">
                       {link.label}

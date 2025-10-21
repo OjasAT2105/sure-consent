@@ -6,13 +6,15 @@ import {
   Badge,
   Button,
   HamburgerMenu,
-  Accordion,
+  Dialog,
+  Input,
+  Select,
+  FilePreview,
 } from "@bsf/force-ui";
 import {
   CircleHelp,
   Megaphone,
   Shield,
-  Cookie,
   BarChart3,
   Settings as SettingsIcon,
   Palette,
@@ -25,18 +27,49 @@ import QuickCookieBanner from "../components/QuickCookieBanner";
 import CookieSettings from "../components/CookieSettings";
 import BannerContent from "../components/BannerContent";
 import BannerLayout from "../components/BannerLayout";
-import BannerDesign from "../components/BannerDesign";
+
 import Design from "../components/Design";
 import ScannedCookies from "../components/ScannedCookies";
 import ConsentLogs from "../components/ConsentLogs";
 import GeoRules from "../components/GeoRules";
 import Settings from "../components/Settings";
+import Laws from "../components/Laws";
 import ActionCard from "../components/ActionCard";
 import PreviewBanner from "../components/PreviewBanner";
+import { useSettings } from "../contexts/SettingsContext";
+
+const PreviewButton = () => {
+  const { getCurrentValue, updateSetting } = useSettings();
+  const previewEnabled = getCurrentValue("preview_enabled");
+
+  const togglePreview = () => {
+    console.log("Toggling preview from", previewEnabled, "to", !previewEnabled);
+    updateSetting("preview_enabled", !previewEnabled);
+  };
+
+  console.log("PreviewButton - previewEnabled:", previewEnabled);
+
+  return (
+    <Topbar.Item>
+      <Button
+        variant="primary"
+        size="sm"
+        icon={<Megaphone />}
+        onClick={togglePreview}
+        className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+      >
+        {previewEnabled ? "Hide Preview" : "Show Preview"}
+      </Button>
+    </Topbar.Item>
+  );
+};
 
 const AdminApp = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [activePath, setActivePath] = useState("/dashboard");
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  console.log("AdminApp - activeSection:", activeSection);
 
   // Navigation configuration similar to SureRank
   const navLinks = [
@@ -56,9 +89,14 @@ const AdminApp = () => {
       sectionId: "settings",
       links: [
         {
-          label: "Cookie Categories",
-          path: "/settings/categories",
+          label: "General Settings",
+          path: "/settings/general",
           icon: SettingsIcon,
+        },
+        {
+          label: "Laws",
+          path: "/settings/laws",
+          icon: Shield,
         },
       ],
     },
@@ -66,11 +104,6 @@ const AdminApp = () => {
       section: "Cookie Banner",
       sectionId: "banner",
       links: [
-        {
-          label: "Quick Setup",
-          path: "/banner/quick-setup",
-          icon: Hourglass,
-        },
         {
           label: "Content",
           path: "/banner/content",
@@ -198,18 +231,16 @@ const AdminApp = () => {
     switch (activePath) {
       case "/dashboard":
         return <Dashboard />;
-      case "/banner/quick-setup":
-        return <QuickCookieBanner />;
       case "/banner/content":
         return <BannerContent />;
       case "/banner/layout":
         return <BannerLayout />;
       case "/banner/design":
         return <Design />;
-      case "/settings/categories":
+      case "/settings/general":
         return <CookieSettings />;
-      case "/settings/scanned":
-        return <ScannedCookies />;
+      case "/settings/laws":
+        return <Laws />;
       case "/analytics/logs":
         return <ConsentLogs />;
       case "/analytics/reports":
@@ -243,13 +274,14 @@ const AdminApp = () => {
     return (
       <div
         onClick={() => handlePathChange(path)}
-        className={`flex items-center justify-start gap-2.5 py-2 pl-2.5 pr-2 text-text-secondary [&_svg]:text-icon-secondary hover:bg-background-secondary rounded-md text-base font-normal no-underline cursor-pointer focus:outline-none focus:shadow-none transition ease-in-out duration-150 [&_svg]:size-5 ${
+        className={`flex items-center justify-start gap-2.5 py-2 pl-2.5 pr-2 [&_svg]:text-icon-secondary hover:bg-background-secondary rounded-md text-base font-normal no-underline cursor-pointer focus:outline-none focus:shadow-none transition ease-in-out duration-150 [&_svg]:size-5 ${
           isActive
             ? "bg-background-secondary text-text-primary [&_svg]:text-brand-800"
             : ""
         }`}
         role="menuitem"
         tabIndex={0}
+        style={{ color: "#111827" }}
       >
         {Icon && <Icon className="size-4" />}
         {children}
@@ -261,8 +293,6 @@ const AdminApp = () => {
     if (!links?.length) {
       return null;
     }
-
-
 
     return (
       <Sidebar.Item
@@ -330,9 +360,9 @@ const AdminApp = () => {
                 >
                   <svg
                     fill="none"
-                    height="32"
+                    height="24"
                     viewBox="0 0 25 24"
-                    width="32"
+                    width="24"
                     xmlns="http://www.w3.org/2000/svg"
                   >
                     <path
@@ -352,9 +382,10 @@ const AdminApp = () => {
                   <button
                     key={path}
                     onClick={() => handleSectionChange(sectionId)}
-                    className={`relative content-center no-underline h-full py-0 px-3 m-0 bg-transparent outline-none shadow-none border-0 focus:outline-none text-text-secondary text-sm font-medium cursor-pointer transition-colors duration-150 hover:text-text-primary ${
-                      active ? "text-text-primary" : ""
-                    }`}
+                    className={`relative content-center no-underline h-full py-0 px-3 m-0 bg-transparent outline-none shadow-none border-0 focus:outline-none text-sm font-medium cursor-pointer`}
+                    style={{
+                      color: active ? "#111827" : "#4b5563",
+                    }}
                   >
                     {label}
                     {active && (
@@ -366,18 +397,83 @@ const AdminApp = () => {
             </Topbar.Middle>
 
             <Topbar.Right className="p-5">
+              {(activeSection === "banner" || activeSection === "settings") && (
+                <PreviewButton />
+              )}
               <Topbar.Item>
                 <Badge label="V 1.0.0" size="xs" variant="neutral" />
               </Topbar.Item>
               <Topbar.Item>
-                <Button
-                  variant="ghost"
-                  size="xs"
-                  icon={<CircleHelp />}
-                  onClick={() =>
-                    window.open("https://sureconsent.com/docs", "_blank")
+                <Dialog
+                  design="simple"
+                  exitOnEsc
+                  scrollLock
+                  open={dialogOpen}
+                  setOpen={setDialogOpen}
+                  trigger={
+                    <Button variant="ghost" size="xs" icon={<CircleHelp />} />
                   }
-                />
+                >
+                  <Dialog.Backdrop />
+                  <Dialog.Panel>
+                    <Dialog.Header>
+                      <div className="flex items-center justify-between">
+                        <Dialog.Title>Help & Documentation</Dialog.Title>
+                        <Dialog.CloseButton />
+                      </div>
+                      <Dialog.Description>
+                        Get help with SureConsent plugin configuration and
+                        usage.
+                      </Dialog.Description>
+                    </Dialog.Header>
+                    <Dialog.Body>
+                      <div className="space-y-4">
+                        <Input
+                          defaultValue=""
+                          placeholder="Search documentation..."
+                          size="sm"
+                          type="text"
+                        />
+                        <Select onChange={() => {}} size="sm">
+                          <Select.Button placeholder="Select help topic" />
+                          <Select.Options>
+                            <Select.Option
+                              value={{ id: "1", name: "Getting Started" }}
+                            >
+                              Getting Started
+                            </Select.Option>
+                            <Select.Option
+                              value={{ id: "2", name: "Cookie Configuration" }}
+                            >
+                              Cookie Configuration
+                            </Select.Option>
+                            <Select.Option
+                              value={{ id: "3", name: "Banner Customization" }}
+                            >
+                              Banner Customization
+                            </Select.Option>
+                            <Select.Option
+                              value={{ id: "4", name: "Compliance Settings" }}
+                            >
+                              Compliance Settings
+                            </Select.Option>
+                          </Select.Options>
+                        </Select>
+                        <Input onChange={() => {}} size="sm" type="file" />
+                      </div>
+                    </Dialog.Body>
+                    <Dialog.Footer>
+                      <Button
+                        onClick={() =>
+                          window.open("https://sureconsent.com/docs", "_blank")
+                        }
+                        size="sm"
+                      >
+                        Open Documentation
+                      </Button>
+                    </Dialog.Footer>
+                  </Dialog.Panel>
+                </Dialog>
               </Topbar.Item>
               <Topbar.Item>
                 <Button
@@ -395,9 +491,7 @@ const AdminApp = () => {
           {/* Main Content */}
           {activeSection === "dashboard" ? (
             <div className="w-full min-h-[calc(100vh-64px)] bg-background-secondary p-5">
-              <main className="w-full">
-                {renderContent()}
-              </main>
+              <main className="w-full">{renderContent()}</main>
             </div>
           ) : (
             <div className="w-full h-[calc(100vh-64px)] grid grid-cols-[290px_1fr]">
@@ -405,7 +499,6 @@ const AdminApp = () => {
               <div className="bg-background-secondary overflow-y-auto">
                 <div className="p-5">
                   <main className="mx-auto max-w-[768px]">
-                    {(activeSection === "banner" || activeSection === "settings") && <ActionCard />}
                     {renderContent()}
                   </main>
                 </div>
@@ -413,7 +506,9 @@ const AdminApp = () => {
             </div>
           )}
         </div>
-        {(activeSection === "banner" || activeSection === "settings") && <PreviewBanner />}
+        {(activeSection === "banner" || activeSection === "settings") && (
+          <PreviewBanner />
+        )}
       </Fragment>
     </SettingsProvider>
   );

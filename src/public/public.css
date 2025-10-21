@@ -1,6 +1,14 @@
+@import url("https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Cookie Banner Styles */
+* {
+  font-family: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
 
 /* Cookie Banner Styles */
 .cookie-banner {
@@ -52,4 +60,21 @@
 
 .cookie-banner-button-accept:hover {
   background-color: #1d4ed8;
+}
+
+/* Public Cookie Banner - Fixed Positioning */
+.sureconsent-public-banner {
+  position: fixed !important;
+  z-index: 999999999 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  width: auto !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+.sureconsent-public-banner[data-banner="true"] {
+  box-sizing: border-box !important;
 }

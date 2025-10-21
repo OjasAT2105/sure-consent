@@ -1,4 +1,5 @@
 import { useSettings } from "../contexts/SettingsContext";
+import ActionCard from "./ActionCard";
 
 const BannerContent = () => {
   const { getCurrentValue, updateSetting } = useSettings();
@@ -12,13 +13,15 @@ const BannerContent = () => {
   };
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm" style={{'--tw-border-opacity': 1, borderColor: 'rgb(229 231 235 / var(--tw-border-opacity))'}}>
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-800">Banner Content</h2>
+    <div>
+      <div className="mb-6">
+        <h1 className="font-semibold mb-2" style={{fontSize: '20px', color: '#111827'}}>Banner Content</h1>
+        <p className="" style={{fontSize: '14px', color: '#4b5563'}}>Configure the text content that appears in your cookie consent banner</p>
       </div>
-      <div className="p-6 space-y-6">
+      <div className="bg-white border rounded-lg shadow-sm" style={{'--tw-border-opacity': 1, borderColor: 'rgb(229 231 235 / var(--tw-border-opacity))'}}>
+        <div className="p-6 space-y-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block font-medium mb-2" style={{fontSize: '14px', color: '#111827'}}>
             Message Heading
           </label>
           <textarea
@@ -31,7 +34,7 @@ const BannerContent = () => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block font-medium mb-2" style={{fontSize: '14px', color: '#111827'}}>
             Message Description
           </label>
           <textarea
@@ -41,6 +44,8 @@ const BannerContent = () => {
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={4}
           />
+        </div>
+        <ActionCard />
         </div>
       </div>
     </div>

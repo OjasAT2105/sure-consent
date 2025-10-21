@@ -1,11 +1,14 @@
+@import url("https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* SureConsent specific styles */
 .sureconsent-styles {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-  
+  font-family: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+
   /* Color variables matching SureRank */
   --text-primary: rgb(17 24 39);
   --text-secondary: rgb(107 114 128);
@@ -119,7 +122,8 @@
 
 #sureconsent-admin-root * {
   box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+  font-family: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
 /* Custom scrollbar */
@@ -138,4 +142,20 @@
 
 .sureconsent-styles ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* Preview Banner Styles */
+.sureconsent-preview-banner {
+  position: fixed !important;
+  z-index: 999999999 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+.sureconsent-preview-banner[data-preview="true"] {
+  box-sizing: border-box !important;
 }

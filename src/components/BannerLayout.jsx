@@ -9,6 +9,8 @@ import {
 } from "@bsf/force-ui";
 import { CircleHelp } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
+import ButtonOrder from "./ButtonOrder";
+import ActionCard from "./ActionCard";
 
 const InfoTooltip = ({ content }) => (
   <div className="inline-flex items-center">
@@ -80,15 +82,16 @@ const BannerLayout = () => {
   };
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-800">Banner Layout</h2>
+    <div>
+      <div className="mb-6">
+        <h1 className="font-semibold mb-2" style={{fontSize: '20px', color: '#111827'}}>Banner Layout</h1>
+        <p className="" style={{fontSize: '14px', color: '#4b5563'}}>Configure how and where your cookie banner appears on your website</p>
       </div>
-
-      <div className="p-6 space-y-8">
+      <div className="bg-white border rounded-lg shadow-sm">
+        <div className="p-4 space-y-4">
         {/* ---------- Cookie Notice Type ---------- */}
         <div>
-          <Label className="block text-sm font-medium text-gray-700 mb-3">
+          <Label className="block font-medium mb-3" style={{fontSize: '14px', color: '#111827'}}>
             Cookie Notice Type
           </Label>
 
@@ -122,7 +125,7 @@ const BannerLayout = () => {
         {/* ---------- Notice Position ---------- */}
         {noticeType !== "popup" && (
           <div>
-            <Label className="block text-sm font-medium text-gray-700 mb-3">
+            <Label className="block font-medium mb-3" style={{fontSize: '14px', color: '#111827'}}>
               Notice Position
             </Label>
 
@@ -177,6 +180,12 @@ const BannerLayout = () => {
             )}
           </div>
         )}
+        
+        {/* ---------- Button Order ---------- */}
+        <ButtonOrder />
+        
+        <ActionCard />
+        </div>
       </div>
     </div>
   );
