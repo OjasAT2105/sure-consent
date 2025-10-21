@@ -27,6 +27,11 @@ const Design = () => {
       activeTab: "design-decline-btn",
     },
     {
+      id: "preferences-btn",
+      name: "Preferences Button",
+      activeTab: "design-preferences-btn",
+    },
+    {
       id: "settings-btn",
       name: "Cookie Settings Button",
       activeTab: "design-settings-btn",

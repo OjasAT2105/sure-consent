@@ -110,6 +110,15 @@ class Sure_Consent_Ajax {
             'banner_logo' => (string) get_option('sure_consent_banner_logo', ''),
             'accept_btn_color' => (string) get_option('sure_consent_accept_btn_color', '#2563eb'),
             'decline_btn_color' => (string) get_option('sure_consent_decline_btn_color', 'transparent'),
+            'preferences_btn_text' => (string) get_option('sure_consent_preferences_btn_text', 'Preferences'),
+            'preferences_btn_color' => (string) get_option('sure_consent_preferences_btn_color', 'transparent'),
+            'preferences_btn_text_color' => (string) get_option('sure_consent_preferences_btn_text_color', '#2563eb'),
+            'preferences_btn_show_as' => (string) get_option('sure_consent_preferences_btn_show_as', 'button'),
+            'preferences_btn_bg_opacity' => (string) get_option('sure_consent_preferences_btn_bg_opacity', '100'),
+            'preferences_btn_border_style' => (string) get_option('sure_consent_preferences_btn_border_style', 'solid'),
+            'preferences_btn_border_color' => (string) get_option('sure_consent_preferences_btn_border_color', '#2563eb'),
+            'preferences_btn_border_width' => (string) get_option('sure_consent_preferences_btn_border_width', '1'),
+            'preferences_btn_border_radius' => (string) get_option('sure_consent_preferences_btn_border_radius', '4'),
             'custom_css' => (string) get_option('sure_consent_custom_css', ''),
             'banner_design_template' => (string) get_option('sure_consent_banner_design_template', 'default')
         );
@@ -231,7 +240,16 @@ class Sure_Consent_Ajax {
             'decline_btn_border_color' => (string) get_option('sure_consent_decline_btn_border_color', '#6b7280'),
             'decline_btn_border_width' => (string) get_option('sure_consent_decline_btn_border_width', '1'),
             'decline_btn_border_radius' => (string) get_option('sure_consent_decline_btn_border_radius', '4'),
-            'button_order' => (string) get_option('sure_consent_button_order', 'decline,accept,accept_all'),
+            'preferences_btn_text' => (string) get_option('sure_consent_preferences_btn_text', 'Preferences'),
+            'preferences_btn_color' => (string) get_option('sure_consent_preferences_btn_color', 'transparent'),
+            'preferences_btn_text_color' => (string) get_option('sure_consent_preferences_btn_text_color', '#2563eb'),
+            'preferences_btn_show_as' => (string) get_option('sure_consent_preferences_btn_show_as', 'button'),
+            'preferences_btn_bg_opacity' => (string) get_option('sure_consent_preferences_btn_bg_opacity', '100'),
+            'preferences_btn_border_style' => (string) get_option('sure_consent_preferences_btn_border_style', 'solid'),
+            'preferences_btn_border_color' => (string) get_option('sure_consent_preferences_btn_border_color', '#2563eb'),
+            'preferences_btn_border_width' => (string) get_option('sure_consent_preferences_btn_border_width', '1'),
+            'preferences_btn_border_radius' => (string) get_option('sure_consent_preferences_btn_border_radius', '4'),
+            'button_order' => (string) get_option('sure_consent_button_order', 'decline,preferences,accept,accept_all'),
             'custom_css' => (string) get_option('sure_consent_custom_css', '')
         );
         

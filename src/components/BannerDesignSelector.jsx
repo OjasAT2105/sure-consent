@@ -30,6 +30,10 @@ const BannerDesignSelector = () => {
         decline_btn_text_color: "#000000",
         decline_btn_border_style: "solid",
         decline_btn_border_color: "#6b7280",
+        preferences_btn_color: "transparent",
+        preferences_btn_text_color: "#2563eb",
+        preferences_btn_border_style: "solid",
+        preferences_btn_border_color: "#2563eb",
         border_radius: "8",
       },
     },
@@ -335,6 +339,8 @@ const BannerDesignSelector = () => {
       Object.entries(design.preview).forEach(([key, value]) => {
         updateSetting(key, value);
       });
+      // Ensure button order includes preferences button
+      updateSetting("button_order", "decline,preferences,accept,accept_all");
     }
   };
 

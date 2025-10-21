@@ -51,6 +51,17 @@ const BannerDesign = ({ activeTab, closePopup }) => {
         decline_btn_border_width: "1",
         decline_btn_border_radius: "4",
       },
+      "preferences-btn": {
+        preferences_btn_text: "Preferences",
+        preferences_btn_text_color: "#2563eb",
+        preferences_btn_show_as: "button",
+        preferences_btn_color: "transparent",
+        preferences_btn_bg_opacity: "100",
+        preferences_btn_border_style: "solid",
+        preferences_btn_border_color: "#2563eb",
+        preferences_btn_border_width: "1",
+        preferences_btn_border_radius: "4",
+      },
       "settings-btn": {
         settings_btn_text: "Cookie Settings",
         settings_btn_text_color: "#ffffff",
@@ -889,6 +900,219 @@ const BannerDesign = ({ activeTab, closePopup }) => {
                     value={getCurrentValue("decline_btn_border_radius") || "4"}
                     onChange={(e) =>
                       updateSetting("decline_btn_border_radius", e.target.value)
+                    }
+                    min="0"
+                    max="50"
+                    className="w-full px-2 py-1 text-sm border rounded"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        );
+      case "design-preferences-btn":
+        const preferencesShowAs =
+          getCurrentValue("preferences_btn_show_as") || "button";
+        return (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="block text-xs font-medium text-gray-700 mb-1">
+                Button Text
+              </Label>
+              <input
+                type="text"
+                value={getCurrentValue("preferences_btn_text") || "Preferences"}
+                onChange={(e) =>
+                  updateSetting("preferences_btn_text", e.target.value)
+                }
+                maxLength="20"
+                className="w-full px-2 py-1 text-sm border rounded"
+              />
+            </div>
+            <div>
+              <Label className="block text-xs font-medium text-gray-700 mb-1">
+                Text Color
+              </Label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={
+                    getCurrentValue("preferences_btn_text_color") || "#2563eb"
+                  }
+                  onChange={(e) =>
+                    updateSetting("preferences_btn_text_color", e.target.value)
+                  }
+                  className="h-8 w-12 rounded border cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={
+                    getCurrentValue("preferences_btn_text_color") || "#2563eb"
+                  }
+                  onChange={(e) =>
+                    updateSetting("preferences_btn_text_color", e.target.value)
+                  }
+                  className="flex-1 px-2 py-1 text-sm border rounded"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="block text-xs font-medium text-gray-700 mb-1">
+                Show As
+              </Label>
+              <select
+                value={preferencesShowAs}
+                onChange={(e) =>
+                  updateSetting("preferences_btn_show_as", e.target.value)
+                }
+                className="w-full px-2 py-1 text-sm border rounded"
+              >
+                <option value="button">Button</option>
+                <option value="link">Link</option>
+              </select>
+            </div>
+            {preferencesShowAs === "button" && (
+              <>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Background Color
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={
+                        getCurrentValue("preferences_btn_color") ||
+                        "transparent"
+                      }
+                      onChange={(e) =>
+                        updateSetting("preferences_btn_color", e.target.value)
+                      }
+                      className="h-8 w-12 rounded border cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={
+                        getCurrentValue("preferences_btn_color") ||
+                        "transparent"
+                      }
+                      onChange={(e) =>
+                        updateSetting("preferences_btn_color", e.target.value)
+                      }
+                      className="flex-1 px-2 py-1 text-sm border rounded"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Opacity (%)
+                  </Label>
+                  <input
+                    type="number"
+                    value={
+                      getCurrentValue("preferences_btn_bg_opacity") || "100"
+                    }
+                    onChange={(e) =>
+                      updateSetting(
+                        "preferences_btn_bg_opacity",
+                        e.target.value
+                      )
+                    }
+                    min="0"
+                    max="100"
+                    className="w-full px-2 py-1 text-sm border rounded"
+                  />
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Border Style
+                  </Label>
+                  <select
+                    value={
+                      getCurrentValue("preferences_btn_border_style") || "solid"
+                    }
+                    onChange={(e) =>
+                      updateSetting(
+                        "preferences_btn_border_style",
+                        e.target.value
+                      )
+                    }
+                    className="w-full px-2 py-1 text-sm border rounded"
+                  >
+                    <option value="none">None</option>
+                    <option value="solid">Solid</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Border Color
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={
+                        getCurrentValue("preferences_btn_border_color") ||
+                        "#2563eb"
+                      }
+                      onChange={(e) =>
+                        updateSetting(
+                          "preferences_btn_border_color",
+                          e.target.value
+                        )
+                      }
+                      className="h-8 w-12 rounded border cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={
+                        getCurrentValue("preferences_btn_border_color") ||
+                        "#2563eb"
+                      }
+                      onChange={(e) =>
+                        updateSetting(
+                          "preferences_btn_border_color",
+                          e.target.value
+                        )
+                      }
+                      className="flex-1 px-2 py-1 text-sm border rounded"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Border Width
+                  </Label>
+                  <input
+                    type="number"
+                    value={
+                      getCurrentValue("preferences_btn_border_width") || "1"
+                    }
+                    onChange={(e) =>
+                      updateSetting(
+                        "preferences_btn_border_width",
+                        e.target.value
+                      )
+                    }
+                    min="0"
+                    max="10"
+                    className="w-full px-2 py-1 text-sm border rounded"
+                  />
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Border Radius
+                  </Label>
+                  <input
+                    type="number"
+                    value={
+                      getCurrentValue("preferences_btn_border_radius") || "4"
+                    }
+                    onChange={(e) =>
+                      updateSetting(
+                        "preferences_btn_border_radius",
+                        e.target.value
+                      )
                     }
                     min="0"
                     max="50"

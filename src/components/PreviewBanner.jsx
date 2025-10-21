@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useSettings } from "../contexts/SettingsContext";
 import { useEffect } from "react";
+import PreferencesModal from "./PreferencesModal";
 
 const PreviewBanner = () => {
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const { getCurrentValue, isLoaded } = useSettings();
   const previewEnabled = getCurrentValue("preview_enabled");
   const customCSS = getCurrentValue("custom_css") || "";
@@ -75,6 +77,26 @@ const PreviewBanner = () => {
     getCurrentValue("decline_btn_border_width") || "1";
   const declineBtnBorderRadius =
     getCurrentValue("decline_btn_border_radius") || "4";
+
+  // Preferences button properties
+  const preferencesBtnText =
+    getCurrentValue("preferences_btn_text") || "Preferences";
+  const preferencesBtnTextColor =
+    getCurrentValue("preferences_btn_text_color") || "#2563eb";
+  const preferencesBtnShowAs =
+    getCurrentValue("preferences_btn_show_as") || "button";
+  const preferencesBtnColor =
+    getCurrentValue("preferences_btn_color") || "transparent";
+  const preferencesBtnBgOpacity =
+    getCurrentValue("preferences_btn_bg_opacity") || "100";
+  const preferencesBtnBorderStyle =
+    getCurrentValue("preferences_btn_border_style") || "solid";
+  const preferencesBtnBorderColor =
+    getCurrentValue("preferences_btn_border_color") || "#2563eb";
+  const preferencesBtnBorderWidth =
+    getCurrentValue("preferences_btn_border_width") || "1";
+  const preferencesBtnBorderRadius =
+    getCurrentValue("preferences_btn_border_radius") || "4";
 
   console.log(
     "PreviewBanner - isLoaded:",
@@ -244,161 +266,209 @@ const PreviewBanner = () => {
   };
 
   return (
-    <div
-      style={{
-        ...getPositionStyles(),
-        backgroundColor: hexToRgba(bannerBgColor, bgOpacity),
-        color: textColor,
-        fontFamily: `"${font}", sans-serif`,
-        padding: "16px",
-        boxShadow:
-          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-        borderRadius:
-          (noticeType === "box" || noticeType === "popup"
-            ? borderRadius
-            : borderRadius) + "px",
-        borderStyle: borderStyle !== "none" ? borderStyle : "none",
-        borderWidth: borderStyle !== "none" ? borderWidth + "px" : "0px",
-        borderColor: borderStyle !== "none" ? borderColor : "transparent",
-        position: "fixed",
-        display: "block",
-        visibility: "visible",
-        opacity: 1,
-      }}
-      className="sureconsent-preview-banner sureconsent-banner"
-      data-preview="true"
-    >
+    <>
       <div
         style={{
-          maxWidth: noticeType === "box" ? "none" : "72rem",
-          margin: noticeType === "box" ? "0" : "0 auto",
-          display: "flex",
-          flexDirection:
-            noticeType === "box" || window.innerWidth < 768 ? "column" : "row",
-          alignItems:
-            noticeType === "box" || window.innerWidth < 768
-              ? "flex-start"
-              : "center",
-          justifyContent: "space-between",
-          gap: "16px",
+          ...getPositionStyles(),
+          backgroundColor: hexToRgba(bannerBgColor, bgOpacity),
+          color: textColor,
+          fontFamily: `"${font}", sans-serif`,
+          padding: "16px",
+          boxShadow:
+            "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+          borderRadius:
+            (noticeType === "box" || noticeType === "popup"
+              ? borderRadius
+              : borderRadius) + "px",
+          borderStyle: borderStyle !== "none" ? borderStyle : "none",
+          borderWidth: borderStyle !== "none" ? borderWidth + "px" : "0px",
+          borderColor: borderStyle !== "none" ? borderColor : "transparent",
+          position: "fixed",
+          display: "block",
+          visibility: "visible",
+          opacity: 1,
         }}
+        className="sureconsent-preview-banner sureconsent-banner"
+        data-preview="true"
       >
-        <div style={{ flex: 1 }}>
-          {bannerLogo && (
-            <img
-              src={bannerLogo}
-              alt="Banner Logo"
+        <div
+          style={{
+            maxWidth: noticeType === "box" ? "none" : "72rem",
+            margin: noticeType === "box" ? "0" : "0 auto",
+            display: "flex",
+            flexDirection:
+              noticeType === "box" || window.innerWidth < 768
+                ? "column"
+                : "row",
+            alignItems:
+              noticeType === "box" || window.innerWidth < 768
+                ? "flex-start"
+                : "center",
+            justifyContent: "space-between",
+            gap: "16px",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            {bannerLogo && (
+              <img
+                src={bannerLogo}
+                alt="Banner Logo"
+                style={{
+                  height: "24px",
+                  width: "auto",
+                  marginBottom: "8px",
+                  display: "block",
+                }}
+              />
+            )}
+            {messageHeading && (
+              <h3
+                style={{
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  marginBottom: "8px",
+                  margin: "0 0 8px 0",
+                  color: textColor,
+                  fontFamily: `"${font}", sans-serif`,
+                }}
+              >
+                {messageHeading}
+              </h3>
+            )}
+            <p
               style={{
-                height: "24px",
-                width: "auto",
-                marginBottom: "8px",
-                display: "block",
-              }}
-            />
-          )}
-          {messageHeading && (
-            <h3
-              style={{
-                fontSize: "16px",
-                fontWeight: "600",
-                marginBottom: "8px",
-                margin: "0 0 8px 0",
+                fontSize: "14px",
+                margin: 0,
                 color: textColor,
                 fontFamily: `"${font}", sans-serif`,
               }}
             >
-              {messageHeading}
-            </h3>
-          )}
-          <p
+              {messageDescription}
+            </p>
+          </div>
+          <div
             style={{
-              fontSize: "14px",
-              margin: 0,
-              color: textColor,
-              fontFamily: `"${font}", sans-serif`,
+              display: "flex",
+              gap: "8px",
+              flexWrap: "wrap",
+              width:
+                noticeType === "box" || window.innerWidth < 768
+                  ? "100%"
+                  : "auto",
+              justifyContent: "flex-start",
+              alignItems: "center",
             }}
           >
-            {messageDescription}
-          </p>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            flexWrap: "wrap",
-            width:
-              noticeType === "box" || window.innerWidth < 768 ? "100%" : "auto",
-            justifyContent: "flex-start",
-            alignItems: "center",
-          }}
-        >
-          {(() => {
-            const buttonOrder = (
-              getCurrentValue("button_order") || "decline,accept,accept_all"
-            ).split(",");
-            const buttons = {
-              decline: (
-                <button
-                  key="decline"
-                  className="sureconsent-decline-btn"
-                  style={getButtonStyles(
-                    declineBtnColor,
-                    declineBtnBgOpacity,
-                    declineBtnTextColor,
-                    declineBtnBorderStyle,
-                    declineBtnBorderColor,
-                    declineBtnBorderWidth,
-                    declineBtnBorderRadius,
-                    declineBtnShowAs
-                  )}
-                >
-                  {declineBtnText}
-                </button>
-              ),
-              accept: (
-                <button
-                  key="accept"
-                  className="sureconsent-accept-btn"
-                  style={getButtonStyles(
-                    acceptBtnColor,
-                    acceptBtnBgOpacity,
-                    acceptBtnTextColor,
-                    acceptBtnBorderStyle,
-                    acceptBtnBorderColor,
-                    acceptBtnBorderWidth,
-                    acceptBtnBorderRadius,
-                    acceptBtnShowAs
-                  )}
-                >
-                  {acceptBtnText}
-                </button>
-              ),
-              accept_all: acceptAllEnabled ? (
-                <button
-                  key="accept_all"
-                  className="sureconsent-accept-all-btn"
-                  style={getButtonStyles(
-                    acceptAllBtnBgColor,
-                    acceptAllBtnBgOpacity,
-                    acceptAllBtnTextColor,
-                    acceptAllBtnBorderStyle,
-                    acceptAllBtnBorderColor,
-                    acceptAllBtnBorderWidth,
-                    acceptAllBtnBorderRadius,
-                    acceptAllBtnShowAs
-                  )}
-                >
-                  {acceptAllBtnText}
-                </button>
-              ) : null,
-            };
-            return buttonOrder
-              .map((buttonType) => buttons[buttonType])
-              .filter(Boolean);
-          })()}
+            {(() => {
+              const buttonOrder = (
+                getCurrentValue("button_order") ||
+                "decline,preferences,accept,accept_all"
+              ).split(",");
+              const buttons = {
+                decline: (
+                  <button
+                    key="decline"
+                    className="sureconsent-decline-btn"
+                    style={getButtonStyles(
+                      declineBtnColor,
+                      declineBtnBgOpacity,
+                      declineBtnTextColor,
+                      declineBtnBorderStyle,
+                      declineBtnBorderColor,
+                      declineBtnBorderWidth,
+                      declineBtnBorderRadius,
+                      declineBtnShowAs
+                    )}
+                  >
+                    {declineBtnText}
+                  </button>
+                ),
+                preferences: (
+                  <button
+                    key="preferences"
+                    className="sureconsent-preferences-btn"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowPreferencesModal(true);
+                    }}
+                    style={getButtonStyles(
+                      preferencesBtnColor,
+                      preferencesBtnBgOpacity,
+                      preferencesBtnTextColor,
+                      preferencesBtnBorderStyle,
+                      preferencesBtnBorderColor,
+                      preferencesBtnBorderWidth,
+                      preferencesBtnBorderRadius,
+                      preferencesBtnShowAs
+                    )}
+                  >
+                    {preferencesBtnText}
+                  </button>
+                ),
+                accept: (
+                  <button
+                    key="accept"
+                    className="sureconsent-accept-btn"
+                    style={getButtonStyles(
+                      acceptBtnColor,
+                      acceptBtnBgOpacity,
+                      acceptBtnTextColor,
+                      acceptBtnBorderStyle,
+                      acceptBtnBorderColor,
+                      acceptBtnBorderWidth,
+                      acceptBtnBorderRadius,
+                      acceptBtnShowAs
+                    )}
+                  >
+                    {acceptBtnText}
+                  </button>
+                ),
+                accept_all: acceptAllEnabled ? (
+                  <button
+                    key="accept_all"
+                    className="sureconsent-accept-all-btn"
+                    style={getButtonStyles(
+                      acceptAllBtnBgColor,
+                      acceptAllBtnBgOpacity,
+                      acceptAllBtnTextColor,
+                      acceptAllBtnBorderStyle,
+                      acceptAllBtnBorderColor,
+                      acceptAllBtnBorderWidth,
+                      acceptAllBtnBorderRadius,
+                      acceptAllBtnShowAs
+                    )}
+                  >
+                    {acceptAllBtnText}
+                  </button>
+                ) : null,
+              };
+              return buttonOrder
+                .map((buttonType) => buttons[buttonType])
+                .filter(Boolean);
+            })()}
+          </div>
         </div>
       </div>
-    </div>
+
+      <PreferencesModal
+        isOpen={showPreferencesModal}
+        onClose={() => setShowPreferencesModal(false)}
+        onSave={(preferences) => {
+          console.log("Preferences saved:", preferences);
+          // Handle preferences save logic here
+        }}
+        settings={{
+          banner_bg_color: bannerBgColor,
+          text_color: textColor,
+          accept_btn_color: acceptBtnColor,
+          accept_btn_text_color: acceptBtnTextColor,
+          decline_btn_color: declineBtnColor,
+          decline_btn_text_color: declineBtnTextColor,
+          decline_btn_border_color: declineBtnBorderColor,
+        }}
+      />
+    </>
   );
 };
 

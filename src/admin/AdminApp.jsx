@@ -21,6 +21,10 @@ import {
   CaseLower,
   Hourglass,
   LayoutList,
+  History,
+  ScanText,
+  Pen,
+  CalendarCheck,
 } from "lucide-react";
 import Dashboard from "../components/Dashboard";
 import QuickCookieBanner from "../components/QuickCookieBanner";
@@ -29,6 +33,10 @@ import BannerContent from "../components/BannerContent";
 import BannerLayout from "../components/BannerLayout";
 import CustomCSS from "../components/CustomCSS";
 import BannerDesignSelector from "../components/BannerDesignSelector";
+import CreateCustomCookies from "../components/CreateCustomCookies";
+import ScanCookies from "../components/ScanCookies";
+import ScheduleScan from "../components/ScheduleScan";
+import ScanHistory from "../components/ScanHistory";
 
 import Design from "../components/Design";
 import ScannedCookies from "../components/ScannedCookies";
@@ -130,6 +138,32 @@ const AdminApp = () => {
           label: "Custom CSS",
           path: "/banner/custom-css",
           icon: SettingsIcon,
+        },
+      ],
+    },
+    {
+      section: "Cookie Manager",
+      sectionId: "cookie-manager",
+      links: [
+        {
+          label: "Create Custom Cookies",
+          path: "/cookie-manager/create",
+          icon: Pen,
+        },
+        {
+          label: "Schedule Scan",
+          path: "/cookie-manager/schedule",
+          icon: CalendarCheck,
+        },
+        {
+          label: "Scan Cookies",
+          path: "/cookie-manager/scan",
+          icon: ScanText,
+        },
+        {
+          label: "Scan History",
+          path: "/cookie-manager/history",
+          icon: History,
         },
       ],
     },
@@ -253,6 +287,14 @@ const AdminApp = () => {
         return <Design />;
       case "/banner/custom-css":
         return <CustomCSS />;
+      case "/cookie-manager/create":
+        return <CreateCustomCookies />;
+      case "/cookie-manager/schedule":
+        return <ScheduleScan />;
+      case "/cookie-manager/scan":
+        return <ScanCookies />;
+      case "/cookie-manager/history":
+        return <ScanHistory />;
       case "/settings/general":
         return <CookieSettings />;
       case "/settings/laws":
@@ -413,9 +455,9 @@ const AdminApp = () => {
             </Topbar.Middle>
 
             <Topbar.Right className="p-5">
-              {(activeSection === "banner" || activeSection === "settings") && (
-                <PreviewButton />
-              )}
+              {(activeSection === "banner" ||
+                activeSection === "settings" ||
+                activeSection === "cookie-manager") && <PreviewButton />}
               <Topbar.Item>
                 <Badge label="V 1.0.0" size="xs" variant="neutral" />
               </Topbar.Item>
@@ -522,9 +564,9 @@ const AdminApp = () => {
             </div>
           )}
         </div>
-        {(activeSection === "banner" || activeSection === "settings") && (
-          <PreviewBanner />
-        )}
+        {(activeSection === "banner" ||
+          activeSection === "settings" ||
+          activeSection === "cookie-manager") && <PreviewBanner />}
       </Fragment>
     </SettingsProvider>
   );
