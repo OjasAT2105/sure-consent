@@ -35,7 +35,6 @@ import BannerLayout from "../components/BannerLayout";
 import CustomCSS from "../components/CustomCSS";
 import BannerDesignSelector from "../components/BannerDesignSelector";
 import CreateCustomCookies from "../components/CreateCustomCookies";
-import CustomCookiesList from "../components/CustomCookiesList"; // Add this import
 import ScanCookies from "../components/ScanCookies";
 import ScheduleScan from "../components/ScheduleScan";
 import ScanHistory from "../components/ScanHistory";
@@ -156,11 +155,6 @@ const AdminApp = () => {
         {
           label: "Create Custom Cookies",
           path: "/cookie-manager/create",
-          icon: Pen,
-        },
-        {
-          label: "Custom Cookies List", // Add this new tab
-          path: "/cookie-manager/list",
           icon: Pen,
         },
         {
@@ -302,8 +296,6 @@ const AdminApp = () => {
         return <CustomCSS />;
       case "/cookie-manager/create":
         return <CreateCustomCookies />;
-      case "/cookie-manager/list": // Add this case
-        return <CustomCookiesList />;
       case "/cookie-manager/schedule":
         return <ScheduleScan />;
       case "/cookie-manager/scan":
@@ -573,7 +565,14 @@ const AdminApp = () => {
               <SidebarNavigation navLinks={filteredNavLinks} />
               <div className="bg-background-secondary overflow-y-auto">
                 <div className="p-5">
-                  <main className="mx-auto max-w-[768px]">
+                  {/* Increased max-width for cookie-manager section */}
+                  <main
+                    className={
+                      activeSection === "cookie-manager"
+                        ? "mx-auto max-w-[1200px]"
+                        : "mx-auto max-w-[768px]"
+                    }
+                  >
                     {renderContent()}
                   </main>
                 </div>

@@ -48,6 +48,15 @@ export const SettingsProvider = ({ children }) => {
         // Ensure all values are properly processed
         const processedSettings = { ...data.data };
         console.log("Raw settings from server:", data.data);
+
+        // Log custom_cookies specifically
+        console.log("custom_cookies from server:", data.data.custom_cookies);
+        console.log("custom_cookies type:", typeof data.data.custom_cookies);
+        console.log(
+          "custom_cookies is array:",
+          Array.isArray(data.data.custom_cookies)
+        );
+
         // Convert boolean values
         if (typeof processedSettings.preview_enabled === "string") {
           processedSettings.preview_enabled =
@@ -67,7 +76,15 @@ export const SettingsProvider = ({ children }) => {
             processedSettings[key] === null ||
             processedSettings[key] === undefined
           ) {
-            processedSettings[key] = "";
+            // Don't convert arrays or objects to empty strings
+            if (
+              !(
+                Array.isArray(processedSettings[key]) ||
+                typeof processedSettings[key] === "object"
+              )
+            ) {
+              processedSettings[key] = "";
+            }
           }
         });
         console.log("Processed settings:", processedSettings);
@@ -79,6 +96,7 @@ export const SettingsProvider = ({ children }) => {
           "cookie_categories value:",
           processedSettings.cookie_categories
         );
+        console.log("custom_cookies value:", processedSettings.custom_cookies);
         setSettings(processedSettings);
         setIsLoaded(true);
       } else {
@@ -101,8 +119,9 @@ export const SettingsProvider = ({ children }) => {
       [key]: value,
     }));
 
-    // For preview_enabled, also update settings immediately for instant UI feedback
-    if (key === "preview_enabled") {
+    // For preview_enabled and custom_cookies, also update settings immediately for instant UI feedback
+    // and save immediately to backend
+    if (key === "preview_enabled" || key === "custom_cookies") {
       setSettings((prev) => ({
         ...prev,
         [key]: value,

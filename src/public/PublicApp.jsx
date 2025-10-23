@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings } from "lucide-react";
+import { Settings, ChevronDown, ChevronUp } from "lucide-react";
 import PreferencesModal from "../components/PreferencesModal";
 import ConsentManager from "../utils/consentManager";
 
@@ -83,6 +83,8 @@ const PublicApp = () => {
   const [preferencesBtnBorderRadius, setPreferencesBtnBorderRadius] =
     useState("4");
   const [cookieCategories, setCookieCategories] = useState([]);
+  const [customCookies, setCustomCookies] = useState([]);
+  const [expandedCategory, setExpandedCategory] = useState(null); // For accordion functionality
 
   useEffect(() => {
     fetchSettings();
@@ -94,20 +96,86 @@ const PublicApp = () => {
 
     // Check if user has already given consent
     if (window.SureConsentManager && window.SureConsentManager.hasConsent()) {
-      console.log("✅ PublicApp - User has consent, hiding banner");
-      console.log("📊 Consent data:", window.SureConsentManager.getConsent());
+      console.log(
+        "✅ PublicApp - User has consent, checking for expired cookies"
+      );
 
+      // Check if any cookies have expired
+      const hasExpiredCookies = checkForExpiredCookies();
+      if (hasExpiredCookies) {
+        console.log("🍪 PublicApp - Expired cookies found, showing banner");
+        // Show banner for re-consent
+        setShowBanner(true);
+        setShowSettingsButton(false);
+        return;
+      }
+
+      console.log("📊 Consent data:", window.SureConsentManager.getConsent());
       // Hide banner, show floating button
       setShowBanner(false);
       setShowSettingsButton(true);
     } else {
       console.log("❌ PublicApp - No consent, showing banner");
-
       // Show banner, hide floating button
       setShowBanner(true);
       setShowSettingsButton(false);
     }
-  }, [bannerEnabled]);
+
+    // Add event listener to check for expired cookies when page becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden && bannerEnabled) {
+        if (
+          window.SureConsentManager &&
+          window.SureConsentManager.hasConsent()
+        ) {
+          const hasExpiredCookies = checkForExpiredCookies();
+          if (hasExpiredCookies) {
+            console.log(
+              "🍪 PublicApp - Expired cookies found (visibility change), showing banner"
+            );
+            setShowBanner(true);
+            setShowSettingsButton(false);
+          }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Cleanup event listener
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [bannerEnabled, customCookies]);
+
+  // Function to check for expired cookies
+  const checkForExpiredCookies = () => {
+    if (!customCookies || customCookies.length === 0) return false;
+
+    // Get user's consent data
+    const consentData = window.SureConsentManager.getConsent();
+    if (!consentData || !consentData.preferences) return false;
+
+    // Check if any custom cookies have expired
+    for (const cookie of customCookies) {
+      if (cookie.expires) {
+        const expirationDate = new Date(cookie.expires);
+        const now = new Date();
+
+        // If cookie is expired
+        if (expirationDate < now) {
+          // Check if this cookie's category was accepted
+          const categoryAccepted = consentData.preferences[cookie.category];
+          if (categoryAccepted) {
+            console.log(`🍪 Expired cookie found: ${cookie.name}`);
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  };
 
   // Inject custom CSS
   useEffect(() => {
@@ -319,6 +387,11 @@ const PublicApp = () => {
         const categories = data.data.cookie_categories || [];
         setCookieCategories(categories);
 
+        // Set custom cookies
+        const customCookies = data.data.custom_cookies || [];
+        setCustomCookies(customCookies);
+        console.log("PublicApp - Custom cookies loaded:", customCookies);
+
         console.log("Frontend state set:", {
           noticeType: type,
           noticePosition: position,
@@ -328,6 +401,13 @@ const PublicApp = () => {
     } catch (error) {
       console.error("Failed to fetch settings:", error);
     }
+  };
+
+  // Handle accordion toggle for cookie tables
+  const toggleCategoryCookies = (categoryName) => {
+    setExpandedCategory(
+      expandedCategory === categoryName ? null : categoryName
+    );
   };
 
   const handleAccept = () => {
@@ -375,6 +455,9 @@ const PublicApp = () => {
       "sureconsent_preferences",
       JSON.stringify(preferences)
     );
+
+    // Log custom cookies for enabled categories
+    logCustomCookiesForCategories(preferences);
 
     // Determine the correct action type based on preferences
     // If this is the default state (only essential cookies enabled), use "partially_accepted"
@@ -437,6 +520,9 @@ const PublicApp = () => {
       JSON.stringify(preferences)
     );
 
+    // Log custom cookies for all categories
+    logCustomCookiesForCategories(preferences);
+
     if (window.SureConsentManager) {
       window.SureConsentManager.saveConsent(preferences, "accept_all");
       console.log("💾 Consent saved (ALL accepted):", preferences);
@@ -470,6 +556,9 @@ const PublicApp = () => {
       JSON.stringify(preferences)
     );
 
+    // Log custom cookies for essential categories only
+    logCustomCookiesForCategories(preferences);
+
     if (window.SureConsentManager) {
       window.SureConsentManager.saveConsent(preferences, "decline_all");
       console.log("💾 Consent saved (declined):", preferences);
@@ -478,6 +567,21 @@ const PublicApp = () => {
     // Hide banner, show floating button
     setShowBanner(false);
     setShowSettingsButton(true);
+  };
+
+  // Function to log custom cookies for enabled categories
+  const logCustomCookiesForCategories = (preferences) => {
+    console.log("🍪 Custom Cookies by Category:");
+    cookieCategories.forEach((category) => {
+      if (preferences[category.name]) {
+        const categoryCookies = customCookies.filter(
+          (cookie) => cookie.category === category.name
+        );
+        if (categoryCookies.length > 0) {
+          console.log(`📁 ${category.name}:`, categoryCookies);
+        }
+      }
+    });
   };
 
   const handleReopenBanner = () => {
@@ -828,7 +932,7 @@ const PublicApp = () => {
           decline_btn_text_color: declineBtnTextColor,
           decline_btn_border_color: declineBtnBorderColor,
           cookie_categories: cookieCategories,
-          custom_cookies: [], // Custom cookies are managed server-side in the public app
+          custom_cookies: customCookies, // Use the customCookies state
         }}
       />
 

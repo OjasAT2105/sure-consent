@@ -75,7 +75,8 @@ class Sure_Consent_Settings {
         'notice_position' => 'bottom',
         'enable_banner' => false,
         'show_preview' => false,
-        'cookie_categories' => array()
+        'cookie_categories' => array(),
+        'custom_cookies' => array()  // Add this line
     );
 
     /**
@@ -94,8 +95,8 @@ class Sure_Consent_Settings {
         foreach (self::$settings as $key => $default) {
             $option_value = get_option('sure_consent_' . $key, $default);
             
-            // Special handling for cookie_categories - decode JSON
-            if ($key === 'cookie_categories') {
+            // Special handling for cookie_categories and custom_cookies - decode JSON
+            if ($key === 'cookie_categories' || $key === 'custom_cookies') {
                 if (is_string($option_value)) {
                     $decoded = json_decode($option_value, true);
                     $settings[$key] = is_array($decoded) ? $decoded : array();
@@ -129,8 +130,8 @@ class Sure_Consent_Settings {
             return false;
         }
         
-        // Special handling for cookie_categories - encode as JSON
-        if ($key === 'cookie_categories' && is_array($value)) {
+        // Special handling for cookie_categories and custom_cookies - encode as JSON
+        if (($key === 'cookie_categories' || $key === 'custom_cookies') && is_array($value)) {
             return update_option('sure_consent_' . $key, json_encode($value));
         }
         
@@ -241,6 +242,7 @@ class Sure_Consent_Settings {
                 return is_array($value) ? $value : array('id' => '1', 'name' => 'GDPR');
             
             case 'cookie_categories':
+            case 'custom_cookies':  // Add this line
                 return is_array($value) ? $value : array();
             
             default:

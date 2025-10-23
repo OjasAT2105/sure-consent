@@ -7,14 +7,14 @@ import {
   Target,
   Settings,
   ChevronDown,
-  ChevronRight,
+  ChevronUp,
 } from "lucide-react";
 
 const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
   const [preferences, setPreferences] = useState({});
   const [categories, setCategories] = useState([]);
-  const [customCookies, setCustomCookies] = useState([]); // Add state for custom cookies
-  const [expandedCategories, setExpandedCategories] = useState({}); // Track which categories are expanded
+  const [customCookies, setCustomCookies] = useState([]);
+  const [expandedCategory, setExpandedCategory] = useState(null); // For accordion functionality
 
   useEffect(() => {
     // Default categories if none are defined
@@ -118,12 +118,19 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     }));
   };
 
-  // Function to toggle category expansion
-  const toggleCategoryExpansion = (categoryName) => {
-    setExpandedCategories((prev) => ({
-      ...prev,
-      [categoryName]: !prev[categoryName],
-    }));
+  // Handle accordion toggle for cookie tables
+  const toggleCategoryCookies = (categoryName) => {
+    setExpandedCategory(
+      expandedCategory === categoryName ? null : categoryName
+    );
+  };
+
+  // Function to check if a cookie is expired
+  const isCookieExpired = (cookie) => {
+    if (!cookie.expires) return false;
+    const expirationDate = new Date(cookie.expires);
+    const now = new Date();
+    return expirationDate < now;
   };
 
   const handleAcceptAll = () => {
@@ -137,6 +144,9 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
       "sureconsent_preferences",
       JSON.stringify(allAccepted)
     );
+
+    // Log custom cookies for each category when accepting all
+    logCustomCookiesForCategories(allAccepted);
 
     // Save consent through ConsentManager
     if (window.SureConsentManager) {
@@ -161,6 +171,9 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
       JSON.stringify(essentialOnly)
     );
 
+    // Log custom cookies for essential categories only
+    logCustomCookiesForCategories(essentialOnly);
+
     // Save consent through ConsentManager
     if (window.SureConsentManager) {
       window.SureConsentManager.saveConsent(essentialOnly, "decline_all");
@@ -181,6 +194,9 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
       JSON.stringify(preferences)
     );
 
+    // Log custom cookies based on user preferences
+    logCustomCookiesForCategories(preferences);
+
     // Save consent through ConsentManager
     if (window.SureConsentManager) {
       window.SureConsentManager.saveConsent(preferences, "custom");
@@ -189,6 +205,21 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
 
     onSave(preferences);
     onClose();
+  };
+
+  // Function to log custom cookies for enabled categories
+  const logCustomCookiesForCategories = (preferences) => {
+    console.log("🍪 Custom Cookies by Category:");
+    categories.forEach((category) => {
+      if (preferences[category.name]) {
+        const categoryCookies = customCookies.filter(
+          (cookie) => cookie.category === category.name
+        );
+        if (categoryCookies.length > 0) {
+          console.log(`📁 ${category.name}:`, categoryCookies);
+        }
+      }
+    });
   };
 
   // Get colors from settings or use defaults
@@ -302,7 +333,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
               We use cookies and similar technologies to help personalize
               content, tailor and measure ads, and provide a better experience.
               By clicking accept, you agree to this, as outlined in our Cookie
-              Policy. Click on category names to view cookies in each category.
+              Policy.
             </p>
 
             <div
@@ -312,27 +343,25 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                 const Icon = getIconComponent(category.icon);
                 const isEnabled = preferences[category.name];
                 const categoryCookies = getCookiesByCategory(category.name);
-                const isExpanded = expandedCategories[category.name] || false;
+                const isExpanded = expandedCategory === category.name;
 
                 return (
                   <div
                     key={category.id}
                     style={{
+                      padding: "16px",
                       border: `1px solid ${modalTextColor}15`,
                       borderRadius: "8px",
                       backgroundColor: `${modalTextColor}05`,
                     }}
                   >
-                    {/* Category Header */}
                     <div
                       style={{
-                        padding: "16px",
                         display: "flex",
                         alignItems: "flex-start",
                         justifyContent: "space-between",
-                        cursor: "pointer",
+                        marginBottom: "8px",
                       }}
-                      onClick={() => toggleCategoryExpansion(category.name)}
                     >
                       <div
                         style={{
@@ -343,110 +372,108 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                         }}
                       >
                         <Icon size={20} style={{ color: acceptBtnColor }} />
-                        <div>
-                          <h3
-                            style={{
-                              margin: 0,
-                              fontSize: "16px",
-                              fontWeight: "600",
-                              color: modalTextColor,
-                            }}
-                          >
-                            {category.name}
-                          </h3>
-                          <p
-                            style={{
-                              margin: "4px 0 0 0",
-                              fontSize: "13px",
-                              color: modalTextColor,
-                              opacity: 0.7,
-                              lineHeight: "1.5",
-                            }}
-                          >
-                            {category.description}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Expand/Collapse Icon */}
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                        }}
-                      >
-                        {/* Toggle Switch */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggle(category.name);
-                          }}
-                          disabled={category.required}
+                        <h3
                           style={{
-                            width: "48px",
-                            height: "24px",
-                            borderRadius: "12px",
-                            border: "none",
-                            cursor: category.required
-                              ? "not-allowed"
-                              : "pointer",
-                            backgroundColor: isEnabled
-                              ? acceptBtnColor
-                              : `${modalTextColor}30`,
-                            position: "relative",
-                            transition: "background-color 0.2s",
-                            opacity: category.required ? 0.6 : 1,
-                            marginRight: "8px",
+                            margin: 0,
+                            fontSize: "16px",
+                            fontWeight: "600",
+                            color: modalTextColor,
+                            flex: 1,
                           }}
                         >
-                          <span
-                            style={{
-                              position: "absolute",
-                              top: "2px",
-                              left: isEnabled ? "26px" : "2px",
-                              width: "20px",
-                              height: "20px",
-                              borderRadius: "50%",
-                              backgroundColor: "#ffffff",
-                              transition: "left 0.2s",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            {isEnabled && (
-                              <Check
-                                size={14}
-                                style={{ color: acceptBtnColor }}
-                              />
-                            )}
-                          </span>
-                        </button>
-
-                        {categoryCookies.length > 0 &&
-                          (isExpanded ? (
-                            <ChevronDown size={20} />
-                          ) : (
-                            <ChevronRight size={20} />
-                          ))}
+                          {category.name}
+                        </h3>
                       </div>
-                    </div>
 
-                    {/* Cookies Table (only shown when category is expanded) */}
-                    {isExpanded && categoryCookies.length > 0 && (
-                      <div
+                      {/* Toggle Switch */}
+                      <button
+                        onClick={() => handleToggle(category.name)}
+                        disabled={category.required}
                         style={{
-                          padding: "0 16px 16px",
-                          borderTop: `1px solid ${modalTextColor}10`,
+                          width: "48px",
+                          height: "24px",
+                          borderRadius: "12px",
+                          border: "none",
+                          cursor: category.required ? "not-allowed" : "pointer",
+                          backgroundColor: isEnabled
+                            ? acceptBtnColor
+                            : `${modalTextColor}30`,
+                          position: "relative",
+                          transition: "background-color 0.2s",
+                          opacity: category.required ? 0.6 : 1,
+                          marginRight: "8px",
                         }}
                       >
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: "2px",
+                            left: isEnabled ? "26px" : "2px",
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            backgroundColor: "#ffffff",
+                            transition: "left 0.2s",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {isEnabled && (
+                            <Check
+                              size={14}
+                              style={{ color: acceptBtnColor }}
+                            />
+                          )}
+                        </span>
+                      </button>
+
+                      {/* Accordion Toggle for Cookies */}
+                      {categoryCookies.length > 0 && (
+                        <button
+                          onClick={() => toggleCategoryCookies(category.name)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "4px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: modalTextColor,
+                            opacity: 0.7,
+                          }}
+                        >
+                          {isExpanded ? (
+                            <ChevronUp size={20} />
+                          ) : (
+                            <ChevronDown size={20} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "13px",
+                        color: modalTextColor,
+                        opacity: 0.7,
+                        lineHeight: "1.5",
+                      }}
+                    >
+                      {category.description}
+                    </p>
+
+                    {/* Display custom cookies for this category in table format (accordion) */}
+                    {categoryCookies.length > 0 && isExpanded && (
+                      <div style={{ marginTop: "16px" }}>
                         <h4
                           style={{
                             fontSize: "14px",
                             fontWeight: "600",
                             color: modalTextColor,
-                            margin: "12px 0 8px",
+                            marginBottom: "8px",
                           }}
                         >
                           Cookies in this category:
@@ -463,6 +490,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                               width: "100%",
                               borderCollapse: "collapse",
                               fontSize: "12px",
+                              border: `1px solid ${modalTextColor}20`,
                             }}
                           >
                             <thead>
@@ -476,7 +504,8 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                                     padding: "8px 12px",
                                     textAlign: "left",
                                     fontWeight: "600",
-                                    borderBottom: `1px solid ${modalTextColor}10`,
+                                    borderBottom: `1px solid ${modalTextColor}20`,
+                                    borderRight: `1px solid ${modalTextColor}20`,
                                   }}
                                 >
                                   Name
@@ -486,7 +515,8 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                                     padding: "8px 12px",
                                     textAlign: "left",
                                     fontWeight: "600",
-                                    borderBottom: `1px solid ${modalTextColor}10`,
+                                    borderBottom: `1px solid ${modalTextColor}20`,
+                                    borderRight: `1px solid ${modalTextColor}20`,
                                   }}
                                 >
                                   Provider
@@ -496,58 +526,111 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                                     padding: "8px 12px",
                                     textAlign: "left",
                                     fontWeight: "600",
-                                    borderBottom: `1px solid ${modalTextColor}10`,
+                                    borderBottom: `1px solid ${modalTextColor}20`,
+                                    borderRight: `1px solid ${modalTextColor}20`,
+                                  }}
+                                >
+                                  Domain
+                                </th>
+                                <th
+                                  style={{
+                                    padding: "8px 12px",
+                                    textAlign: "left",
+                                    fontWeight: "600",
+                                    borderBottom: `1px solid ${modalTextColor}20`,
+                                    borderRight: `1px solid ${modalTextColor}20`,
                                   }}
                                 >
                                   Duration
                                 </th>
+                                <th
+                                  style={{
+                                    padding: "8px 12px",
+                                    textAlign: "left",
+                                    fontWeight: "600",
+                                    borderBottom: `1px solid ${modalTextColor}20`,
+                                  }}
+                                >
+                                  Status
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
-                              {categoryCookies.map((cookie) => (
-                                <tr
-                                  key={cookie.id}
-                                  style={{
-                                    backgroundColor: `${modalTextColor}03`,
-                                  }}
-                                >
-                                  <td
+                              {categoryCookies.map((cookie) => {
+                                const isExpired = isCookieExpired(cookie);
+                                return (
+                                  <tr
+                                    key={cookie.id}
                                     style={{
-                                      padding: "8px 12px",
-                                      borderBottom: `1px solid ${modalTextColor}05`,
+                                      backgroundColor: `${modalTextColor}03`,
                                     }}
                                   >
-                                    {cookie.name}
-                                    {cookie.description && (
-                                      <div
-                                        style={{
-                                          fontSize: "11px",
-                                          opacity: 0.8,
-                                          marginTop: "2px",
-                                        }}
+                                    <td
+                                      style={{
+                                        padding: "8px 12px",
+                                        borderBottom: `1px solid ${modalTextColor}10`,
+                                        borderRight: `1px solid ${modalTextColor}10`,
+                                      }}
+                                    >
+                                      {cookie.name}
+                                      {cookie.description && (
+                                        <div
+                                          style={{
+                                            fontSize: "11px",
+                                            opacity: 0.8,
+                                            marginTop: "2px",
+                                          }}
+                                        >
+                                          {cookie.description}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: "8px 12px",
+                                        borderBottom: `1px solid ${modalTextColor}10`,
+                                        borderRight: `1px solid ${modalTextColor}10`,
+                                      }}
+                                    >
+                                      {cookie.provider || "-"}
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: "8px 12px",
+                                        borderBottom: `1px solid ${modalTextColor}10`,
+                                        borderRight: `1px solid ${modalTextColor}10`,
+                                      }}
+                                    >
+                                      {cookie.domain || "-"}
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: "8px 12px",
+                                        borderBottom: `1px solid ${modalTextColor}10`,
+                                        borderRight: `1px solid ${modalTextColor}10`,
+                                      }}
+                                    >
+                                      {cookie.duration || "-"}
+                                    </td>
+                                    <td
+                                      style={{
+                                        padding: "8px 12px",
+                                        borderBottom: `1px solid ${modalTextColor}10`,
+                                      }}
+                                    >
+                                      <span
+                                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                          isExpired
+                                            ? "bg-red-100 text-red-800"
+                                            : "bg-green-100 text-green-800"
+                                        }`}
                                       >
-                                        {cookie.description}
-                                      </div>
-                                    )}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: "8px 12px",
-                                      borderBottom: `1px solid ${modalTextColor}05`,
-                                    }}
-                                  >
-                                    {cookie.provider || "-"}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: "8px 12px",
-                                      borderBottom: `1px solid ${modalTextColor}05`,
-                                    }}
-                                  >
-                                    {cookie.duration || "-"}
-                                  </td>
-                                </tr>
-                              ))}
+                                        {isExpired ? "Expired" : "Active"}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -555,23 +638,18 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                     )}
 
                     {category.required && (
-                      <div
+                      <span
                         style={{
-                          padding: "0 16px 16px",
+                          display: "inline-block",
+                          marginTop: "8px",
+                          fontSize: "11px",
+                          color: modalTextColor,
+                          opacity: 0.6,
+                          fontStyle: "italic",
                         }}
                       >
-                        <span
-                          style={{
-                            display: "inline-block",
-                            fontSize: "11px",
-                            color: modalTextColor,
-                            opacity: 0.6,
-                            fontStyle: "italic",
-                          }}
-                        >
-                          Always Active
-                        </span>
-                      </div>
+                        Always Active
+                      </span>
                     )}
                   </div>
                 );

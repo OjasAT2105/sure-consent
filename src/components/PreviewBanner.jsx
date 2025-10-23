@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings } from "lucide-react";
+import { Settings, ChevronDown, ChevronUp } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import PreferencesModal from "./PreferencesModal";
 import ConsentManager from "../utils/consentManager";
@@ -103,6 +103,72 @@ const PreviewBanner = () => {
 
   // Cookie categories
   const cookieCategories = getCurrentValue("cookie_categories") || [];
+  // Custom cookies
+  const customCookies = getCurrentValue("custom_cookies") || []; // Get custom cookies
+
+  // Check for expired cookies when component mounts
+  useEffect(() => {
+    if (isLoaded && previewEnabled) {
+      const hasExpiredCookies = checkForExpiredCookies();
+      if (hasExpiredCookies) {
+        // Show banner for re-consent
+        setShowBanner(true);
+        setShowSettingsButton(false);
+      }
+    }
+
+    // Add event listener to check for expired cookies when page becomes visible
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isLoaded && previewEnabled) {
+        const hasExpiredCookies = checkForExpiredCookies();
+        if (hasExpiredCookies) {
+          console.log(
+            "🍪 PreviewBanner - Expired cookies found (visibility change), showing banner"
+          );
+          setShowBanner(true);
+          setShowSettingsButton(false);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Cleanup event listener
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [isLoaded, previewEnabled, customCookies]);
+
+  // Function to check for expired cookies
+  const checkForExpiredCookies = () => {
+    if (!customCookies || customCookies.length === 0) return false;
+
+    // Get user's consent data
+    const consentData = window.SureConsentManager
+      ? window.SureConsentManager.getConsent()
+      : null;
+    if (!consentData || !consentData.preferences) return false;
+
+    // Check if any custom cookies have expired
+    for (const cookie of customCookies) {
+      if (cookie.expires) {
+        const expirationDate = new Date(cookie.expires);
+        const now = new Date();
+
+        // If cookie is expired
+        if (expirationDate < now) {
+          // Check if this cookie's category was accepted
+          const categoryAccepted = consentData.preferences[cookie.category];
+          if (categoryAccepted) {
+            console.log(`🍪 Expired cookie found in preview: ${cookie.name}`);
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  };
 
   console.log(
     "PreviewBanner - isLoaded:",
@@ -499,7 +565,7 @@ const PreviewBanner = () => {
           decline_btn_text_color: declineBtnTextColor,
           decline_btn_border_color: declineBtnBorderColor,
           cookie_categories: cookieCategories,
-          custom_cookies: getCurrentValue("custom_cookies") || [], // Add custom cookies to settings
+          custom_cookies: customCookies, // Pass custom cookies to settings
         }}
       />
 
