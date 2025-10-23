@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SureConsent - Usage Examples</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .example {
+        background: white;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .example h2 {
+        color: #2563eb;
+        margin-top: 0;
+      }
+      pre {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 15px;
+        border-radius: 6px;
+        overflow-x: auto;
+      }
+      code {
+        font-family: "Courier New", monospace;
+      }
+      .status {
+        padding: 10px;
+        background: #e0f2fe;
+        border-left: 4px solid #0284c7;
+        margin: 10px 0;
+      }
+      button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #1d4ed8;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🍪 SureConsent - Usage Examples</h1>
+
+    <div class="example">
+      <h2>1. Block Google Analytics Until Consent</h2>
+      <p>
+        This script will only execute if user gives consent for Analytics
+        category:
+      </p>
+      <pre><code>&lt;!-- Block Google Analytics until user consents --&gt;
+&lt;script 
+  type="text/plain" 
+  data-consent="analytics" 
+  src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"&gt;
+&lt;/script&gt;
+
+&lt;script type="text/plain" data-consent="analytics"&gt;
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'GA_MEASUREMENT_ID');
+&lt;/script&gt;</code></pre>
+    </div>
+
+    <div class="example">
+      <h2>2. Block Facebook Pixel (Marketing)</h2>
+      <pre><code>&lt;script type="text/plain" data-consent="marketing"&gt;
+  !function(f,b,e,v,n,t,s){
+    if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)
+  }(window,document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', 'YOUR_PIXEL_ID');
+  fbq('track', 'PageView');
+&lt;/script&gt;</code></pre>
+    </div>
+
+    <div class="example">
+      <h2>3. Check Consent in JavaScript</h2>
+      <div class="status" id="consentStatus">Loading consent status...</div>
+      <button onclick="checkConsent()">Check Consent Status</button>
+      <button onclick="clearConsent()">Clear Consent (Test)</button>
+
+      <pre><code>// Check if user has given consent
+if (window.SureConsentManager.hasConsent()) {
+  console.log('User has consented');
+}
+
+// Check specific category
+if (window.SureConsentManager.isAllowed('analytics')) {
+  // Load analytics
+  console.log('Analytics allowed!');
+}
+
+// Get all consent data
+const consent = window.SureConsentManager.getConsent();
+console.log(consent);</code></pre>
+    </div>
+
+    <div class="example">
+      <h2>4. PHP Usage Example</h2>
+      <pre><code>&lt;?php
+// Check if user has given consent
+if (Sure_Consent_Cookies::has_consent()) {
+    echo 'User has consented';
+}
+
+// Check specific category
+if (Sure_Consent_Cookies::is_allowed('analytics')) {
+    // Load Google Analytics
+    wp_enqueue_script('google-analytics', '...');
+}
+
+// Helper function to output blocked script
+Sure_Consent_Cookies::script_tag(
+    'analytics', 
+    'https://analytics.example.com/script.js'
+);
+?&gt;</code></pre>
+    </div>
+
+    <div class="example">
+      <h2>5. Listen for Consent Changes</h2>
+      <div
+        id="eventLog"
+        style="
+          background: #f0f0f0;
+          padding: 10px;
+          border-radius: 4px;
+          max-height: 200px;
+          overflow-y: auto;
+        "
+      ></div>
+
+      <pre><code>// Listen for when user changes consent
+window.addEventListener('sureconsent_changed', (event) => {
+  console.log('Consent changed!', event.detail);
+  // Reload page or update scripts
+});
+
+// Listen for when consent is applied
+window.addEventListener('sureconsent_applied', (event) => {
+  console.log('Consent applied!', event.detail);
+  // All scripts have been processed
+});</code></pre>
+    </div>
+
+    <div class="example">
+      <h2>6. Test Scripts (Will Only Run with Consent)</h2>
+
+      <div id="scriptStatus">
+        <p>
+          <strong>Essential Script:</strong>
+          <span id="essentialStatus">Not run</span>
+        </p>
+        <p>
+          <strong>Analytics Script:</strong>
+          <span id="analyticsStatus">Not run</span>
+        </p>
+        <p>
+          <strong>Marketing Script:</strong>
+          <span id="marketingStatus">Not run</span>
+        </p>
+        <p>
+          <strong>Functional Script:</strong>
+          <span id="functionalStatus">Not run</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Test Scripts with data-consent attribute -->
+    <script type="text/plain" data-consent="essential">
+      console.log('✅ Essential script executed');
+      document.getElementById('essentialStatus').textContent = 'Executed ✅';
+      document.getElementById('essentialStatus').style.color = 'green';
+    </script>
+
+    <script type="text/plain" data-consent="analytics">
+      console.log('📊 Analytics script executed');
+      document.getElementById('analyticsStatus').textContent = 'Executed ✅';
+      document.getElementById('analyticsStatus').style.color = 'green';
+    </script>
+
+    <script type="text/plain" data-consent="marketing">
+      console.log('📢 Marketing script executed');
+      document.getElementById('marketingStatus').textContent = 'Executed ✅';
+      document.getElementById('marketingStatus').style.color = 'green';
+    </script>
+
+    <script type="text/plain" data-consent="functional">
+      console.log('⚙️ Functional script executed');
+      document.getElementById('functionalStatus').textContent = 'Executed ✅';
+      document.getElementById('functionalStatus').style.color = 'green';
+    </script>
+
+    <!-- Main JavaScript -->
+    <script>
+      function checkConsent() {
+        const statusDiv = document.getElementById("consentStatus");
+
+        if (!window.SureConsentManager) {
+          statusDiv.innerHTML =
+            "❌ ConsentManager not loaded! Make sure plugin is active.";
+          statusDiv.style.background = "#fee2e2";
+          statusDiv.style.borderColor = "#dc2626";
+          return;
+        }
+
+        const hasConsent = window.SureConsentManager.hasConsent();
+        const consent = window.SureConsentManager.getConsent();
+
+        if (hasConsent) {
+          const summary = window.SureConsentManager.getConsentSummary();
+          statusDiv.innerHTML = `
+                    <strong>✅ Consent Found</strong><br>
+                    <strong>Action:</strong> ${summary.action}<br>
+                    <strong>Timestamp:</strong> ${new Date(
+                      summary.timestamp
+                    ).toLocaleString()}<br>
+                    <strong>Allowed Categories:</strong> ${summary.allowed.join(
+                      ", "
+                    )}<br>
+                    <br>
+                    <strong>Details:</strong><br>
+                    Essential: ${
+                      consent.preferences.essential ? "✅" : "❌"
+                    }<br>
+                    Functional: ${
+                      consent.preferences.functional ? "✅" : "❌"
+                    }<br>
+                    Analytics: ${
+                      consent.preferences.analytics ? "✅" : "❌"
+                    }<br>
+                    Marketing: ${consent.preferences.marketing ? "✅" : "❌"}
+                `;
+          statusDiv.style.background = "#d1fae5";
+          statusDiv.style.borderColor = "#10b981";
+        } else {
+          statusDiv.innerHTML =
+            "⚠️ No consent given yet. Banner should be visible.";
+          statusDiv.style.background = "#fef3c7";
+          statusDiv.style.borderColor = "#f59e0b";
+        }
+      }
+
+      function clearConsent() {
+        if (window.SureConsentManager) {
+          window.SureConsentManager.clearConsent();
+          alert("Consent cleared! Refresh the page to see the banner again.");
+          checkConsent();
+        }
+      }
+
+      // Event listeners for demonstration
+      window.addEventListener("sureconsent_changed", (event) => {
+        const eventLog = document.getElementById("eventLog");
+        const timestamp = new Date().toLocaleTimeString();
+        eventLog.innerHTML += `<div style="margin: 5px 0; padding: 5px; background: white; border-left: 3px solid #2563eb;">
+                <strong>${timestamp}</strong> - Consent Changed: ${event.detail.action}
+            </div>`;
+        eventLog.scrollTop = eventLog.scrollHeight;
+      });
+
+      window.addEventListener("sureconsent_applied", (event) => {
+        const eventLog = document.getElementById("eventLog");
+        const timestamp = new Date().toLocaleTimeString();
+        eventLog.innerHTML += `<div style="margin: 5px 0; padding: 5px; background: white; border-left: 3px solid #10b981;">
+                <strong>${timestamp}</strong> - Consent Applied
+            </div>`;
+        eventLog.scrollTop = eventLog.scrollHeight;
+      });
+
+      // Check consent status on page load
+      document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(checkConsent, 500);
+      });
+    </script>
+  </body>
+</html>

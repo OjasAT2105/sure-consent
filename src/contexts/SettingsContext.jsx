@@ -61,6 +61,7 @@ export const SettingsProvider = ({ children }) => {
           processedSettings.preview_enabled = false;
         }
         // Ensure all other values are strings (not null/undefined)
+        // But preserve arrays and objects
         Object.keys(processedSettings).forEach((key) => {
           if (
             processedSettings[key] === null ||
@@ -70,6 +71,14 @@ export const SettingsProvider = ({ children }) => {
           }
         });
         console.log("Processed settings:", processedSettings);
+        console.log(
+          "cookie_categories type:",
+          typeof processedSettings.cookie_categories
+        );
+        console.log(
+          "cookie_categories value:",
+          processedSettings.cookie_categories
+        );
         setSettings(processedSettings);
         setIsLoaded(true);
       } else {
@@ -160,6 +169,13 @@ export const SettingsProvider = ({ children }) => {
         setSettings(updatedSettings);
         setPendingChanges({});
         setHasChanges(false);
+
+        // Reload settings from database to ensure we have the latest
+        console.log("saveSettings - Reloading from database to verify save...");
+        setTimeout(() => {
+          loadSettings();
+        }, 500);
+
         return { success: true, message: data.data.message };
       } else {
         return {

@@ -1,10 +1,13 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Settings } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
-import { useEffect } from "react";
 import PreferencesModal from "./PreferencesModal";
+import ConsentManager from "../utils/consentManager";
 
 const PreviewBanner = () => {
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
+  const [showSettingsButton, setShowSettingsButton] = useState(false);
   const { getCurrentValue, isLoaded } = useSettings();
   const previewEnabled = getCurrentValue("preview_enabled");
   const customCSS = getCurrentValue("custom_css") || "";
@@ -97,6 +100,9 @@ const PreviewBanner = () => {
     getCurrentValue("preferences_btn_border_width") || "1";
   const preferencesBtnBorderRadius =
     getCurrentValue("preferences_btn_border_radius") || "4";
+
+  // Cookie categories
+  const cookieCategories = getCurrentValue("cookie_categories") || [];
 
   console.log(
     "PreviewBanner - isLoaded:",
@@ -265,198 +271,224 @@ const PreviewBanner = () => {
     return baseStyles;
   };
 
+  const handleAccept = () => {
+    setShowBanner(false);
+    setShowSettingsButton(true);
+  };
+
+  const handleDecline = () => {
+    setShowBanner(false);
+    setShowSettingsButton(true);
+  };
+
+  const handleReopenBanner = () => {
+    setShowSettingsButton(false);
+    setShowBanner(true);
+  };
+
   return (
     <>
-      <div
-        style={{
-          ...getPositionStyles(),
-          backgroundColor: hexToRgba(bannerBgColor, bgOpacity),
-          color: textColor,
-          fontFamily: `"${font}", sans-serif`,
-          padding: "16px",
-          boxShadow:
-            "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-          borderRadius:
-            (noticeType === "box" || noticeType === "popup"
-              ? borderRadius
-              : borderRadius) + "px",
-          borderStyle: borderStyle !== "none" ? borderStyle : "none",
-          borderWidth: borderStyle !== "none" ? borderWidth + "px" : "0px",
-          borderColor: borderStyle !== "none" ? borderColor : "transparent",
-          position: "fixed",
-          display: "block",
-          visibility: "visible",
-          opacity: 1,
-        }}
-        className="sureconsent-preview-banner sureconsent-banner"
-        data-preview="true"
-      >
+      {/* Banner - only show when showBanner is true */}
+      {showBanner && (
         <div
           style={{
-            maxWidth: noticeType === "box" ? "none" : "72rem",
-            margin: noticeType === "box" ? "0" : "0 auto",
-            display: "flex",
-            flexDirection:
-              noticeType === "box" || window.innerWidth < 768
-                ? "column"
-                : "row",
-            alignItems:
-              noticeType === "box" || window.innerWidth < 768
-                ? "flex-start"
-                : "center",
-            justifyContent: "space-between",
-            gap: "16px",
+            ...getPositionStyles(),
+            backgroundColor: hexToRgba(bannerBgColor, bgOpacity),
+            color: textColor,
+            fontFamily: `"${font}", sans-serif`,
+            padding: "16px",
+            boxShadow:
+              "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+            borderRadius:
+              (noticeType === "box" || noticeType === "popup"
+                ? borderRadius
+                : borderRadius) + "px",
+            borderStyle: borderStyle !== "none" ? borderStyle : "none",
+            borderWidth: borderStyle !== "none" ? borderWidth + "px" : "0px",
+            borderColor: borderStyle !== "none" ? borderColor : "transparent",
+            position: "fixed",
+            display: "block",
+            visibility: "visible",
+            opacity: 1,
           }}
+          className="sureconsent-preview-banner sureconsent-banner"
+          data-preview="true"
         >
-          <div style={{ flex: 1 }}>
-            {bannerLogo && (
-              <img
-                src={bannerLogo}
-                alt="Banner Logo"
+          <div
+            style={{
+              maxWidth: noticeType === "box" ? "none" : "72rem",
+              margin: noticeType === "box" ? "0" : "0 auto",
+              display: "flex",
+              flexDirection:
+                noticeType === "box" || window.innerWidth < 768
+                  ? "column"
+                  : "row",
+              alignItems:
+                noticeType === "box" || window.innerWidth < 768
+                  ? "flex-start"
+                  : "center",
+              justifyContent: "space-between",
+              gap: "16px",
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              {bannerLogo && (
+                <img
+                  src={bannerLogo}
+                  alt="Banner Logo"
+                  style={{
+                    height: "24px",
+                    width: "auto",
+                    marginBottom: "8px",
+                    display: "block",
+                  }}
+                />
+              )}
+              {messageHeading && (
+                <h3
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    marginBottom: "8px",
+                    margin: "0 0 8px 0",
+                    color: textColor,
+                    fontFamily: `"${font}", sans-serif`,
+                  }}
+                >
+                  {messageHeading}
+                </h3>
+              )}
+              <p
                 style={{
-                  height: "24px",
-                  width: "auto",
-                  marginBottom: "8px",
-                  display: "block",
-                }}
-              />
-            )}
-            {messageHeading && (
-              <h3
-                style={{
-                  fontSize: "16px",
-                  fontWeight: "600",
-                  marginBottom: "8px",
-                  margin: "0 0 8px 0",
+                  fontSize: "14px",
+                  margin: 0,
                   color: textColor,
                   fontFamily: `"${font}", sans-serif`,
                 }}
               >
-                {messageHeading}
-              </h3>
-            )}
-            <p
+                {messageDescription}
+              </p>
+            </div>
+            <div
               style={{
-                fontSize: "14px",
-                margin: 0,
-                color: textColor,
-                fontFamily: `"${font}", sans-serif`,
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+                width:
+                  noticeType === "box" || window.innerWidth < 768
+                    ? "100%"
+                    : "auto",
+                justifyContent: "flex-start",
+                alignItems: "center",
               }}
             >
-              {messageDescription}
-            </p>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              flexWrap: "wrap",
-              width:
-                noticeType === "box" || window.innerWidth < 768
-                  ? "100%"
-                  : "auto",
-              justifyContent: "flex-start",
-              alignItems: "center",
-            }}
-          >
-            {(() => {
-              const buttonOrder = (
-                getCurrentValue("button_order") ||
-                "decline,preferences,accept,accept_all"
-              ).split(",");
-              const buttons = {
-                decline: (
-                  <button
-                    key="decline"
-                    className="sureconsent-decline-btn"
-                    style={getButtonStyles(
-                      declineBtnColor,
-                      declineBtnBgOpacity,
-                      declineBtnTextColor,
-                      declineBtnBorderStyle,
-                      declineBtnBorderColor,
-                      declineBtnBorderWidth,
-                      declineBtnBorderRadius,
-                      declineBtnShowAs
-                    )}
-                  >
-                    {declineBtnText}
-                  </button>
-                ),
-                preferences: (
-                  <button
-                    key="preferences"
-                    className="sureconsent-preferences-btn"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowPreferencesModal(true);
-                    }}
-                    style={getButtonStyles(
-                      preferencesBtnColor,
-                      preferencesBtnBgOpacity,
-                      preferencesBtnTextColor,
-                      preferencesBtnBorderStyle,
-                      preferencesBtnBorderColor,
-                      preferencesBtnBorderWidth,
-                      preferencesBtnBorderRadius,
-                      preferencesBtnShowAs
-                    )}
-                  >
-                    {preferencesBtnText}
-                  </button>
-                ),
-                accept: (
-                  <button
-                    key="accept"
-                    className="sureconsent-accept-btn"
-                    style={getButtonStyles(
-                      acceptBtnColor,
-                      acceptBtnBgOpacity,
-                      acceptBtnTextColor,
-                      acceptBtnBorderStyle,
-                      acceptBtnBorderColor,
-                      acceptBtnBorderWidth,
-                      acceptBtnBorderRadius,
-                      acceptBtnShowAs
-                    )}
-                  >
-                    {acceptBtnText}
-                  </button>
-                ),
-                accept_all: acceptAllEnabled ? (
-                  <button
-                    key="accept_all"
-                    className="sureconsent-accept-all-btn"
-                    style={getButtonStyles(
-                      acceptAllBtnBgColor,
-                      acceptAllBtnBgOpacity,
-                      acceptAllBtnTextColor,
-                      acceptAllBtnBorderStyle,
-                      acceptAllBtnBorderColor,
-                      acceptAllBtnBorderWidth,
-                      acceptAllBtnBorderRadius,
-                      acceptAllBtnShowAs
-                    )}
-                  >
-                    {acceptAllBtnText}
-                  </button>
-                ) : null,
-              };
-              return buttonOrder
-                .map((buttonType) => buttons[buttonType])
-                .filter(Boolean);
-            })()}
+              {(() => {
+                const buttonOrder = (
+                  getCurrentValue("button_order") ||
+                  "decline,preferences,accept,accept_all"
+                ).split(",");
+                const buttons = {
+                  decline: (
+                    <button
+                      key="decline"
+                      className="sureconsent-decline-btn"
+                      onClick={handleDecline}
+                      style={getButtonStyles(
+                        declineBtnColor,
+                        declineBtnBgOpacity,
+                        declineBtnTextColor,
+                        declineBtnBorderStyle,
+                        declineBtnBorderColor,
+                        declineBtnBorderWidth,
+                        declineBtnBorderRadius,
+                        declineBtnShowAs
+                      )}
+                    >
+                      {declineBtnText}
+                    </button>
+                  ),
+                  preferences: (
+                    <button
+                      key="preferences"
+                      className="sureconsent-preferences-btn"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowBanner(false);
+                        setShowPreferencesModal(true);
+                      }}
+                      style={getButtonStyles(
+                        preferencesBtnColor,
+                        preferencesBtnBgOpacity,
+                        preferencesBtnTextColor,
+                        preferencesBtnBorderStyle,
+                        preferencesBtnBorderColor,
+                        preferencesBtnBorderWidth,
+                        preferencesBtnBorderRadius,
+                        preferencesBtnShowAs
+                      )}
+                    >
+                      {preferencesBtnText}
+                    </button>
+                  ),
+                  accept: (
+                    <button
+                      key="accept"
+                      className="sureconsent-accept-btn"
+                      onClick={handleAccept}
+                      style={getButtonStyles(
+                        acceptBtnColor,
+                        acceptBtnBgOpacity,
+                        acceptBtnTextColor,
+                        acceptBtnBorderStyle,
+                        acceptBtnBorderColor,
+                        acceptBtnBorderWidth,
+                        acceptBtnBorderRadius,
+                        acceptBtnShowAs
+                      )}
+                    >
+                      {acceptBtnText}
+                    </button>
+                  ),
+                  accept_all: acceptAllEnabled ? (
+                    <button
+                      key="accept_all"
+                      className="sureconsent-accept-all-btn"
+                      style={getButtonStyles(
+                        acceptAllBtnBgColor,
+                        acceptAllBtnBgOpacity,
+                        acceptAllBtnTextColor,
+                        acceptAllBtnBorderStyle,
+                        acceptAllBtnBorderColor,
+                        acceptAllBtnBorderWidth,
+                        acceptAllBtnBorderRadius,
+                        acceptAllBtnShowAs
+                      )}
+                    >
+                      {acceptAllBtnText}
+                    </button>
+                  ) : null,
+                };
+                return buttonOrder
+                  .map((buttonType) => buttons[buttonType])
+                  .filter(Boolean);
+              })()}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
+      {/* Preferences Modal */}
       <PreferencesModal
         isOpen={showPreferencesModal}
-        onClose={() => setShowPreferencesModal(false)}
+        onClose={() => {
+          setShowPreferencesModal(false);
+          setShowSettingsButton(true);
+        }}
         onSave={(preferences) => {
           console.log("Preferences saved:", preferences);
-          // Handle preferences save logic here
+          setShowPreferencesModal(false);
+          setShowSettingsButton(true);
         }}
         settings={{
           banner_bg_color: bannerBgColor,
@@ -466,8 +498,65 @@ const PreviewBanner = () => {
           decline_btn_color: declineBtnColor,
           decline_btn_text_color: declineBtnTextColor,
           decline_btn_border_color: declineBtnBorderColor,
+          cookie_categories: cookieCategories,
+          custom_cookies: getCurrentValue("custom_cookies") || [], // Add custom cookies to settings
         }}
       />
+
+      {/* Floating Cookie Settings Button */}
+      {showSettingsButton && (
+        <button
+          onClick={handleReopenBanner}
+          className="sureconsent-floating-settings"
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            right: "20px",
+            width: "56px",
+            height: "56px",
+            borderRadius: "50%",
+            backgroundColor: acceptBtnColor,
+            color: acceptBtnTextColor,
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow:
+              "0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1)",
+            zIndex: 999999998,
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            animation: "sureconsent-slide-up-preview 0.4s ease-out",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "scale(1.1)";
+            e.currentTarget.style.boxShadow =
+              "0 6px 16px rgba(0, 0, 0, 0.2), 0 3px 8px rgba(0, 0, 0, 0.15)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.1)";
+          }}
+          title="Cookie Settings"
+        >
+          <Settings size={24} />
+        </button>
+      )}
+
+      {/* Add keyframe animation for slide-up effect */}
+      <style>{`
+        @keyframes sureconsent-slide-up-preview {
+          from {
+            transform: translateY(100px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
     </>
   );
 };

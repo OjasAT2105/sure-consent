@@ -55,32 +55,8 @@ const Design = () => {
       </div>
       <div className="bg-white border rounded-lg shadow-sm mb-6">
         <div className="p-4">
-          {/* First item - Full width (Cookie Bar Design) */}
-          <div className="mb-4 pb-4 border-b-2 border-gray-200">
-            <div className="flex items-center justify-between p-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 bg-gray-50">
-              <div>
-                <h3 className="font-medium text-gray-800">
-                  {designItems[0].name}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Configure {designItems[0].name.toLowerCase()} settings
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setOpenPopup(designItems[0])}
-                >
-                  Configure
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Remaining items - 2 column grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-            {designItems.slice(1).map((item) => (
+            {designItems.slice(0).map((item) => (
               <div
                 key={item.id}
                 className="flex flex-col justify-between p-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 bg-gray-50"

@@ -30,7 +30,9 @@ class Sure_Consent_Activator {
 	 * @since    1.0.0
 	 */
 	public static function activate() {
-
+		// Create consent logs table
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-sure-consent-storage.php';
+		Sure_Consent_Storage::create_table();
 	}
 
 }

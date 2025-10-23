@@ -25,6 +25,7 @@ import {
   ScanText,
   Pen,
   CalendarCheck,
+  Workflow,
 } from "lucide-react";
 import Dashboard from "../components/Dashboard";
 import QuickCookieBanner from "../components/QuickCookieBanner";
@@ -34,9 +35,11 @@ import BannerLayout from "../components/BannerLayout";
 import CustomCSS from "../components/CustomCSS";
 import BannerDesignSelector from "../components/BannerDesignSelector";
 import CreateCustomCookies from "../components/CreateCustomCookies";
+import CustomCookiesList from "../components/CustomCookiesList"; // Add this import
 import ScanCookies from "../components/ScanCookies";
 import ScheduleScan from "../components/ScheduleScan";
 import ScanHistory from "../components/ScanHistory";
+import CookieCategories from "../components/CookieCategories";
 
 import Design from "../components/Design";
 import ScannedCookies from "../components/ScannedCookies";
@@ -108,6 +111,11 @@ const AdminApp = () => {
           path: "/settings/laws",
           icon: Shield,
         },
+        {
+          label: "Cookie Categories",
+          path: "/settings/categories",
+          icon: Workflow,
+        },
       ],
     },
     {
@@ -148,6 +156,11 @@ const AdminApp = () => {
         {
           label: "Create Custom Cookies",
           path: "/cookie-manager/create",
+          icon: Pen,
+        },
+        {
+          label: "Custom Cookies List", // Add this new tab
+          path: "/cookie-manager/list",
           icon: Pen,
         },
         {
@@ -289,6 +302,8 @@ const AdminApp = () => {
         return <CustomCSS />;
       case "/cookie-manager/create":
         return <CreateCustomCookies />;
+      case "/cookie-manager/list": // Add this case
+        return <CustomCookiesList />;
       case "/cookie-manager/schedule":
         return <ScheduleScan />;
       case "/cookie-manager/scan":
@@ -299,6 +314,8 @@ const AdminApp = () => {
         return <CookieSettings />;
       case "/settings/laws":
         return <Laws />;
+      case "/settings/categories":
+        return <CookieCategories />;
       case "/analytics/logs":
         return <ConsentLogs />;
       case "/analytics/reports":

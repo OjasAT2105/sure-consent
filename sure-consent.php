@@ -183,6 +183,16 @@ function sureconsent_enqueue_public_assets() {
 require_once plugin_dir_path( __FILE__ ) . 'admin/class-sure-consent-ajax.php';
 
 /**
+ * Include cookie consent handler
+ */
+require_once plugin_dir_path( __FILE__ ) . 'admin/class-sure-consent-cookies.php';
+
+/**
+ * Include consent storage handler
+ */
+require_once plugin_dir_path( __FILE__ ) . 'admin/class-sure-consent-storage.php';
+
+/**
  * Add React root div to footer for public cookie banner.
  */
 add_action( 'wp_footer', 'sureconsent_add_public_root' );

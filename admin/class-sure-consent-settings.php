@@ -74,7 +74,8 @@ class Sure_Consent_Settings {
         'notice_type' => 'banner',
         'notice_position' => 'bottom',
         'enable_banner' => false,
-        'show_preview' => false
+        'show_preview' => false,
+        'cookie_categories' => array()
     );
 
     /**
@@ -91,7 +92,21 @@ class Sure_Consent_Settings {
     public static function get_all_settings() {
         $settings = array();
         foreach (self::$settings as $key => $default) {
-            $settings[$key] = get_option('sure_consent_' . $key, $default);
+            $option_value = get_option('sure_consent_' . $key, $default);
+            
+            // Special handling for cookie_categories - decode JSON
+            if ($key === 'cookie_categories') {
+                if (is_string($option_value)) {
+                    $decoded = json_decode($option_value, true);
+                    $settings[$key] = is_array($decoded) ? $decoded : array();
+                } else if (is_array($option_value)) {
+                    $settings[$key] = $option_value;
+                } else {
+                    $settings[$key] = array();
+                }
+            } else {
+                $settings[$key] = $option_value;
+            }
         }
         return $settings;
     }
@@ -113,6 +128,12 @@ class Sure_Consent_Settings {
         if (!array_key_exists($key, self::$settings)) {
             return false;
         }
+        
+        // Special handling for cookie_categories - encode as JSON
+        if ($key === 'cookie_categories' && is_array($value)) {
+            return update_option('sure_consent_' . $key, json_encode($value));
+        }
+        
         return update_option('sure_consent_' . $key, $value);
     }
 
@@ -218,6 +239,9 @@ class Sure_Consent_Settings {
             
             case 'compliance_law':
                 return is_array($value) ? $value : array('id' => '1', 'name' => 'GDPR');
+            
+            case 'cookie_categories':
+                return is_array($value) ? $value : array();
             
             default:
                 return sanitize_text_field($value);

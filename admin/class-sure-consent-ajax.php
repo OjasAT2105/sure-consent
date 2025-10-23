@@ -42,27 +42,40 @@ class Sure_Consent_Ajax {
 
         $updated = array();
         
-        // Handle preview_enabled specifically
-        if (isset($settings_data['preview_enabled'])) {
-            update_option('sure_consent_preview_enabled', (bool) $settings_data['preview_enabled']);
-            $updated['preview_enabled'] = (bool) $settings_data['preview_enabled'];
-        }
-
-        // Handle other settings through the settings class
-        if (class_exists('Sure_Consent_Settings')) {
-            foreach ($settings_data as $key => $value) {
-                if ($key !== 'preview_enabled') {
-                    Sure_Consent_Settings::update_setting($key, $value);
-                    $updated[$key] = $value;
-                }
-            }
-        }
-        
-        // Also save directly as options for immediate access
+        // Save directly as options for immediate access
         foreach ($settings_data as $key => $value) {
             $option_name = 'sure_consent_' . $key;
-            delete_option($option_name); // Delete first to ensure update works
-            add_option($option_name, $value);
+            
+            // Handle cookie_categories as JSON (special case)
+            if ($key === 'cookie_categories' && is_array($value)) {
+                $json_value = json_encode($value);
+                update_option($option_name, $json_value); // Use update_option instead of add/delete
+                error_log('SureConsent - Saving cookie_categories as JSON: ' . $json_value);
+                $updated[$key] = $value;
+            } 
+            // Handle custom_cookies as JSON (special case)
+            else if ($key === 'custom_cookies' && is_array($value)) {
+                $json_value = json_encode($value);
+                update_option($option_name, $json_value);
+                error_log('SureConsent - Saving custom_cookies as JSON: ' . $json_value);
+                $updated[$key] = $value;
+            }
+            // Handle preview_enabled as boolean
+            else if ($key === 'preview_enabled') {
+                update_option($option_name, (bool) $value);
+                $updated[$key] = (bool) $value;
+            } 
+            // Handle all other settings
+            else {
+                update_option($option_name, $value);
+                $updated[$key] = $value;
+                
+                // Also update through settings class if it exists (except for special cases)
+                if (class_exists('Sure_Consent_Settings') && $key !== 'cookie_categories' && $key !== 'custom_cookies') {
+                    Sure_Consent_Settings::update_setting($key, $value);
+                }
+            }
+            
             $saved_value = get_option($option_name);
             error_log('SureConsent - Saved: ' . $option_name . ' = ' . print_r($value, true) . ' (verified: ' . print_r($saved_value, true) . ')');
         }
@@ -77,6 +90,7 @@ class Sure_Consent_Ajax {
      * Get admin settings
      */
     public static function get_settings() {
+        error_log('=== SureConsent - get_settings called (ADMIN) ===');
         error_log('SureConsent - get_settings called');
         
         if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
@@ -90,6 +104,20 @@ class Sure_Consent_Ajax {
         // Debug: Check what's actually in the database
         $banner_bg_color_value = get_option('sure_consent_banner_bg_color', '#1f2937');
         error_log('SureConsent - Getting banner_bg_color: ' . print_r($banner_bg_color_value, true));
+        
+        // Debug cookie_categories specifically
+        $cookie_categories_raw = get_option('sure_consent_cookie_categories', '[]');
+        error_log('SureConsent - cookie_categories RAW from DB: ' . $cookie_categories_raw);
+        $cookie_categories_decoded = json_decode($cookie_categories_raw, true);
+        error_log('SureConsent - cookie_categories DECODED: ' . print_r($cookie_categories_decoded, true));
+        error_log('SureConsent - cookie_categories IS ARRAY?: ' . (is_array($cookie_categories_decoded) ? 'YES' : 'NO'));
+        error_log('SureConsent - cookie_categories COUNT: ' . (is_array($cookie_categories_decoded) ? count($cookie_categories_decoded) : '0'));
+        
+        // Get custom cookies
+        $custom_cookies_raw = get_option('sure_consent_custom_cookies', '[]');
+        $custom_cookies_decoded = json_decode($custom_cookies_raw, true);
+        error_log('SureConsent - custom_cookies RAW from DB: ' . $custom_cookies_raw);
+        error_log('SureConsent - custom_cookies DECODED: ' . print_r($custom_cookies_decoded, true));
         
         $settings = array(
             'message_heading' => (string) get_option('sure_consent_message_heading', ''),
@@ -120,9 +148,13 @@ class Sure_Consent_Ajax {
             'preferences_btn_border_width' => (string) get_option('sure_consent_preferences_btn_border_width', '1'),
             'preferences_btn_border_radius' => (string) get_option('sure_consent_preferences_btn_border_radius', '4'),
             'custom_css' => (string) get_option('sure_consent_custom_css', ''),
-            'banner_design_template' => (string) get_option('sure_consent_banner_design_template', 'default')
+            'banner_design_template' => (string) get_option('sure_consent_banner_design_template', 'default'),
+            'cookie_categories' => json_decode(get_option('sure_consent_cookie_categories', '[]'), true) ?: array(),
+            'custom_cookies' => json_decode(get_option('sure_consent_custom_cookies', '[]'), true) ?: array()
         );
         
+        error_log('SureConsent - cookie_categories from DB: ' . get_option('sure_consent_cookie_categories', '[]'));
+        error_log('SureConsent - custom_cookies from DB: ' . get_option('sure_consent_custom_cookies', '[]'));
         error_log('SureConsent - Sending settings response: ' . print_r($settings, true));
         wp_send_json_success($settings);
     }
@@ -250,7 +282,9 @@ class Sure_Consent_Ajax {
             'preferences_btn_border_width' => (string) get_option('sure_consent_preferences_btn_border_width', '1'),
             'preferences_btn_border_radius' => (string) get_option('sure_consent_preferences_btn_border_radius', '4'),
             'button_order' => (string) get_option('sure_consent_button_order', 'decline,preferences,accept,accept_all'),
-            'custom_css' => (string) get_option('sure_consent_custom_css', '')
+            'custom_css' => (string) get_option('sure_consent_custom_css', ''),
+            'cookie_categories' => json_decode(get_option('sure_consent_cookie_categories', '[]'), true) ?: array(),
+            'custom_cookies' => json_decode(get_option('sure_consent_custom_cookies', '[]'), true) ?: array()
         );
         
         wp_send_json_success($settings);
