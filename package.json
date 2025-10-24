@@ -27,6 +27,8 @@
   },
   "dependencies": {
     "@bsf/force-ui": "git+https://github.com/brainstormforce/force-ui#1.7.6",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "prismjs": "^1.30.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

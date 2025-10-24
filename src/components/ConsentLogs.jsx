@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Button, Select, Input } from "@bsf/force-ui";
 import { Search, Calendar, Download, ChevronDown } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const ConsentLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    status: "all",
-  });
+  // Removed filters state as filtering is not working
+  // const [filters, setFilters] = useState({
+  //   status: "all",
+  // });
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState({});
   const [totalLogs, setTotalLogs] = useState(0);
@@ -27,12 +30,13 @@ const ConsentLogs = () => {
     }
 
     try {
-      console.log("SureConsent - Fetching consent logs with filters:", filters);
+      console.log("SureConsent - Fetching consent logs");
 
       const formData = new FormData();
       formData.append("action", "sure_consent_get_consent_logs");
       formData.append("nonce", ajaxConfig.nonce);
-      formData.append("status", filters.status);
+      // Removed status filter as it's not working
+      // formData.append("status", filters.status);
       formData.append("page", currentPage);
       formData.append("per_page", logsPerPage);
 
@@ -60,25 +64,46 @@ const ConsentLogs = () => {
     }
   };
 
+  // Fetch logs when component mounts
   useEffect(() => {
-    console.log("SureConsent - Filters or page changed, fetching logs...");
+    console.log("SureConsent - Component mounted, fetching initial logs...");
     fetchConsentLogs();
-  }, [currentPage, filters]);
+  }, []);
 
-  const handleFilterChange = (filterName, value) => {
-    console.log("SureConsent - Filter changed:", filterName, value);
-    setFilters((prev) => ({
-      ...prev,
-      [filterName]: value,
-    }));
-    setCurrentPage(1); // Reset to first page when filters change
-  };
+  // Also fetch logs when page changes (for pagination)
+  useEffect(() => {
+    if (currentPage > 1) {
+      // Only fetch if not the initial load
+      console.log("SureConsent - Page changed to:", currentPage);
+      fetchConsentLogs();
+    }
+  }, [currentPage]);
 
-  const handleSearch = () => {
-    console.log("SureConsent - Search button clicked");
-    setCurrentPage(1); // Reset to first page when search is triggered
-    fetchConsentLogs();
-  };
+  // Remove filter-related functions as filtering is not working
+  // const handleFilterChange = (filterName, value) => {
+  //   console.log("SureConsent - Filter changed:", filterName, value);
+  //   setFilters((prev) => ({
+  //     ...prev,
+  //     [filterName]: value,
+  //   }));
+  //   console.log("SureConsent - Updated filters state:", {...filters, [filterName]: value});
+  //   // Don't automatically fetch logs when filter changes
+  //   // The search button will trigger the fetch
+  //   // But reset to first page when filters change
+  //   setCurrentPage(1);
+  // };
+
+  // Add a useEffect to log filter changes for debugging
+  // useEffect(() => {
+  //   console.log("SureConsent - Filters state updated:", filters);
+  // }, [filters]);
+
+  // const handleSearch = () => {
+  //   console.log("SureConsent - Search button clicked");
+  //   console.log("SureConsent - Current filters:", filters);
+  //   // Don't reset to page 1 here since it's already done in handleFilterChange
+  //   fetchConsentLogs();
+  // };
 
   const toggleExpandRow = (id) => {
     setExpandedRows((prev) => ({
@@ -125,15 +150,14 @@ const ConsentLogs = () => {
   };
 
   const handleDownloadPDF = async (logId) => {
-    // Use the correct variable name for admin AJAX
-    const ajaxConfig = window.sureConsentAjax;
-    if (!ajaxConfig) {
-      console.error("SureConsent - AJAX configuration not available");
-      alert("AJAX configuration not available");
-      return;
-    }
-
     try {
+      // First, fetch the detailed log data from the backend
+      const ajaxConfig = window.sureConsentAjax;
+      if (!ajaxConfig) {
+        alert("AJAX configuration not available");
+        return;
+      }
+
       const formData = new FormData();
       formData.append("action", "sure_consent_generate_consent_pdf");
       formData.append("nonce", ajaxConfig.nonce);
@@ -146,18 +170,151 @@ const ConsentLogs = () => {
 
       const data = await response.json();
 
-      if (data.success && data.data.download_url) {
-        // In a real implementation, you would download the PDF
-        // For now, we'll just show an alert
-        alert("PDF would be downloaded for log ID: " + logId);
-        // window.open(data.data.download_url, '_blank');
-      } else {
-        console.error("Failed to generate PDF:", data);
-        alert("Failed to generate PDF");
+      if (!data.success) {
+        alert(
+          "Failed to fetch log data: " + (data.data?.message || "Unknown error")
+        );
+        return;
       }
+
+      const log = data.data.log;
+
+      // Create a new jsPDF instance
+      const doc = new jsPDF();
+
+      // Add title
+      doc.setFontSize(20);
+      doc.text("PROOF OF CONSENT", 105, 20, null, null, "center");
+
+      // Add legal disclaimer
+      doc.setFontSize(12);
+      doc.text(
+        "This document serves as legal proof of consent given by the user in accordance with GDPR and other applicable privacy regulations.",
+        105,
+        35,
+        { maxWidth: 180, align: "center" }
+      );
+
+      // Add consent details
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Consent Details", 20, 50);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(12);
+
+      // Create table for consent details using autoTable
+      autoTable(doc, {
+        startY: 55,
+        head: [["Field", "Value"]],
+        body: [
+          ["Log ID", log.id],
+          ["Timestamp", log.timestamp],
+          ["IP Address", log.ip_address],
+          ["Country", log.country],
+          ["Consent Status", getStatusDisplay(log.status)],
+          ["Plugin Version", log.version || "N/A"],
+        ],
+        theme: "grid",
+      });
+
+      // Add user agent if available
+      let currentY = doc.lastAutoTable.finalY + 10;
+      if (log.user_agent) {
+        doc.text("User Agent: " + log.user_agent, 20, currentY, {
+          maxWidth: 170,
+        });
+        currentY += 10;
+      }
+
+      // Add preferences details
+      if (log.preferences && Object.keys(log.preferences).length > 0) {
+        currentY += 10;
+
+        doc.setFont("helvetica", "bold");
+        doc.text("Cookie Preferences", 20, currentY);
+
+        currentY += 5;
+
+        doc.setFont("helvetica", "normal");
+
+        // Create table for preferences
+        const preferencesData = [];
+        for (const [category, accepted] of Object.entries(log.preferences)) {
+          preferencesData.push([category, accepted ? "Accepted" : "Declined"]);
+        }
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [["Category", "Status"]],
+          body: preferencesData,
+          theme: "grid",
+        });
+
+        currentY = doc.lastAutoTable.finalY + 10;
+      }
+
+      // Add more spacing before legal information
+      currentY += 20;
+      doc.setFont("helvetica", "bold");
+      doc.text("Legal Information", 20, currentY);
+
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        "Date of Generation: " + new Date().toLocaleString(),
+        20,
+        currentY + 10
+      );
+      doc.text("Website: " + window.location.origin, 20, currentY + 15);
+
+      doc.text(
+        "This document is automatically generated by the SureConsent plugin and serves as proof of user consent for cookie usage and data processing in accordance with GDPR and other applicable privacy regulations.",
+        20,
+        currentY + 25,
+        { maxWidth: 170 }
+      );
+
+      doc.text(
+        "The information contained in this document is accurate and complete to the best of our knowledge at the time of generation.",
+        20,
+        currentY + 40,
+        { maxWidth: 170 }
+      );
+
+      // Add more spacing after legal information
+      currentY += 60;
+      doc.setFont("helvetica", "bold");
+      doc.text("Digital Signature", 20, currentY);
+
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        "This document is digitally generated and does not require a physical signature to be legally valid.",
+        20,
+        currentY + 10,
+        { maxWidth: 170 }
+      );
+      doc.text(
+        "Document Hash: " +
+          btoa(log.id + log.timestamp + log.ip_address + log.status).substring(
+            0,
+            32
+          ),
+        20,
+        currentY + 20
+      );
+
+      doc.text(
+        "For any questions regarding this consent record, please contact the website administrator.",
+        20,
+        currentY + 30,
+        { maxWidth: 170 }
+      );
+
+      // Save the PDF
+      doc.save(`consent-log-${logId}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      alert("Error generating PDF");
+      alert("Error generating PDF: " + error.message);
     }
   };
 
@@ -176,8 +333,9 @@ const ConsentLogs = () => {
         <h2 className="text-xl font-semibold text-gray-800">Consent Logs</h2>
       </div>
       <div className="p-6">
+        {/* Removed filter section as filtering is not working */}
         {/* Filters - Simplified to only status filter */}
-        <div className="flex flex-wrap gap-4 mb-6">
+        {/* <div className="flex flex-wrap gap-4 mb-6">
           <div className="flex-1 min-w-[200px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Consent Status
@@ -207,7 +365,7 @@ const ConsentLogs = () => {
               Search
             </Button>
           </div>
-        </div>
+        </div> */}
 
         {/* Table */}
         <div className="overflow-x-auto">

@@ -243,7 +243,7 @@ class Sure_Consent_Storage {
     }
 
     /**
-     * Get consent logs with filtering and pagination
+     * Get consent logs with pagination (removed filter functionality)
      */
     public static function get_consent_logs() {
         // Check permissions
@@ -263,78 +263,60 @@ class Sure_Consent_Storage {
         global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
 
-        // Get filter parameters
-        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'all';
+        // Get pagination parameters (removed filter parameters)
         $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
         $per_page = isset($_POST['per_page']) ? intval($_POST['per_page']) : 10;
         
-        error_log("SureConsent - get_consent_logs called with filters: status=$status, page=$page, per_page=$per_page");
+        error_log("SureConsent - get_consent_logs called with pagination: page=$page, per_page=$per_page");
         
         // Debug: Log all POST data
         error_log("SureConsent - POST data: " . print_r($_POST, true));
         
-        // Debug: Check if filters are being received correctly
-        error_log("SureConsent - Status filter: " . (isset($_POST['status']) ? $_POST['status'] : 'not set'));
-        error_log("SureConsent - Page: " . (isset($_POST['page']) ? $_POST['page'] : 'not set'));
-        error_log("SureConsent - Per page: " . (isset($_POST['per_page']) ? $_POST['per_page'] : 'not set'));
-        
-        // Check if we're getting the correct values
-        if (isset($_POST['status'])) {
-            error_log("SureConsent - Status value: " . $_POST['status']);
-        }
-        
         $offset = ($page - 1) * $per_page;
 
-        // Build query
+        // Build query without filters
+        $where_clause = "";
         $where_conditions = array();
         $where_values = array();
 
-        // Status filter - normalize accept_all and accepted to 'accepted'
-        if ($status !== 'all') {
-            if ($status === 'accepted') {
-                // For 'accepted' status, we want to match both 'accept_all' and 'accepted' in the database
-                $where_conditions[] = "(action = 'accepted' OR action = 'accept_all')";
-            } else {
-                $where_conditions[] = "action = %s";
-                $where_values[] = $status;
-            }
-            error_log("SureConsent - Applying status filter: $status");
-        }
-
-        // Build WHERE clause
-        $where_clause = "";
+        // Build WHERE clause (empty since we removed filters)
         if (!empty($where_conditions)) {
             $where_clause = "WHERE " . implode(" AND ", $where_conditions);
         }
         
         error_log("SureConsent - WHERE clause: $where_clause");
-        error_log("SureConsent - WHERE values: " . print_r($where_values, true));
 
-        // Get total count with all filters
+        // Get total count
         $count_query = "SELECT COUNT(*) FROM $table_name $where_clause";
         if (!empty($where_values)) {
             $count_query = $wpdb->prepare($count_query, $where_values);
         }
         error_log("SureConsent - Count query: $count_query");
         
-        // Get logs with pagination and all filters
+        // Get logs with pagination
         $query = "SELECT * FROM $table_name $where_clause ORDER BY timestamp DESC LIMIT %d OFFSET %d";
         
-        // Add pagination parameters to query values
-        $query_values = $where_values;
-        $query_values[] = $per_page;
-        $query_values[] = $offset;
-        
-        $final_query = $wpdb->prepare($query, $query_values);
-        error_log("SureConsent - Final query: $final_query");
-        
-        $paginated_logs = $wpdb->get_results($final_query);
+        if (!empty($where_values)) {
+            // Add pagination parameters to query values
+            $query_values = $where_values;
+            $query_values[] = $per_page;
+            $query_values[] = $offset;
+            
+            $final_query = $wpdb->prepare($query, $query_values);
+            error_log("SureConsent - Final query: $final_query");
+            $paginated_logs = $wpdb->get_results($final_query);
+        } else {
+            // No filters, just add pagination
+            $final_query = $wpdb->prepare($query, $per_page, $offset);
+            error_log("SureConsent - Final query (no filters): $final_query");
+            $paginated_logs = $wpdb->get_results($final_query);
+        }
         
         // Get total count for pagination
         $total_logs = $wpdb->get_var($count_query);
         $total_pages = ceil($total_logs / $per_page);
         
-        error_log("SureConsent - Found " . count($paginated_logs) . " logs after all filtering");
+        error_log("SureConsent - Found " . count($paginated_logs) . " logs");
         error_log("SureConsent - Total logs: $total_logs, Total pages: $total_pages");
 
         // Process logs (country is already stored in database)
@@ -406,11 +388,31 @@ class Sure_Consent_Storage {
             return;
         }
 
+        // Return the log data so the frontend can generate the PDF
+        wp_send_json_success(array(
+            'log' => array(
+                'id' => $log->id,
+                'ip_address' => $log->ip_address,
+                'timestamp' => $log->timestamp,
+                'country' => $log->country,
+                'status' => $log->action,
+                'preferences' => json_decode($log->preferences, true),
+                'user_agent' => $log->user_agent,
+                'version' => $log->version
+            )
+        ));
+    }
+
+    /**
+     * Create and output a PDF for a consent log
+     */
+    private static function create_consent_pdf($log) {
         // For now, we'll return a simple response indicating the PDF would be generated
         // In a real implementation, you would generate the PDF here
+        // But we're now handling PDF generation in the frontend with jsPDF
         wp_send_json_success(array(
-            'message' => 'PDF would be generated for log ID: ' . $log_id,
-            'download_url' => admin_url('admin-ajax.php?action=sure_consent_download_pdf&log_id=' . $log_id)
+            'message' => 'PDF would be generated for log ID: ' . $log->id,
+            'download_url' => admin_url('admin-ajax.php?action=sure_consent_download_pdf&log_id=' . $log->id)
         ));
     }
 

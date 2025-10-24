@@ -370,7 +370,7 @@ class Sure_Consent_Ajax {
     }
 
     /**
-     * Get consent logs with filtering and pagination
+     * Get consent logs with pagination (removed filter functionality)
      */
     public static function get_consent_logs() {
         error_log("SureConsent - get_consent_logs AJAX handler called");
@@ -411,7 +411,7 @@ class Sure_Consent_Ajax {
         if (class_exists('Sure_Consent_Storage')) {
             Sure_Consent_Storage::generate_consent_pdf();
         } else {
-            wp_send_json_error(array('message' => 'Storage class not found'));
+            wp_die('Storage class not found');
         }
     }
 
