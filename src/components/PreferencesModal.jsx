@@ -150,7 +150,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
 
     // Save consent through ConsentManager
     if (window.SureConsentManager) {
-      window.SureConsentManager.saveConsent(allAccepted, "accept_all");
+      window.SureConsentManager.saveConsent(allAccepted, "accepted");
       console.log("💾 Consent saved via ConsentManager:", allAccepted);
     }
 
@@ -199,8 +199,11 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
 
     // Save consent through ConsentManager
     if (window.SureConsentManager) {
-      window.SureConsentManager.saveConsent(preferences, "custom");
-      console.log("💾 Consent saved via ConsentManager (custom):", preferences);
+      window.SureConsentManager.saveConsent(preferences, "partially_accepted");
+      console.log(
+        "💾 Consent saved via ConsentManager (partially_accepted):",
+        preferences
+      );
     }
 
     onSave(preferences);
@@ -541,7 +544,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                                     borderRight: `1px solid ${modalTextColor}20`,
                                   }}
                                 >
-                                  Duration
+                                  Duration (Days)
                                 </th>
                                 <th
                                   style={{

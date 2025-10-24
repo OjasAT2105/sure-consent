@@ -20,6 +20,12 @@ class Sure_Consent_Ajax {
         add_action('wp_ajax_sure_consent_get_settings', array(__CLASS__, 'get_settings'));
         add_action('wp_ajax_sure_consent_get_public_settings', array(__CLASS__, 'get_public_settings'));
         add_action('wp_ajax_nopriv_sure_consent_get_public_settings', array(__CLASS__, 'get_public_settings'));
+        // Add new action for fetching consent logs
+        add_action('wp_ajax_sure_consent_get_consent_logs', array(__CLASS__, 'get_consent_logs'));
+        // Add new action for generating PDF
+        add_action('wp_ajax_sure_consent_generate_consent_pdf', array(__CLASS__, 'generate_consent_pdf'));
+        // Add new action for fetching unique countries
+        add_action('wp_ajax_sure_consent_get_unique_countries', array(__CLASS__, 'get_unique_countries'));
     }
 
     /**
@@ -206,7 +212,9 @@ class Sure_Consent_Ajax {
         }
 
         $enabled = sanitize_text_field($_POST['enabled']);
+        // Update both banner_enabled and enable_banner for backward compatibility
         update_option('sure_consent_banner_enabled', $enabled === '1');
+        update_option('sure_consent_enable_banner', $enabled === '1');
 
         wp_send_json_success(array('enabled' => $enabled === '1'));
     }
@@ -241,7 +249,8 @@ class Sure_Consent_Ajax {
             wp_die('Insufficient permissions');
         }
 
-        $enabled = get_option('sure_consent_banner_enabled', false);
+        // Check both banner_enabled and enable_banner for backward compatibility
+        $enabled = get_option('sure_consent_banner_enabled', false) || get_option('sure_consent_enable_banner', false);
         $preview = get_option('sure_consent_preview_enabled', false);
         wp_send_json_success(array('enabled' => (bool) $enabled, 'preview' => (bool) $preview));
     }
@@ -259,6 +268,7 @@ class Sure_Consent_Ajax {
 
         $notice_type = get_option('sure_consent_notice_type', 'banner');
         $notice_position = get_option('sure_consent_notice_position', 'bottom');
+        // Check both banner_enabled and enable_banner for backward compatibility
         $banner_enabled = get_option('sure_consent_banner_enabled', false) || get_option('sure_consent_enable_banner', false);
         
         error_log('SureConsent - Getting public settings: notice_type=' . $notice_type . ', notice_position=' . $notice_position . ', enabled=' . ($banner_enabled ? 'true' : 'false'));
@@ -357,6 +367,72 @@ class Sure_Consent_Ajax {
         );
         
         wp_send_json_success($settings);
+    }
+
+    /**
+     * Get consent logs with filtering and pagination
+     */
+    public static function get_consent_logs() {
+        error_log("SureConsent - get_consent_logs AJAX handler called");
+        
+        if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            error_log("SureConsent - Nonce verification failed");
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            error_log("SureConsent - Insufficient permissions");
+            wp_die('Insufficient permissions');
+        }
+
+        // Forward the request to the storage class
+        if (class_exists('Sure_Consent_Storage')) {
+            error_log("SureConsent - Forwarding to storage class");
+            Sure_Consent_Storage::get_consent_logs();
+        } else {
+            error_log("SureConsent - Storage class not found");
+            wp_send_json_error(array('message' => 'Storage class not found'));
+        }
+    }
+
+    /**
+     * Generate PDF for a consent log
+     */
+    public static function generate_consent_pdf() {
+        if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Forward the request to the storage class
+        if (class_exists('Sure_Consent_Storage')) {
+            Sure_Consent_Storage::generate_consent_pdf();
+        } else {
+            wp_send_json_error(array('message' => 'Storage class not found'));
+        }
+    }
+
+    /**
+     * Get all unique countries from consent logs
+     */
+    public static function get_unique_countries() {
+        if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Forward the request to the storage class
+        if (class_exists('Sure_Consent_Storage')) {
+            Sure_Consent_Storage::get_unique_countries();
+        } else {
+            wp_send_json_error(array('message' => 'Storage class not found'));
+        }
     }
 }
 

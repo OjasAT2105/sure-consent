@@ -39,8 +39,15 @@ const CookieSettings = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-semibold mb-2" style={{fontSize: '20px', color: '#111827'}}>Cookie Settings</h1>
-        <p className="" style={{fontSize: '14px', color: '#4b5563'}}>Manage cookie categories and consent preferences for your website</p>
+        <h1
+          className="font-semibold mb-2"
+          style={{ fontSize: "20px", color: "#111827" }}
+        >
+          Cookie Settings
+        </h1>
+        <p className="" style={{ fontSize: "14px", color: "#4b5563" }}>
+          Manage cookie categories and consent preferences for your website
+        </p>
       </div>
       <div
         className="bg-white border rounded-lg shadow-sm"
@@ -50,21 +57,21 @@ const CookieSettings = () => {
         }}
       >
         <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between border rounded-lg">
-          <Switch
-            aria-label="Enable Cookie Banner Switch"
-            id="cookie-banner-switch"
-            label={{
-              description:
-                "Show cookie consent banner on frontend to comply with privacy regulations",
-              heading: "Enable Cookie Banner",
-            }}
-            onChange={handleBannerToggle}
-            size="sm"
-            value={getCurrentValue("banner_enabled") || false}
-          />
-        </div>
-        <ActionCard />
+          <div className="flex items-center justify-between ">
+            <Switch
+              aria-label="Enable Cookie Banner Switch"
+              id="cookie-banner-switch"
+              label={{
+                description:
+                  "Show cookie consent banner on frontend to comply with privacy regulations",
+                heading: "Enable Cookie Banner",
+              }}
+              onChange={handleBannerToggle}
+              size="sm"
+              value={getCurrentValue("banner_enabled") || false}
+            />
+          </div>
+          <ActionCard />
         </div>
       </div>
     </div>

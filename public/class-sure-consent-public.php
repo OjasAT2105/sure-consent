@@ -73,7 +73,14 @@ class Sure_Consent_Public {
 		 * class.
 		 */
 
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/sure-consent-public.css', array(), $this->version, 'all' );
+		// Use the dist folder where webpack builds the assets
+		wp_enqueue_style( 
+			$this->plugin_name, 
+			plugin_dir_url( dirname( __FILE__ ) ) . 'dist/public.css', 
+			array(), 
+			$this->version, 
+			'all' 
+		);
 
 	}
 
@@ -96,7 +103,14 @@ class Sure_Consent_Public {
 		 * class.
 		 */
 
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/sure-consent-public.js', array( 'jquery' ), $this->version, false );
+		// Use the dist folder where webpack builds the assets
+		wp_enqueue_script( 
+			$this->plugin_name, 
+			plugin_dir_url( dirname( __FILE__ ) ) . 'dist/public.js', 
+			array(), 
+			$this->version, 
+			true 
+		);
 
 	}
 

@@ -30,7 +30,7 @@ module.exports = withTW({
   },
   plugins: [],
   corePlugins: {
-    preflight: false,
+    preflight: true, // Enable preflight to ensure proper base styles
   },
   important: ".sureconsent-styles",
 });

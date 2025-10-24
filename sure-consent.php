@@ -21,7 +21,7 @@
 
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
-	die;
+    die;
 }
 
 /**
@@ -33,16 +33,16 @@ define( 'SURE_CONSENT_VERSION', '1.0.0' );
  * The code that runs during plugin activation.
  */
 function activate_sure_consent() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-sure-consent-activator.php';
-	Sure_Consent_Activator::activate();
+    require_once plugin_dir_path( __FILE__ ) . 'includes/class-sure-consent-activator.php';
+    Sure_Consent_Activator::activate();
 }
 
 /**
  * The code that runs during plugin deactivation.
  */
 function deactivate_sure_consent() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-sure-consent-deactivator.php';
-	Sure_Consent_Deactivator::deactivate();
+    require_once plugin_dir_path( __FILE__ ) . 'includes/class-sure-consent-deactivator.php';
+    Sure_Consent_Deactivator::deactivate();
 }
 
 register_activation_hook( __FILE__, 'activate_sure_consent' );
@@ -62,8 +62,8 @@ require plugin_dir_path( __FILE__ ) . 'admin/class-sure-consent-settings.php';
  * Begin plugin execution.
  */
 function run_sure_consent() {
-	$plugin = new Sure_Consent();
-	$plugin->run();
+    $plugin = new Sure_Consent();
+    $plugin->run();
 }
 
 /**
@@ -94,8 +94,6 @@ function sureconsent_dashboard_page() {
     <?php
 }
 
-
-
 /**
  * Enqueue admin scripts and styles.
  */
@@ -107,7 +105,6 @@ function sureconsent_enqueue_admin_assets( $hook ) {
         'toplevel_page_sureconsent',
         'sureconsent_page_sureconsent-banner',
         'sureconsent_page_sureconsent-settings',
-        'sureconsent_page_sureconsent-analytics',
         'sureconsent_page_sureconsent-advanced',
     );
 
@@ -166,6 +163,12 @@ function sureconsent_enqueue_public_assets() {
         SURE_CONSENT_VERSION
     );
 
+    // Get custom CSS from settings and add it as an inline style
+    $custom_css = get_option('sure_consent_custom_css', '');
+    if (!empty($custom_css)) {
+        wp_add_inline_style('sureconsent-public', "/* SureConsent Custom CSS - Public */\n" . $custom_css);
+    }
+
     // Localize script for AJAX
     wp_localize_script(
         'sureconsent-public',
@@ -191,6 +194,18 @@ require_once plugin_dir_path( __FILE__ ) . 'admin/class-sure-consent-cookies.php
  * Include consent storage handler
  */
 require_once plugin_dir_path( __FILE__ ) . 'admin/class-sure-consent-storage.php';
+
+// Initialize the storage class to register AJAX handlers
+if (class_exists('Sure_Consent_Storage')) {
+    Sure_Consent_Storage::init();
+    // Update existing records with country information
+    add_action('init', array('Sure_Consent_Storage', 'update_existing_records'));
+}
+
+// Initialize the AJAX class to register AJAX handlers
+if (class_exists('Sure_Consent_Ajax')) {
+    Sure_Consent_Ajax::init();
+}
 
 /**
  * Add React root div to footer for public cookie banner.

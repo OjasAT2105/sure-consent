@@ -175,81 +175,16 @@ const CreateCustomCookies = () => {
     }));
   };
 
-  // Function to calculate expiration date based on duration string
+  // Function to calculate expiration date based on duration in days
   const calculateExpirationDate = (duration) => {
     if (!duration) return null;
 
     const now = new Date();
-    const durationLower = duration.toLowerCase().trim();
+    const days = parseInt(duration);
 
-    // Handle different duration formats
-    if (durationLower.includes("session")) {
-      // Session cookies expire when browser closes (we'll set to 1 day for demo)
-      return new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
-    } else if (
-      durationLower.includes("minute") ||
-      durationLower.includes("minutes")
-    ) {
-      const minutes = parseInt(durationLower);
-      if (!isNaN(minutes)) {
-        return new Date(now.getTime() + minutes * 60 * 1000).toISOString();
-      }
-    } else if (
-      durationLower.includes("hour") ||
-      durationLower.includes("hours")
-    ) {
-      const hours = parseInt(durationLower);
-      if (!isNaN(hours)) {
-        return new Date(now.getTime() + hours * 60 * 60 * 1000).toISOString();
-      }
-    } else if (
-      durationLower.includes("day") ||
-      durationLower.includes("days")
-    ) {
-      const days = parseInt(durationLower);
-      if (!isNaN(days)) {
-        return new Date(
-          now.getTime() + days * 24 * 60 * 60 * 1000
-        ).toISOString();
-      }
-    } else if (
-      durationLower.includes("week") ||
-      durationLower.includes("weeks")
-    ) {
-      const weeks = parseInt(durationLower);
-      if (!isNaN(weeks)) {
-        return new Date(
-          now.getTime() + weeks * 7 * 24 * 60 * 60 * 1000
-        ).toISOString();
-      }
-    } else if (
-      durationLower.includes("month") ||
-      durationLower.includes("months")
-    ) {
-      const months = parseInt(durationLower);
-      if (!isNaN(months)) {
-        const newDate = new Date(now);
-        newDate.setMonth(newDate.getMonth() + months);
-        return newDate.toISOString();
-      }
-    } else if (
-      durationLower.includes("year") ||
-      durationLower.includes("years")
-    ) {
-      const years = parseInt(durationLower);
-      if (!isNaN(years)) {
-        const newDate = new Date(now);
-        newDate.setFullYear(newDate.getFullYear() + years);
-        return newDate.toISOString();
-      }
-    } else {
-      // Try to parse as a number of days if no unit is specified
-      const days = parseInt(durationLower);
-      if (!isNaN(days)) {
-        return new Date(
-          now.getTime() + days * 24 * 60 * 60 * 1000
-        ).toISOString();
-      }
+    // If duration is a valid number, calculate expiration date
+    if (!isNaN(days)) {
+      return new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
     }
 
     // Default to 30 days if format is not recognized
@@ -334,17 +269,20 @@ const CreateCustomCookies = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duration
+                  Duration (Days)
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   value={newCookie.duration}
                   onChange={(e) =>
                     handleInputChange("duration", e.target.value)
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="e.g., 30 days, 1 week, 1 month"
+                  placeholder="e.g., 30"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Number of days until cookie expires
+                </p>
               </div>
 
               <div>
@@ -468,7 +406,7 @@ const CreateCustomCookies = () => {
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200"
                       >
-                        Duration
+                        Duration (Days)
                       </th>
                       <th
                         scope="col"

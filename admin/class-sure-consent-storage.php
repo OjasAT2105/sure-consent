@@ -23,126 +23,178 @@ class Sure_Consent_Storage {
         
         add_action('wp_ajax_sure_consent_get_user_consent', array(__CLASS__, 'get_user_consent'));
         add_action('wp_ajax_nopriv_sure_consent_get_user_consent', array(__CLASS__, 'get_user_consent'));
+        
+        // Add new action for fetching consent logs
+        add_action('wp_ajax_sure_consent_get_consent_logs', array(__CLASS__, 'get_consent_logs'));
+        
+        // Add new action for fetching unique countries
+        add_action('wp_ajax_sure_consent_get_unique_countries', array(__CLASS__, 'get_unique_countries'));
+        
+        // Add new action for generating PDF
+        add_action('wp_ajax_sure_consent_generate_consent_pdf', array(__CLASS__, 'generate_consent_pdf'));
+        
+        // Create table on init if it doesn't exist
+        add_action('init', array(__CLASS__, 'create_table'));
     }
 
     /**
-     * Create consent logs table
+     * Create the consent logs table if it doesn't exist
      */
     public static function create_table() {
         global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
+
         $charset_collate = $wpdb->get_charset_collate();
 
-        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        $sql = "CREATE TABLE $table_name (
             id bigint(20) NOT NULL AUTO_INCREMENT,
             ip_address varchar(45) NOT NULL,
             user_id bigint(20) DEFAULT NULL,
             preferences longtext NOT NULL,
             action varchar(50) NOT NULL,
             timestamp datetime DEFAULT CURRENT_TIMESTAMP,
-            user_agent text DEFAULT NULL,
+            user_agent text,
+            country varchar(100) DEFAULT 'Unknown',
             version varchar(10) DEFAULT '1.0',
-            PRIMARY KEY  (id),
+            PRIMARY KEY (id),
             KEY ip_address (ip_address),
             KEY user_id (user_id),
-            KEY timestamp (timestamp)
+            KEY timestamp (timestamp),
+            KEY country (country)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
-
-        error_log('SureConsent - Consent logs table created/verified');
+        
+        // Update existing records to add country information
+        self::update_existing_records();
     }
-
+    
     /**
-     * Get user's IP address
+     * Update existing records to add country information
      */
-    private static function get_ip_address() {
-        $ip_keys = array(
-            'HTTP_CLIENT_IP',
-            'HTTP_X_FORWARDED_FOR',
-            'HTTP_X_FORWARDED',
-            'HTTP_X_CLUSTER_CLIENT_IP',
-            'HTTP_FORWARDED_FOR',
-            'HTTP_FORWARDED',
-            'REMOTE_ADDR'
-        );
-
-        foreach ($ip_keys as $key) {
-            if (array_key_exists($key, $_SERVER)) {
-                $ip_list = explode(',', $_SERVER[$key]);
-                foreach ($ip_list as $ip) {
-                    $ip = trim($ip);
-                    if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                        return $ip;
-                    }
-                }
+    public static function update_existing_records() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+        
+        // Check if country column exists
+        $column_exists = $wpdb->get_var("SHOW COLUMNS FROM $table_name LIKE 'country'");
+        
+        if (!$column_exists) {
+            // Add country column if it doesn't exist
+            $wpdb->query("ALTER TABLE $table_name ADD COLUMN country varchar(100) DEFAULT 'Unknown'");
+        }
+        
+        // Update existing records with country information
+        // First, get all records that don't have country information
+        $logs = $wpdb->get_results("SELECT id, ip_address FROM $table_name WHERE country IS NULL OR country = '' OR country = 'Unknown'");
+        
+        error_log("SureConsent - Updating " . count($logs) . " records with country information");
+        
+        foreach ($logs as $log) {
+            $country = self::get_country_from_ip($log->ip_address);
+            $result = $wpdb->update(
+                $table_name,
+                array('country' => $country),
+                array('id' => $log->id),
+                array('%s'),
+                array('%d')
+            );
+            
+            if ($result === false) {
+                error_log("SureConsent - Failed to update country for log ID: " . $log->id);
             }
         }
-
-        return '0.0.0.0';
+        
+        error_log("SureConsent - Finished updating records with country information");
     }
 
     /**
-     * Save consent via AJAX
+     * Save user consent to database
      */
     public static function save_consent() {
-        global $wpdb;
-
-        // Get data from request
-        $preferences = isset($_POST['preferences']) ? json_decode(stripslashes($_POST['preferences']), true) : array();
-        $action = isset($_POST['action_type']) ? sanitize_text_field($_POST['action_type']) : 'custom';
-
-        if (empty($preferences)) {
-            wp_send_json_error(array('message' => 'No preferences provided'));
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
             return;
         }
 
-        // Get user info
-        $ip_address = self::get_ip_address();
+        // Get user IP
+        $ip_address = $_SERVER['REMOTE_ADDR'];
+        
+        // Get current user ID (if logged in)
         $user_id = get_current_user_id();
+        
+        // Get preferences and action type
+        $preferences = isset($_POST['preferences']) ? stripslashes($_POST['preferences']) : '';
+        $action_type = isset($_POST['action_type']) ? sanitize_text_field($_POST['action_type']) : 'unknown';
+        
+        // Normalize action types - accept_all and accepted should both be treated as accepted
+        if ($action_type === 'accept_all' || $action_type === 'accepted') {
+            $action_type = 'accepted';
+        }
+        
+        // Get user agent
         $user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? sanitize_text_field($_SERVER['HTTP_USER_AGENT']) : '';
-
-        // Insert into database
+        
+        // Get country from IP
+        $country = self::get_country_from_ip($ip_address);
+        
+        global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
-        $inserted = $wpdb->insert(
+
+        // Insert consent log
+        $result = $wpdb->insert(
             $table_name,
             array(
                 'ip_address' => $ip_address,
                 'user_id' => $user_id > 0 ? $user_id : null,
-                'preferences' => json_encode($preferences),
-                'action' => $action,
-                'timestamp' => current_time('mysql'),
+                'preferences' => $preferences,
+                'action' => $action_type,
                 'user_agent' => $user_agent,
+                'country' => $country,
                 'version' => '1.0'
             ),
-            array('%s', '%d', '%s', '%s', '%s', '%s', '%s')
+            array(
+                '%s',
+                $user_id > 0 ? '%d' : null,
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s'
+            )
         );
 
-        if ($inserted) {
-            error_log("SureConsent - Consent saved for IP: $ip_address, Action: $action");
+        if ($result !== false) {
             wp_send_json_success(array(
                 'message' => 'Consent saved successfully',
+                'id' => $wpdb->insert_id,
                 'ip' => $ip_address,
-                'action' => $action,
-                'id' => $wpdb->insert_id
+                'action' => $action_type
             ));
         } else {
-            error_log('SureConsent - Failed to save consent: ' . $wpdb->last_error);
             wp_send_json_error(array('message' => 'Failed to save consent'));
         }
     }
 
     /**
-     * Get user consent by IP
+     * Get user consent from database
      */
     public static function get_user_consent() {
-        global $wpdb;
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
 
-        $ip_address = self::get_ip_address();
+        // Get user IP
+        $ip_address = $_SERVER['REMOTE_ADDR'];
+        
+        global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
 
-        // Get latest consent for this IP
+        // Get the latest consent for this IP
         $consent = $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM $table_name WHERE ip_address = %s ORDER BY timestamp DESC LIMIT 1",
             $ip_address
@@ -150,10 +202,14 @@ class Sure_Consent_Storage {
 
         if ($consent) {
             wp_send_json_success(array(
-                'preferences' => json_decode($consent->preferences, true),
-                'action' => $consent->action,
-                'timestamp' => $consent->timestamp,
-                'version' => $consent->version
+                'consent' => array(
+                    'id' => $consent->id,
+                    'ip_address' => $consent->ip_address,
+                    'preferences' => json_decode($consent->preferences, true),
+                    'action' => $consent->action,
+                    'timestamp' => $consent->timestamp,
+                    'version' => $consent->version
+                )
             ));
         } else {
             wp_send_json_success(array('consent' => null));
@@ -161,9 +217,248 @@ class Sure_Consent_Storage {
     }
 
     /**
-     * Get all consents for an IP (history)
+     * Get all unique countries from consent logs
      */
-    public static function get_consent_history($ip_address, $limit = 10) {
+    public static function get_unique_countries() {
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+
+        // Get all unique countries from the database
+        $countries = $wpdb->get_col("SELECT DISTINCT country FROM $table_name WHERE country IS NOT NULL AND country != ''");
+
+        wp_send_json_success(array(
+            'countries' => $countries
+        ));
+    }
+
+    /**
+     * Get consent logs with filtering and pagination
+     */
+    public static function get_consent_logs() {
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Make sure existing records are updated with country information
+        self::update_existing_records();
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+
+        // Get filter parameters
+        $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'all';
+        $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+        $per_page = isset($_POST['per_page']) ? intval($_POST['per_page']) : 10;
+        
+        error_log("SureConsent - get_consent_logs called with filters: status=$status, page=$page, per_page=$per_page");
+        
+        // Debug: Log all POST data
+        error_log("SureConsent - POST data: " . print_r($_POST, true));
+        
+        // Debug: Check if filters are being received correctly
+        error_log("SureConsent - Status filter: " . (isset($_POST['status']) ? $_POST['status'] : 'not set'));
+        error_log("SureConsent - Page: " . (isset($_POST['page']) ? $_POST['page'] : 'not set'));
+        error_log("SureConsent - Per page: " . (isset($_POST['per_page']) ? $_POST['per_page'] : 'not set'));
+        
+        // Check if we're getting the correct values
+        if (isset($_POST['status'])) {
+            error_log("SureConsent - Status value: " . $_POST['status']);
+        }
+        
+        $offset = ($page - 1) * $per_page;
+
+        // Build query
+        $where_conditions = array();
+        $where_values = array();
+
+        // Status filter - normalize accept_all and accepted to 'accepted'
+        if ($status !== 'all') {
+            if ($status === 'accepted') {
+                // For 'accepted' status, we want to match both 'accept_all' and 'accepted' in the database
+                $where_conditions[] = "(action = 'accepted' OR action = 'accept_all')";
+            } else {
+                $where_conditions[] = "action = %s";
+                $where_values[] = $status;
+            }
+            error_log("SureConsent - Applying status filter: $status");
+        }
+
+        // Build WHERE clause
+        $where_clause = "";
+        if (!empty($where_conditions)) {
+            $where_clause = "WHERE " . implode(" AND ", $where_conditions);
+        }
+        
+        error_log("SureConsent - WHERE clause: $where_clause");
+        error_log("SureConsent - WHERE values: " . print_r($where_values, true));
+
+        // Get total count with all filters
+        $count_query = "SELECT COUNT(*) FROM $table_name $where_clause";
+        if (!empty($where_values)) {
+            $count_query = $wpdb->prepare($count_query, $where_values);
+        }
+        error_log("SureConsent - Count query: $count_query");
+        
+        // Get logs with pagination and all filters
+        $query = "SELECT * FROM $table_name $where_clause ORDER BY timestamp DESC LIMIT %d OFFSET %d";
+        
+        // Add pagination parameters to query values
+        $query_values = $where_values;
+        $query_values[] = $per_page;
+        $query_values[] = $offset;
+        
+        $final_query = $wpdb->prepare($query, $query_values);
+        error_log("SureConsent - Final query: $final_query");
+        
+        $paginated_logs = $wpdb->get_results($final_query);
+        
+        // Get total count for pagination
+        $total_logs = $wpdb->get_var($count_query);
+        $total_pages = ceil($total_logs / $per_page);
+        
+        error_log("SureConsent - Found " . count($paginated_logs) . " logs after all filtering");
+        error_log("SureConsent - Total logs: $total_logs, Total pages: $total_pages");
+
+        // Process logs (country is already stored in database)
+        $processed_logs = array();
+        foreach ($paginated_logs as $log) {
+            // Normalize the action type for display
+            $normalized_action = $log->action;
+            if ($log->action === 'accept_all') {
+                $normalized_action = 'accepted';
+            }
+            
+            $processed_log = array(
+                'id' => $log->id,
+                'ip_address' => $log->ip_address,
+                'timestamp' => $log->timestamp,
+                'country' => $log->country,
+                'status' => $normalized_action,
+                'preferences' => json_decode($log->preferences, true),
+                'user_agent' => $log->user_agent
+            );
+            $processed_logs[] = $processed_log;
+        }
+
+        error_log("SureConsent - Sending response with " . count($processed_logs) . " logs");
+        
+        wp_send_json_success(array(
+            'logs' => $processed_logs,
+            'total' => $total_logs,
+            'page' => $page,
+            'per_page' => $per_page,
+            'total_pages' => $total_pages
+        ));
+    }
+
+    /**
+     * Generate PDF for a consent log
+     */
+    public static function generate_consent_pdf() {
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Get log ID
+        $log_id = isset($_POST['log_id']) ? intval($_POST['log_id']) : 0;
+        
+        if (!$log_id) {
+            wp_send_json_error(array('message' => 'Invalid log ID'));
+            return;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+
+        // Get the log
+        $log = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d",
+            $log_id
+        ));
+
+        if (!$log) {
+            wp_send_json_error(array('message' => 'Log not found'));
+            return;
+        }
+
+        // For now, we'll return a simple response indicating the PDF would be generated
+        // In a real implementation, you would generate the PDF here
+        wp_send_json_success(array(
+            'message' => 'PDF would be generated for log ID: ' . $log_id,
+            'download_url' => admin_url('admin-ajax.php?action=sure_consent_download_pdf&log_id=' . $log_id)
+        ));
+    }
+
+    /**
+     * Get country from IP address
+     * In a real implementation, this would call a geo-location service
+     * For now, we'll use a simple mapping for testing and return "Local" for local IPs
+     */
+    private static function get_country_from_ip($ip) {
+        // Handle localhost and private IPs
+        if ($ip === '127.0.0.1' || $ip === '::1') {
+            return 'Localhost';
+        }
+        
+        // Check for private IP ranges
+        if (strpos($ip, '192.168.') === 0 || 
+            strpos($ip, '10.') === 0 || 
+            (strpos($ip, '172.') === 0 && 
+             preg_match('/^172\.(1[6-9]|2[0-9]|3[01])\./', $ip))) {
+            return 'Local Network';
+        }
+
+        // For production environments, you would integrate with a geo-location service
+        // This is a simple mock implementation for testing
+        $ip_prefixes = array(
+            '192.169.' => 'United States',
+            '192.170.' => 'United Kingdom',
+            '192.171.' => 'Germany',
+            '192.172.' => 'France',
+            '192.173.' => 'Canada',
+            '192.174.' => 'Australia',
+            '192.175.' => 'Japan'
+        );
+        
+        foreach ($ip_prefixes as $prefix => $country) {
+            if (strpos($ip, $prefix) === 0) {
+                return $country;
+            }
+        }
+        
+        // Return a default for unknown IPs
+        return 'Unknown';
+    }
+
+    /**
+     * Get consent logs by IP address
+     */
+    public static function get_logs_by_ip($ip_address, $limit = 10) {
         global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
 

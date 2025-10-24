@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings, ChevronDown, ChevronUp } from "lucide-react";
+import { Settings } from "lucide-react";
 import PreferencesModal from "../components/PreferencesModal";
 import ConsentManager from "../utils/consentManager";
 
@@ -84,15 +84,221 @@ const PublicApp = () => {
     useState("4");
   const [cookieCategories, setCookieCategories] = useState([]);
   const [customCookies, setCustomCookies] = useState([]);
-  const [expandedCategory, setExpandedCategory] = useState(null); // For accordion functionality
 
+  // Completely remove CSS injection from React component
+  // Handle CSS through WordPress enqueue instead
+
+  // Fetch settings only once on component mount
   useEffect(() => {
+    const fetchSettings = async () => {
+      console.log("PublicApp - Fetching frontend settings...");
+      try {
+        // Check if AJAX config is available
+        if (!window.sureConsentAjax || !window.sureConsentAjax.ajaxurl) {
+          console.error("PublicApp - AJAX configuration not available");
+          return;
+        }
+
+        const response = await fetch(window.sureConsentAjax.ajaxurl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "sure_consent_get_public_settings",
+            nonce: window.sureConsentAjax.nonce || "",
+          }),
+        });
+
+        const data = await response.json();
+        console.log("Frontend settings received:", data);
+        if (data.success && data.data) {
+          const heading = data.data.message_heading || "";
+          const description =
+            data.data.message_description ||
+            "We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.";
+          const type = data.data.notice_type || "banner";
+          const position = data.data.notice_position || "bottom";
+          const enabled = data.data.banner_enabled || false;
+          const bgColor = data.data.banner_bg_color || "#1f2937";
+          const opacity = data.data.bg_opacity || "100";
+          const txtColor = data.data.text_color || "#ffffff";
+          const bStyle = data.data.border_style || "solid";
+          const bWidth = data.data.border_width || "1";
+          const bColor = data.data.border_color || "#000000";
+          const bRadius = data.data.border_radius || "8";
+          const fontFamily = data.data.font || "Arial";
+          const logo = data.data.banner_logo || "";
+          const acceptColor = data.data.accept_btn_color || "#2563eb";
+          const declineColor = data.data.decline_btn_color || "transparent";
+          const acceptAllEnabledValue = data.data.accept_all_enabled || false;
+
+          // Accept button properties
+          const acceptText = data.data.accept_btn_text || "Accept";
+          const acceptTextColor = data.data.accept_btn_text_color || "#ffffff";
+          const acceptShowAs = data.data.accept_btn_show_as || "button";
+          const acceptBgOpacity = data.data.accept_btn_bg_opacity || "100";
+          const acceptBorderStyle = data.data.accept_btn_border_style || "none";
+          const acceptBorderColor =
+            data.data.accept_btn_border_color || "#000000";
+          const acceptBorderWidth = data.data.accept_btn_border_width || "1";
+          const acceptBorderRadius = data.data.accept_btn_border_radius || "4";
+
+          // Accept All button properties
+          const acceptAllText = data.data.accept_all_btn_text || "Accept All";
+          const acceptAllTextColor =
+            data.data.accept_all_btn_text_color || "#ffffff";
+          const acceptAllShowAs = data.data.accept_all_btn_show_as || "button";
+          const acceptAllBgColor =
+            data.data.accept_all_btn_bg_color || "#2563eb";
+          const acceptAllBgOpacity =
+            data.data.accept_all_btn_bg_opacity || "100";
+          const acceptAllBorderStyle =
+            data.data.accept_all_btn_border_style || "none";
+          const acceptAllBorderColor =
+            data.data.accept_all_btn_border_color || "#000000";
+          const acceptAllBorderWidth =
+            data.data.accept_all_btn_border_width || "1";
+          const acceptAllBorderRadius =
+            data.data.accept_all_btn_border_radius || "4";
+
+          // Decline button properties
+          const declineText = data.data.decline_btn_text || "Decline";
+          const declineTextColor =
+            data.data.decline_btn_text_color || "#000000";
+          const declineShowAs = data.data.decline_btn_show_as || "button";
+          const declineBgOpacity = data.data.decline_btn_bg_opacity || "100";
+          const declineBorderStyle =
+            data.data.decline_btn_border_style || "solid";
+          const declineBorderColor =
+            data.data.decline_btn_border_color || "#6b7280";
+          const declineBorderWidth = data.data.decline_btn_border_width || "1";
+          const declineBorderRadius =
+            data.data.decline_btn_border_radius || "4";
+
+          // Custom CSS - we'll handle this through WordPress enqueue
+          const customCSSValue = data.data.custom_css || "";
+
+          // Update state values
+          setMessageHeading(heading);
+          setMessageDescription(description);
+          setNoticeType(type);
+          setNoticePosition(position);
+          setBannerEnabled(enabled);
+          setShowBanner(enabled); // Only show banner if it's enabled
+          setBannerBgColor(bgColor);
+          setBgOpacity(opacity);
+          setTextColor(txtColor);
+          setBorderStyle(bStyle);
+          setBorderWidth(bWidth);
+          setBorderColor(bColor);
+          setBorderRadius(bRadius);
+          setFont(fontFamily);
+          setBannerLogo(logo);
+          setAcceptBtnColor(acceptColor);
+          setDeclineBtnColor(declineColor);
+          setAcceptAllEnabled(acceptAllEnabledValue);
+
+          console.log("PublicApp - Banner state:", {
+            enabled,
+            bannerEnabled: enabled,
+            showBanner: enabled,
+          });
+
+          // Set Accept button properties
+          setAcceptBtnText(acceptText);
+          setAcceptBtnTextColor(acceptTextColor);
+          setAcceptBtnShowAs(acceptShowAs);
+          setAcceptBtnBgOpacity(acceptBgOpacity);
+          setAcceptBtnBorderStyle(acceptBorderStyle);
+          setAcceptBtnBorderColor(acceptBorderColor);
+          setAcceptBtnBorderWidth(acceptBorderWidth);
+          setAcceptBtnBorderRadius(acceptBorderRadius);
+
+          // Set Accept All button properties
+          setAcceptAllBtnText(acceptAllText);
+          setAcceptAllBtnTextColor(acceptAllTextColor);
+          setAcceptAllBtnShowAs(acceptAllShowAs);
+          setAcceptAllBtnBgColor(acceptAllBgColor);
+          setAcceptAllBtnBgOpacity(acceptAllBgOpacity);
+          setAcceptAllBtnBorderStyle(acceptAllBorderStyle);
+          setAcceptAllBtnBorderColor(acceptAllBorderColor);
+          setAcceptAllBtnBorderWidth(acceptAllBorderWidth);
+          setAcceptAllBtnBorderRadius(acceptAllBorderRadius);
+
+          // Set Decline button properties
+          setDeclineBtnText(declineText);
+          setDeclineBtnTextColor(declineTextColor);
+          setDeclineBtnShowAs(declineShowAs);
+          setDeclineBtnBgOpacity(declineBgOpacity);
+          setDeclineBtnBorderStyle(declineBorderStyle);
+          setDeclineBtnBorderColor(declineBorderColor);
+          setDeclineBtnBorderWidth(declineBorderWidth);
+          setDeclineBtnBorderRadius(declineBorderRadius);
+
+          // Set button order
+          const order =
+            data.data.button_order || "decline,preferences,accept,accept_all";
+          setButtonOrder(order.split(","));
+
+          // Set Preferences button properties
+          const preferencesText =
+            data.data.preferences_btn_text || "Preferences";
+          const preferencesTextColor =
+            data.data.preferences_btn_text_color || "#2563eb";
+          const preferencesShowAs =
+            data.data.preferences_btn_show_as || "button";
+          const preferencesBgColor =
+            data.data.preferences_btn_color || "transparent";
+          const preferencesBgOpacity =
+            data.data.preferences_btn_bg_opacity || "100";
+          const preferencesBorderStyle =
+            data.data.preferences_btn_border_style || "solid";
+          const preferencesBorderColor =
+            data.data.preferences_btn_border_color || "#2563eb";
+          const preferencesBorderWidth =
+            data.data.preferences_btn_border_width || "1";
+          const preferencesBorderRadius =
+            data.data.preferences_btn_border_radius || "4";
+
+          setPreferencesBtnText(preferencesText);
+          setPreferencesBtnTextColor(preferencesTextColor);
+          setPreferencesBtnShowAs(preferencesShowAs);
+          setPreferencesBtnColor(preferencesBgColor);
+          setPreferencesBtnBgOpacity(preferencesBgOpacity);
+          setPreferencesBtnBorderStyle(preferencesBorderStyle);
+          setPreferencesBtnBorderColor(preferencesBorderColor);
+          setPreferencesBtnBorderWidth(preferencesBorderWidth);
+          setPreferencesBtnBorderRadius(preferencesBorderRadius);
+
+          // Set cookie categories
+          const categories = data.data.cookie_categories || [];
+          setCookieCategories(categories);
+
+          // Set custom cookies
+          const customCookies = data.data.custom_cookies || [];
+          setCustomCookies(customCookies);
+          console.log("PublicApp - Custom cookies loaded:", customCookies);
+
+          console.log("Frontend state set:", {
+            noticeType: type,
+            noticePosition: position,
+            enabled,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch settings:", error);
+      }
+    };
+
     fetchSettings();
   }, []);
 
   // Separate useEffect to check consent AFTER banner is enabled
   useEffect(() => {
     if (!bannerEnabled) return;
+
+    console.log("PublicApp - Banner enabled, checking consent status");
 
     // Check if user has already given consent
     if (window.SureConsentManager && window.SureConsentManager.hasConsent()) {
@@ -148,6 +354,36 @@ const PublicApp = () => {
     };
   }, [bannerEnabled, customCookies]);
 
+  // Add event listener for consent changes
+  useEffect(() => {
+    const handleConsentChange = (event) => {
+      console.log("PublicApp - Consent changed event received:", event.detail);
+
+      // Update UI based on consent change
+      if (event.detail) {
+        // User has given consent
+        console.log("PublicApp - User gave consent, hiding banner");
+        setShowBanner(false);
+        setShowSettingsButton(true);
+      } else {
+        // Consent was cleared
+        console.log("PublicApp - Consent cleared, showing banner if enabled");
+        if (bannerEnabled) {
+          setShowBanner(true);
+          setShowSettingsButton(false);
+        }
+      }
+    };
+
+    // Listen for consent changes
+    window.addEventListener("sureconsent_changed", handleConsentChange);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener("sureconsent_changed", handleConsentChange);
+    };
+  }, [bannerEnabled]);
+
   // Function to check for expired cookies
   const checkForExpiredCookies = () => {
     if (!customCookies || customCookies.length === 0) return false;
@@ -175,239 +411,6 @@ const PublicApp = () => {
     }
 
     return false;
-  };
-
-  // Inject custom CSS
-  useEffect(() => {
-    console.log("PublicApp - Custom CSS:", customCSS);
-
-    // Remove existing custom CSS if any
-    const existingStyle = document.getElementById(
-      "sureconsent-custom-css-public"
-    );
-    if (existingStyle) {
-      existingStyle.remove();
-    }
-
-    // Add new custom CSS if provided
-    if (customCSS && customCSS.trim()) {
-      const style = document.createElement("style");
-      style.id = "sureconsent-custom-css-public";
-      // Add comment and ensure it loads with highest priority
-      style.textContent = `/* SureConsent Custom CSS - Public */\n${customCSS}`;
-      document.head.appendChild(style);
-      console.log("PublicApp - Custom CSS injected successfully!");
-      console.log("PublicApp - CSS content:", style.textContent);
-    } else {
-      console.log("PublicApp - No custom CSS to inject");
-    }
-
-    // Cleanup on unmount
-    return () => {
-      const styleToRemove = document.getElementById(
-        "sureconsent-custom-css-public"
-      );
-      if (styleToRemove) {
-        styleToRemove.remove();
-      }
-    };
-  }, [customCSS]);
-
-  const fetchSettings = async () => {
-    console.log("PublicApp - Fetching frontend settings...");
-    try {
-      const response = await fetch("/wp-admin/admin-ajax.php", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          action: "sure_consent_get_public_settings",
-        }),
-      });
-
-      const data = await response.json();
-      console.log("Frontend settings received:", data);
-      if (data.success && data.data) {
-        const heading = data.data.message_heading || "";
-        const description =
-          data.data.message_description ||
-          "We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.";
-        const type = data.data.notice_type || "banner";
-        const position = data.data.notice_position || "bottom";
-        const enabled = data.data.banner_enabled || false;
-        const bgColor = data.data.banner_bg_color || "#1f2937";
-        const opacity = data.data.bg_opacity || "100";
-        const txtColor = data.data.text_color || "#ffffff";
-        const bStyle = data.data.border_style || "solid";
-        const bWidth = data.data.border_width || "1";
-        const bColor = data.data.border_color || "#000000";
-        const bRadius = data.data.border_radius || "8";
-        const fontFamily = data.data.font || "Arial";
-        const logo = data.data.banner_logo || "";
-        const acceptColor = data.data.accept_btn_color || "#2563eb";
-        const declineColor = data.data.decline_btn_color || "transparent";
-        const acceptAllEnabledValue = data.data.accept_all_enabled || false;
-
-        // Accept button properties
-        const acceptText = data.data.accept_btn_text || "Accept";
-        const acceptTextColor = data.data.accept_btn_text_color || "#ffffff";
-        const acceptShowAs = data.data.accept_btn_show_as || "button";
-        const acceptBgOpacity = data.data.accept_btn_bg_opacity || "100";
-        const acceptBorderStyle = data.data.accept_btn_border_style || "none";
-        const acceptBorderColor =
-          data.data.accept_btn_border_color || "#000000";
-        const acceptBorderWidth = data.data.accept_btn_border_width || "1";
-        const acceptBorderRadius = data.data.accept_btn_border_radius || "4";
-
-        // Accept All button properties
-        const acceptAllText = data.data.accept_all_btn_text || "Accept All";
-        const acceptAllTextColor =
-          data.data.accept_all_btn_text_color || "#ffffff";
-        const acceptAllShowAs = data.data.accept_all_btn_show_as || "button";
-        const acceptAllBgColor = data.data.accept_all_btn_bg_color || "#2563eb";
-        const acceptAllBgOpacity = data.data.accept_all_btn_bg_opacity || "100";
-        const acceptAllBorderStyle =
-          data.data.accept_all_btn_border_style || "none";
-        const acceptAllBorderColor =
-          data.data.accept_all_btn_border_color || "#000000";
-        const acceptAllBorderWidth =
-          data.data.accept_all_btn_border_width || "1";
-        const acceptAllBorderRadius =
-          data.data.accept_all_btn_border_radius || "4";
-
-        // Decline button properties
-        const declineText = data.data.decline_btn_text || "Decline";
-        const declineTextColor = data.data.decline_btn_text_color || "#000000";
-        const declineShowAs = data.data.decline_btn_show_as || "button";
-        const declineBgOpacity = data.data.decline_btn_bg_opacity || "100";
-        const declineBorderStyle =
-          data.data.decline_btn_border_style || "solid";
-        const declineBorderColor =
-          data.data.decline_btn_border_color || "#6b7280";
-        const declineBorderWidth = data.data.decline_btn_border_width || "1";
-        const declineBorderRadius = data.data.decline_btn_border_radius || "4";
-
-        // Custom CSS
-        const customCSSValue = data.data.custom_css || "";
-
-        setMessageHeading(heading);
-        setMessageDescription(description);
-        setNoticeType(type);
-        setNoticePosition(position);
-        setBannerEnabled(enabled);
-        setShowBanner(enabled);
-        setBannerBgColor(bgColor);
-        setBgOpacity(opacity);
-        setTextColor(txtColor);
-        setBorderStyle(bStyle);
-        setBorderWidth(bWidth);
-        setBorderColor(bColor);
-        setBorderRadius(bRadius);
-        setFont(fontFamily);
-        setBannerLogo(logo);
-        setAcceptBtnColor(acceptColor);
-        setDeclineBtnColor(declineColor);
-        setAcceptAllEnabled(acceptAllEnabledValue);
-
-        console.log("PublicApp - Banner state:", {
-          enabled,
-          bannerEnabled: enabled,
-          showBanner: enabled,
-        });
-
-        // Set Accept button properties
-        setAcceptBtnText(acceptText);
-        setAcceptBtnTextColor(acceptTextColor);
-        setAcceptBtnShowAs(acceptShowAs);
-        setAcceptBtnBgOpacity(acceptBgOpacity);
-        setAcceptBtnBorderStyle(acceptBorderStyle);
-        setAcceptBtnBorderColor(acceptBorderColor);
-        setAcceptBtnBorderWidth(acceptBorderWidth);
-        setAcceptBtnBorderRadius(acceptBorderRadius);
-
-        // Set Accept All button properties
-        setAcceptAllBtnText(acceptAllText);
-        setAcceptAllBtnTextColor(acceptAllTextColor);
-        setAcceptAllBtnShowAs(acceptAllShowAs);
-        setAcceptAllBtnBgColor(acceptAllBgColor);
-        setAcceptAllBtnBgOpacity(acceptAllBgOpacity);
-        setAcceptAllBtnBorderStyle(acceptAllBorderStyle);
-        setAcceptAllBtnBorderColor(acceptAllBorderColor);
-        setAcceptAllBtnBorderWidth(acceptAllBorderWidth);
-        setAcceptAllBtnBorderRadius(acceptAllBorderRadius);
-
-        // Set Decline button properties
-        setDeclineBtnText(declineText);
-        setDeclineBtnTextColor(declineTextColor);
-        setDeclineBtnShowAs(declineShowAs);
-        setDeclineBtnBgOpacity(declineBgOpacity);
-        setDeclineBtnBorderStyle(declineBorderStyle);
-        setDeclineBtnBorderColor(declineBorderColor);
-        setDeclineBtnBorderWidth(declineBorderWidth);
-        setDeclineBtnBorderRadius(declineBorderRadius);
-
-        // Set custom CSS
-        setCustomCSS(customCSSValue);
-
-        // Set button order
-        const order =
-          data.data.button_order || "decline,preferences,accept,accept_all";
-        setButtonOrder(order.split(","));
-
-        // Set Preferences button properties
-        const preferencesText = data.data.preferences_btn_text || "Preferences";
-        const preferencesTextColor =
-          data.data.preferences_btn_text_color || "#2563eb";
-        const preferencesShowAs = data.data.preferences_btn_show_as || "button";
-        const preferencesBgColor =
-          data.data.preferences_btn_color || "transparent";
-        const preferencesBgOpacity =
-          data.data.preferences_btn_bg_opacity || "100";
-        const preferencesBorderStyle =
-          data.data.preferences_btn_border_style || "solid";
-        const preferencesBorderColor =
-          data.data.preferences_btn_border_color || "#2563eb";
-        const preferencesBorderWidth =
-          data.data.preferences_btn_border_width || "1";
-        const preferencesBorderRadius =
-          data.data.preferences_btn_border_radius || "4";
-
-        setPreferencesBtnText(preferencesText);
-        setPreferencesBtnTextColor(preferencesTextColor);
-        setPreferencesBtnShowAs(preferencesShowAs);
-        setPreferencesBtnColor(preferencesBgColor);
-        setPreferencesBtnBgOpacity(preferencesBgOpacity);
-        setPreferencesBtnBorderStyle(preferencesBorderStyle);
-        setPreferencesBtnBorderColor(preferencesBorderColor);
-        setPreferencesBtnBorderWidth(preferencesBorderWidth);
-        setPreferencesBtnBorderRadius(preferencesBorderRadius);
-
-        // Set cookie categories
-        const categories = data.data.cookie_categories || [];
-        setCookieCategories(categories);
-
-        // Set custom cookies
-        const customCookies = data.data.custom_cookies || [];
-        setCustomCookies(customCookies);
-        console.log("PublicApp - Custom cookies loaded:", customCookies);
-
-        console.log("Frontend state set:", {
-          noticeType: type,
-          noticePosition: position,
-          enabled,
-        });
-      }
-    } catch (error) {
-      console.error("Failed to fetch settings:", error);
-    }
-  };
-
-  // Handle accordion toggle for cookie tables
-  const toggleCategoryCookies = (categoryName) => {
-    setExpandedCategory(
-      expandedCategory === categoryName ? null : categoryName
-    );
   };
 
   const handleAccept = () => {
@@ -524,7 +527,7 @@ const PublicApp = () => {
     logCustomCookiesForCategories(preferences);
 
     if (window.SureConsentManager) {
-      window.SureConsentManager.saveConsent(preferences, "accept_all");
+      window.SureConsentManager.saveConsent(preferences, "accepted");
       console.log("💾 Consent saved (ALL accepted):", preferences);
     }
 
@@ -592,13 +595,11 @@ const PublicApp = () => {
     setShowBanner(true);
   };
 
-  // Don't render anything if banner is disabled
-  if (!bannerEnabled) {
-    console.log("PublicApp - Banner disabled:", { bannerEnabled });
-    return null;
-  }
-
-  console.log("PublicApp - Rendering banner!");
+  // Always render the component, but conditionally show the banner based on bannerEnabled
+  console.log("PublicApp - Rendering component:", {
+    bannerEnabled,
+    showBanner,
+  });
 
   const getPositionStyles = () => {
     const highZIndex = 999999999; // Very high z-index to ensure visibility
@@ -718,8 +719,8 @@ const PublicApp = () => {
 
   return (
     <>
-      {/* Banner - only show when showBanner is true */}
-      {showBanner && (
+      {/* Banner - only show when showBanner is true AND bannerEnabled is true */}
+      {bannerEnabled && showBanner && (
         <div
           style={{
             ...getPositionStyles(),
@@ -915,10 +916,8 @@ const PublicApp = () => {
         onSave={(preferences) => {
           console.log("Preferences saved:", preferences);
 
-          // Save consent through ConsentManager
-          if (window.SureConsentManager) {
-            window.SureConsentManager.saveCustomPreferences(preferences);
-          }
+          // Don't save consent again through ConsentManager since it's already saved in the modal
+          // The modal already calls saveConsent when the user clicks Save Preferences
 
           setShowPreferencesModal(false);
           setShowSettingsButton(true);
@@ -937,7 +936,7 @@ const PublicApp = () => {
       />
 
       {/* Floating Cookie Settings Button */}
-      {showSettingsButton && (
+      {bannerEnabled && showSettingsButton && (
         <button
           onClick={handleReopenBanner}
           className="sureconsent-floating-settings"
@@ -977,19 +976,7 @@ const PublicApp = () => {
         </button>
       )}
 
-      {/* Add keyframe animation for slide-up effect */}
-      <style>{`
-        @keyframes sureconsent-slide-up {
-          from {
-            transform: translateY(100px);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
+      {/* Remove the inline style tag that was causing DOM manipulation issues */}
     </>
   );
 };

@@ -1,0 +1,16 @@
+/**
+ * SureConsent Admin Styles
+ *
+ * @package    Sure_Consent
+ * @subpackage Sure_Consent/admin/css
+ */
+
+/* Add your admin styles here */
+.sureconsent-admin {
+  /* Base styles for admin interface */
+}
+
+/* Hide the admin app container until React loads */
+#sureconsent-admin-root {
+  min-height: 500px;
+}

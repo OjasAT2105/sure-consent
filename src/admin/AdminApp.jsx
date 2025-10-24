@@ -26,6 +26,7 @@ import {
   Pen,
   CalendarCheck,
   Workflow,
+  Logs,
 } from "lucide-react";
 import Dashboard from "../components/Dashboard";
 import QuickCookieBanner from "../components/QuickCookieBanner";
@@ -182,7 +183,7 @@ const AdminApp = () => {
         {
           label: "Consent Logs",
           path: "/analytics/logs",
-          icon: BarChart3,
+          icon: Logs,
         },
         {
           label: "Reports",
@@ -565,10 +566,11 @@ const AdminApp = () => {
               <SidebarNavigation navLinks={filteredNavLinks} />
               <div className="bg-background-secondary overflow-y-auto">
                 <div className="p-5">
-                  {/* Increased max-width for cookie-manager section */}
+                  {/* Increased max-width for cookie-manager and analytics sections */}
                   <main
                     className={
-                      activeSection === "cookie-manager"
+                      activeSection === "cookie-manager" ||
+                      activeSection === "analytics"
                         ? "mx-auto max-w-[1200px]"
                         : "mx-auto max-w-[768px]"
                     }

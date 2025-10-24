@@ -62,11 +62,14 @@ class ConsentManager {
     // Save to database via AJAX
     this.saveToDatabase(preferences, actualAction);
 
-    // Trigger consent change event
-    this.triggerConsentChange(consentData);
-
     // Apply consent immediately
     this.applyConsent();
+
+    // Trigger consent change event AFTER everything is done
+    // Use setTimeout to ensure the state is fully updated before triggering the event
+    setTimeout(() => {
+      this.triggerConsentChange(consentData);
+    }, 0);
 
     return consentData;
   }
@@ -77,8 +80,16 @@ class ConsentManager {
    * @param {string} action - Action type
    */
   saveToDatabase(preferences, action) {
-    if (!window.sureConsentAjax) {
-      console.warn("SureConsent - AJAX not available, skipping database save");
+    // Check if AJAX is available
+    if (
+      !window.sureConsentAjax ||
+      !window.sureConsentAjax.ajaxurl ||
+      !window.sureConsentAjax.nonce
+    ) {
+      console.warn(
+        "SureConsent - AJAX configuration not available, skipping database save"
+      );
+      console.log("SureConsent - AJAX config:", window.sureConsentAjax);
       return;
     }
 
@@ -86,14 +97,37 @@ class ConsentManager {
     formData.append("action", "sure_consent_save_consent");
     formData.append("preferences", JSON.stringify(preferences));
     formData.append("action_type", action);
+    formData.append("nonce", window.sureConsentAjax.nonce);
+
+    console.log("SureConsent - Sending consent data to server:", {
+      action: action,
+      preferences: preferences,
+      ajaxUrl: window.sureConsentAjax.ajaxurl,
+      nonceAvailable: !!window.sureConsentAjax.nonce,
+    });
+
+    // Log form data for debugging
+    for (let pair of formData.entries()) {
+      console.log("FormData - " + pair[0] + ": " + pair[1]);
+    }
 
     fetch(window.sureConsentAjax.ajaxurl, {
       method: "POST",
       body: formData,
       credentials: "same-origin",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
     })
-      .then((response) => response.json())
+      .then((response) => {
+        console.log("SureConsent - AJAX response status:", response.status);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then((data) => {
+        console.log("SureConsent - AJAX response data:", data);
         if (data.success) {
           console.log("✅ Consent saved to database:", data.data);
         } else {
@@ -102,6 +136,33 @@ class ConsentManager {
       })
       .catch((error) => {
         console.error("❌ Error saving consent:", error);
+        // Try alternative approach - send as URL encoded data
+        console.log("SureConsent - Trying alternative approach...");
+        const params = new URLSearchParams();
+        params.append("action", "sure_consent_save_consent");
+        params.append("preferences", JSON.stringify(preferences));
+        params.append("action_type", action);
+        params.append("nonce", window.sureConsentAjax.nonce);
+
+        fetch(window.sureConsentAjax.ajaxurl, {
+          method: "POST",
+          body: params,
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("SureConsent - Alternative approach response:", data);
+          })
+          .catch((error) => {
+            console.error(
+              "SureConsent - Alternative approach also failed:",
+              error
+            );
+          });
       });
   }
 
@@ -143,14 +204,14 @@ class ConsentManager {
     categories.forEach((cat) => {
       preferences[cat.name] = true;
     });
-    return this.saveConsent(preferences, "accept_all");
+    return this.saveConsent(preferences, "accepted");
   }
 
   /**
    * Save custom preferences
    */
   saveCustomPreferences(preferences) {
-    return this.saveConsent(preferences, "custom");
+    return this.saveConsent(preferences, "partially_accepted");
   }
 
   /**
@@ -293,14 +354,18 @@ class ConsentManager {
    * Determine action type based on preferences
    * @param {Object} preferences - User's consent preferences
    * @param {string} suggestedAction - Suggested action from user interaction
-   * @returns {string} - 'accept_all', 'decline_all', 'accepted', or 'partially_accepted'
+   * @returns {string} - 'accepted', 'decline_all', or 'partially_accepted'
    */
   determineAction(preferences, suggestedAction) {
+    // Normalize suggested action - accept_all should be treated as accepted
+    if (suggestedAction === "accept_all") {
+      suggestedAction = "accepted";
+    }
+
     // If suggested action is one of the explicit actions, use it directly
     if (
-      suggestedAction === "accept_all" ||
-      suggestedAction === "decline_all" ||
       suggestedAction === "accepted" ||
+      suggestedAction === "decline_all" ||
       suggestedAction === "partially_accepted"
     ) {
       return suggestedAction;
@@ -317,7 +382,7 @@ class ConsentManager {
 
     // All categories accepted
     if (allTrue) {
-      return "accept_all";
+      return "accepted";
     }
 
     // All declined (only essential)
