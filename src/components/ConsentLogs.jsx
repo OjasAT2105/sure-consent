@@ -14,6 +14,7 @@ import autoTable from "jspdf-autotable";
 const ConsentLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [consentLoggingEnabled, setConsentLoggingEnabled] = useState(true); // Default to true
   // Removed filters state as filtering is not working
   // const [filters, setFilters] = useState({
   //   status: "all",
@@ -30,6 +31,39 @@ const ConsentLogs = () => {
     logId: null,
   });
   const logsPerPage = 10;
+
+  // Check if consent logging is enabled
+  const checkConsentLoggingStatus = async () => {
+    try {
+      const response = await fetch(
+        window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "sure_consent_get_settings",
+            nonce: window.sureConsentAjax?.nonce || "",
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        // Check if consent_logging_enabled is set, default to true if not found
+        const isEnabled =
+          data.data.consent_logging_enabled !== undefined
+            ? data.data.consent_logging_enabled
+            : true;
+        setConsentLoggingEnabled(isEnabled);
+      }
+    } catch (error) {
+      console.error("Error checking consent logging status:", error);
+      // Default to true if there's an error
+      setConsentLoggingEnabled(true);
+    }
+  };
 
   // Fetch consent logs from the server
   const fetchConsentLogs = async () => {
@@ -81,6 +115,7 @@ const ConsentLogs = () => {
   // Fetch logs when component mounts
   useEffect(() => {
     console.log("SureConsent - Component mounted, fetching initial logs...");
+    checkConsentLoggingStatus();
     fetchConsentLogs();
   }, []);
 
@@ -452,6 +487,12 @@ const ConsentLogs = () => {
     setDeleteConfirmDialog({ open: false, type: null, count: 0, message: "" });
   };
 
+  // Generate dynamic link to settings
+  const getSettingsLink = () => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    return `${baseUrl}?page=sureconsent&tab=settings`;
+  };
+
   return (
     <div
       className="bg-white border rounded-lg shadow-sm"
@@ -464,6 +505,23 @@ const ConsentLogs = () => {
         <h2 className="text-xl font-semibold text-gray-800">Consent Logs</h2>
       </div>
       <div className="p-6">
+        {/* Message when consent logging is disabled */}
+        {!consentLoggingEnabled && (
+          <div className="p-4 mb-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <p className="text-sm text-yellow-800">
+              Consent logging is currently disabled. No new consent actions will
+              be saved to the database.{" "}
+              <a
+                href={getSettingsLink()}
+                className="font-semibold text-yellow-600 hover:text-yellow-800 underline"
+              >
+                Enable consent logging in the Settings tab
+              </a>{" "}
+              to start recording user consent.
+            </p>
+          </div>
+        )}
+
         {/* Bulk Actions Bar */}
         <div className="flex items-center justify-between mb-4">
           <div>

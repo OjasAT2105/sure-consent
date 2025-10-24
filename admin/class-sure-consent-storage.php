@@ -119,6 +119,20 @@ class Sure_Consent_Storage {
             return;
         }
 
+        // Check if consent logging is enabled
+        $consent_logging_enabled = get_option('sure_consent_consent_logging_enabled', true);
+        
+        // If logging is disabled, return success without saving to database
+        if (!$consent_logging_enabled) {
+            wp_send_json_success(array(
+                'message' => 'Consent processed successfully (logging disabled)',
+                'id' => null,
+                'ip' => $_SERVER['REMOTE_ADDR'],
+                'action' => isset($_POST['action_type']) ? sanitize_text_field($_POST['action_type']) : 'unknown'
+            ));
+            return;
+        }
+
         // Get user IP
         $ip_address = $_SERVER['REMOTE_ADDR'];
         

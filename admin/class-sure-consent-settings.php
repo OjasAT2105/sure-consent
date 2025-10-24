@@ -76,7 +76,8 @@ class Sure_Consent_Settings {
         'enable_banner' => false,
         'show_preview' => false,
         'cookie_categories' => array(),
-        'custom_cookies' => array()  // Add this line
+        'custom_cookies' => array(),
+        'consent_logging_enabled' => false  // Add consent logging toggle (off by default)
     );
 
     /**
@@ -215,6 +216,7 @@ class Sure_Consent_Settings {
             case 'preview_enabled':
             case 'enable_banner':
             case 'show_preview':
+            case 'consent_logging_enabled':
                 return (bool) $value;
             
             case 'banner_text':
