@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Button, Select, Input } from "@bsf/force-ui";
-import { Search, Calendar, Download, ChevronDown } from "lucide-react";
+import {
+  Search,
+  Calendar,
+  Download,
+  ChevronDown,
+  Trash2,
+  X,
+} from "lucide-react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -15,6 +22,13 @@ const ConsentLogs = () => {
   const [expandedRows, setExpandedRows] = useState({});
   const [totalLogs, setTotalLogs] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [selectedLogs, setSelectedLogs] = useState([]);
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState({
+    open: false,
+    type: "single",
+    logId: null,
+  });
   const logsPerPage = 10;
 
   // Fetch consent logs from the server
@@ -35,7 +49,7 @@ const ConsentLogs = () => {
       const formData = new FormData();
       formData.append("action", "sure_consent_get_consent_logs");
       formData.append("nonce", ajaxConfig.nonce);
-      // Removed status filter as it's not working
+      // Removed status filter as filtering is not working
       // formData.append("status", filters.status);
       formData.append("page", currentPage);
       formData.append("per_page", logsPerPage);
@@ -78,32 +92,6 @@ const ConsentLogs = () => {
       fetchConsentLogs();
     }
   }, [currentPage]);
-
-  // Remove filter-related functions as filtering is not working
-  // const handleFilterChange = (filterName, value) => {
-  //   console.log("SureConsent - Filter changed:", filterName, value);
-  //   setFilters((prev) => ({
-  //     ...prev,
-  //     [filterName]: value,
-  //   }));
-  //   console.log("SureConsent - Updated filters state:", {...filters, [filterName]: value});
-  //   // Don't automatically fetch logs when filter changes
-  //   // The search button will trigger the fetch
-  //   // But reset to first page when filters change
-  //   setCurrentPage(1);
-  // };
-
-  // Add a useEffect to log filter changes for debugging
-  // useEffect(() => {
-  //   console.log("SureConsent - Filters state updated:", filters);
-  // }, [filters]);
-
-  // const handleSearch = () => {
-  //   console.log("SureConsent - Search button clicked");
-  //   console.log("SureConsent - Current filters:", filters);
-  //   // Don't reset to page 1 here since it's already done in handleFilterChange
-  //   fetchConsentLogs();
-  // };
 
   const toggleExpandRow = (id) => {
     setExpandedRows((prev) => ({
@@ -154,7 +142,14 @@ const ConsentLogs = () => {
       // First, fetch the detailed log data from the backend
       const ajaxConfig = window.sureConsentAjax;
       if (!ajaxConfig) {
-        alert("AJAX configuration not available");
+        // Using popup instead of alert
+        setDeleteConfirmDialog({
+          open: true,
+          type: "error",
+          message: "AJAX configuration not available",
+          onConfirm: () =>
+            setDeleteConfirmDialog({ open: false, type: null, message: "" }),
+        });
         return;
       }
 
@@ -171,9 +166,16 @@ const ConsentLogs = () => {
       const data = await response.json();
 
       if (!data.success) {
-        alert(
-          "Failed to fetch log data: " + (data.data?.message || "Unknown error")
-        );
+        // Using popup instead of alert
+        setDeleteConfirmDialog({
+          open: true,
+          type: "error",
+          message:
+            "Failed to fetch log data: " +
+            (data.data?.message || "Unknown error"),
+          onConfirm: () =>
+            setDeleteConfirmDialog({ open: false, type: null, message: "" }),
+        });
         return;
       }
 
@@ -314,12 +316,141 @@ const ConsentLogs = () => {
       doc.save(`consent-log-${logId}.pdf`);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      alert("Error generating PDF: " + error.message);
+      // Using popup instead of alert
+      setDeleteConfirmDialog({
+        open: true,
+        type: "error",
+        message: "Error generating PDF: " + error.message,
+        onConfirm: () =>
+          setDeleteConfirmDialog({ open: false, type: null, message: "" }),
+      });
+    }
+  };
+
+  // Toggle selection of a single log
+  const toggleLogSelection = (logId) => {
+    setSelectedLogs((prev) => {
+      if (prev.includes(logId)) {
+        return prev.filter((id) => id !== logId);
+      } else {
+        return [...prev, logId];
+      }
+    });
+  };
+
+  // Select all logs on current page
+  const selectAllLogs = () => {
+    const currentPageLogIds = logs.map((log) => log.id);
+    setSelectedLogs(currentPageLogIds);
+  };
+
+  // Deselect all logs
+  const deselectAllLogs = () => {
+    setSelectedLogs([]);
+  };
+
+  // Open delete confirmation dialog for selected logs
+  const openBulkDeleteConfirm = () => {
+    if (selectedLogs.length === 0) {
+      // Using popup instead of alert
+      setDeleteConfirmDialog({
+        open: true,
+        type: "error",
+        message: "Please select at least one log to delete",
+        onConfirm: () =>
+          setDeleteConfirmDialog({ open: false, type: null, message: "" }),
+      });
+      return;
+    }
+
+    setDeleteConfirmDialog({
+      open: true,
+      type: "bulk",
+      count: selectedLogs.length,
+      onConfirm: confirmBulkDelete,
+      onCancel: () =>
+        setDeleteConfirmDialog({ open: false, type: null, count: 0 }),
+    });
+  };
+
+  // Confirm and delete selected logs
+  const confirmBulkDelete = async () => {
+    setIsDeletingSelected(true);
+    setDeleteConfirmDialog({ open: false, type: null, count: 0 });
+
+    try {
+      const ajaxConfig = window.sureConsentAjax;
+      if (!ajaxConfig) {
+        // Using popup instead of alert
+        setDeleteConfirmDialog({
+          open: true,
+          type: "error",
+          message: "AJAX configuration not available",
+          onConfirm: () =>
+            setDeleteConfirmDialog({ open: false, type: null, message: "" }),
+        });
+        return;
+      }
+
+      // Delete each selected log
+      const deletePromises = selectedLogs.map((logId) => {
+        const formData = new FormData();
+        formData.append("action", "sure_consent_delete_consent_log");
+        formData.append("nonce", ajaxConfig.nonce);
+        formData.append("log_id", logId);
+
+        return fetch(ajaxConfig.ajaxurl, {
+          method: "POST",
+          body: formData,
+        });
+      });
+
+      // Wait for all deletions to complete
+      const responses = await Promise.all(deletePromises);
+
+      // Check if all deletions were successful
+      let successCount = 0;
+      for (const response of responses) {
+        const data = await response.json();
+        if (data.success) {
+          successCount++;
+        }
+      }
+
+      // Refresh the logs
+      fetchConsentLogs();
+      setSelectedLogs([]);
+
+      // Using popup instead of alert
+      setDeleteConfirmDialog({
+        open: true,
+        type: "success",
+        message: `${successCount} of ${selectedLogs.length} log(s) deleted successfully.`,
+        onConfirm: () =>
+          setDeleteConfirmDialog({ open: false, type: null, message: "" }),
+      });
+    } catch (error) {
+      console.error("Error deleting logs:", error);
+      // Using popup instead of alert
+      setDeleteConfirmDialog({
+        open: true,
+        type: "error",
+        message: "Error deleting logs",
+        onConfirm: () =>
+          setDeleteConfirmDialog({ open: false, type: null, message: "" }),
+      });
+    } finally {
+      setIsDeletingSelected(false);
     }
   };
 
   const indexOfLastLog = currentPage * logsPerPage;
   const indexOfFirstLog = indexOfLastLog - logsPerPage;
+
+  // Close confirmation dialog
+  const closeConfirmDialog = () => {
+    setDeleteConfirmDialog({ open: false, type: null, count: 0, message: "" });
+  };
 
   return (
     <div
@@ -333,6 +464,48 @@ const ConsentLogs = () => {
         <h2 className="text-xl font-semibold text-gray-800">Consent Logs</h2>
       </div>
       <div className="p-6">
+        {/* Bulk Actions Bar */}
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            {selectedLogs.length > 0 && (
+              <div className="text-sm text-blue-800">
+                {selectedLogs.length} log(s) selected
+              </div>
+            )}
+          </div>
+          <div className="flex space-x-2">
+            {selectedLogs.length > 0 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={deselectAllLogs}
+                  disabled={isDeletingSelected}
+                >
+                  Deselect All
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  icon={<Trash2 className="w-4 h-4" />}
+                  onClick={openBulkDeleteConfirm}
+                  disabled={isDeletingSelected}
+                >
+                  {isDeletingSelected ? "Deleting..." : "Delete Selected"}
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Trash2 className="w-4 h-4" />}
+              onClick={selectAllLogs}
+            >
+              Select All
+            </Button>
+          </div>
+        </div>
+
         {/* Removed filter section as filtering is not working */}
         {/* Filters - Simplified to only status filter */}
         {/* <div className="flex flex-wrap gap-4 mb-6">
@@ -375,7 +548,16 @@ const ConsentLogs = () => {
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                ></th>
+                >
+                  <input
+                    type="checkbox"
+                    checked={
+                      selectedLogs.length === logs.length && logs.length > 0
+                    }
+                    onChange={selectAllLogs}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -430,18 +612,18 @@ const ConsentLogs = () => {
               ) : (
                 logs.map((log) => (
                   <React.Fragment key={log.id}>
-                    <tr>
+                    <tr
+                      className={
+                        selectedLogs.includes(log.id) ? "bg-blue-50" : ""
+                      }
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => toggleExpandRow(log.id)}
-                          className="text-gray-500 hover:text-gray-700"
-                        >
-                          <ChevronDown
-                            className={`w-5 h-5 transform transition-transform ${
-                              expandedRows[log.id] ? "rotate-180" : ""
-                            }`}
-                          />
-                        </button>
+                        <input
+                          type="checkbox"
+                          checked={selectedLogs.includes(log.id)}
+                          onChange={() => toggleLogSelection(log.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {log.ip_address}
@@ -472,20 +654,31 @@ const ConsentLogs = () => {
                         </Button>
                       </td>
                     </tr>
-                    {expandedRows[log.id] && (
-                      <tr>
-                        <td colSpan="6" className="px-6 py-4 bg-gray-50">
-                          <div className="ml-8">
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">
-                              Cookie Details
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <tr>
+                      <td colSpan="6" className="px-6 py-2 bg-gray-50">
+                        <button
+                          onClick={() => toggleExpandRow(log.id)}
+                          className="flex items-center text-sm text-gray-700 hover:text-gray-900"
+                        >
+                          <ChevronDown
+                            className={`w-4 h-4 mr-2 transform transition-transform ${
+                              expandedRows[log.id] ? "rotate-180" : ""
+                            }`}
+                          />
+                          {expandedRows[log.id]
+                            ? "Hide Cookie Details"
+                            : "Show Cookie Details"}
+                        </button>
+
+                        {expandedRows[log.id] && (
+                          <div className="mt-2 ml-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                               {log.preferences &&
                                 Object.entries(log.preferences).map(
                                   ([category, accepted]) => (
                                     <div
                                       key={category}
-                                      className="flex items-center justify-between p-3 bg-white rounded border"
+                                      className="flex items-center justify-between p-2 bg-white rounded border"
                                     >
                                       <span className="text-sm text-gray-700">
                                         {category}
@@ -504,15 +697,76 @@ const ConsentLogs = () => {
                                 )}
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                    )}
+                        )}
+                      </td>
+                    </tr>
                   </React.Fragment>
                 ))
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        {deleteConfirmDialog.open && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {deleteConfirmDialog.type === "error"
+                    ? "Error"
+                    : deleteConfirmDialog.type === "success"
+                    ? "Success"
+                    : "Confirm Deletion"}
+                </h3>
+                <button
+                  onClick={closeConfirmDialog}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {deleteConfirmDialog.type === "bulk" ? (
+                <p className="text-gray-600 mb-6">
+                  Are you sure you want to delete {deleteConfirmDialog.count}{" "}
+                  selected log(s)? This action cannot be undone.
+                </p>
+              ) : (
+                <p className="text-gray-600 mb-6">
+                  {deleteConfirmDialog.message}
+                </p>
+              )}
+
+              <div className="flex justify-end space-x-3">
+                {deleteConfirmDialog.type === "bulk" ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={closeConfirmDialog}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={deleteConfirmDialog.onConfirm}
+                    >
+                      Delete
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="primary"
+                    onClick={deleteConfirmDialog.onConfirm}
+                  >
+                    OK
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Pagination */}
         {!loading && logs.length > 0 && (

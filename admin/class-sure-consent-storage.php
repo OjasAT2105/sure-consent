@@ -488,6 +488,46 @@ class Sure_Consent_Storage {
         error_log("SureConsent - Cleaned up $deleted old consent logs");
         return $deleted;
     }
+
+    /**
+     * Delete a single consent log by ID
+     */
+    public static function delete_consent_log($log_id) {
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            return false;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+
+        // Delete the log
+        $result = $wpdb->delete(
+            $table_name,
+            array('id' => $log_id),
+            array('%d')
+        );
+
+        return $result !== false;
+    }
+
+    /**
+     * Delete all consent logs
+     */
+    public static function delete_all_consent_logs() {
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            return false;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . self::TABLE_NAME;
+
+        // Delete all logs
+        $result = $wpdb->query("DELETE FROM $table_name");
+
+        return $result !== false;
+    }
 }
 
 // Initialize storage

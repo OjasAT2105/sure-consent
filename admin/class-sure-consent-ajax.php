@@ -26,6 +26,9 @@ class Sure_Consent_Ajax {
         add_action('wp_ajax_sure_consent_generate_consent_pdf', array(__CLASS__, 'generate_consent_pdf'));
         // Add new action for fetching unique countries
         add_action('wp_ajax_sure_consent_get_unique_countries', array(__CLASS__, 'get_unique_countries'));
+        // Add new actions for deleting consent logs
+        add_action('wp_ajax_sure_consent_delete_consent_log', array(__CLASS__, 'delete_consent_log'));
+        add_action('wp_ajax_sure_consent_delete_all_consent_logs', array(__CLASS__, 'delete_all_consent_logs'));
     }
 
     /**
@@ -430,6 +433,63 @@ class Sure_Consent_Ajax {
         // Forward the request to the storage class
         if (class_exists('Sure_Consent_Storage')) {
             Sure_Consent_Storage::get_unique_countries();
+        } else {
+            wp_send_json_error(array('message' => 'Storage class not found'));
+        }
+    }
+
+    /**
+     * Delete a single consent log
+     */
+    public static function delete_consent_log() {
+        if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        $log_id = isset($_POST['log_id']) ? intval($_POST['log_id']) : 0;
+        
+        if (!$log_id) {
+            wp_send_json_error(array('message' => 'Invalid log ID'));
+            return;
+        }
+
+        // Forward the request to the storage class
+        if (class_exists('Sure_Consent_Storage')) {
+            $result = Sure_Consent_Storage::delete_consent_log($log_id);
+            if ($result) {
+                wp_send_json_success(array('message' => 'Log deleted successfully'));
+            } else {
+                wp_send_json_error(array('message' => 'Failed to delete log'));
+            }
+        } else {
+            wp_send_json_error(array('message' => 'Storage class not found'));
+        }
+    }
+
+    /**
+     * Delete all consent logs
+     */
+    public static function delete_all_consent_logs() {
+        if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Forward the request to the storage class
+        if (class_exists('Sure_Consent_Storage')) {
+            $result = Sure_Consent_Storage::delete_all_consent_logs();
+            if ($result !== false) {
+                wp_send_json_success(array('message' => 'All logs deleted successfully', 'deleted_count' => $result));
+            } else {
+                wp_send_json_error(array('message' => 'Failed to delete logs'));
+            }
         } else {
             wp_send_json_error(array('message' => 'Storage class not found'));
         }
