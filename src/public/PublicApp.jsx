@@ -28,6 +28,10 @@ const PublicApp = () => {
   const [declineBtnColor, setDeclineBtnColor] = useState("transparent");
   const [acceptAllEnabled, setAcceptAllEnabled] = useState(false);
 
+  // Geo-targeting settings
+  const [geoRuleType, setGeoRuleType] = useState("worldwide");
+  const [geoSelectedCountries, setGeoSelectedCountries] = useState([]);
+
   // Accept button properties
   const [acceptBtnText, setAcceptBtnText] = useState("Accept");
   const [acceptBtnTextColor, setAcceptBtnTextColor] = useState("#ffffff");
@@ -133,6 +137,10 @@ const PublicApp = () => {
           const declineColor = data.data.decline_btn_color || "transparent";
           const acceptAllEnabledValue = data.data.accept_all_enabled || false;
 
+          // Geo-targeting settings
+          const geoRule = data.data.geo_rule_type || "worldwide";
+          const geoCountries = data.data.geo_selected_countries || [];
+
           // Accept button properties
           const acceptText = data.data.accept_btn_text || "Accept";
           const acceptTextColor = data.data.accept_btn_text_color || "#ffffff";
@@ -185,7 +193,6 @@ const PublicApp = () => {
           setNoticeType(type);
           setNoticePosition(position);
           setBannerEnabled(enabled);
-          setShowBanner(enabled); // Only show banner if it's enabled
           setBannerBgColor(bgColor);
           setBgOpacity(opacity);
           setTextColor(txtColor);
@@ -199,10 +206,15 @@ const PublicApp = () => {
           setDeclineBtnColor(declineColor);
           setAcceptAllEnabled(acceptAllEnabledValue);
 
+          // Geo-targeting settings
+          setGeoRuleType(geoRule);
+          setGeoSelectedCountries(
+            Array.isArray(geoCountries) ? geoCountries : []
+          );
+
           console.log("PublicApp - Banner state:", {
             enabled,
             bannerEnabled: enabled,
-            showBanner: enabled,
           });
 
           // Set Accept button properties
@@ -306,38 +318,124 @@ const PublicApp = () => {
     fetchSettings();
   }, []);
 
+  // Function to check if banner should be shown based on geo rules
+  const shouldShowBannerBasedOnGeo = useCallback(async () => {
+    // If geo rule is worldwide, always show banner
+    if (geoRuleType === "worldwide") {
+      return true;
+    }
+
+    // Get user's country using a geo IP service
+    const getUserCountry = async () => {
+      try {
+        // Using ipapi.co service (free tier available)
+        const response = await fetch("https://ipapi.co/json/");
+        const data = await response.json();
+        return data.country_code; // Returns ISO 3166-1 alpha-2 country code (e.g., "US", "GB", "DE")
+      } catch (error) {
+        console.error("Failed to get user country:", error);
+        // Fallback to showing banner if we can't determine the country
+        return null;
+      }
+    };
+
+    const userCountry = await getUserCountry();
+
+    // If we can't determine the user's country, show the banner by default
+    if (!userCountry) {
+      return true;
+    }
+
+    if (geoRuleType === "eu_only") {
+      // EU countries list (same as in the backend)
+      const euCountries = [
+        "AT",
+        "BE",
+        "BG",
+        "HR",
+        "CY",
+        "CZ",
+        "DK",
+        "EE",
+        "FI",
+        "FR",
+        "DE",
+        "GR",
+        "HU",
+        "IE",
+        "IT",
+        "LV",
+        "LT",
+        "LU",
+        "MT",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SK",
+        "SI",
+        "ES",
+        "SE",
+        "GB",
+      ];
+      return euCountries.includes(userCountry);
+    }
+
+    if (geoRuleType === "selected") {
+      return geoSelectedCountries.includes(userCountry);
+    }
+
+    // Default to showing banner
+    return true;
+  }, [geoRuleType, geoSelectedCountries]);
+
   // Separate useEffect to check consent AFTER banner is enabled
   useEffect(() => {
     if (!bannerEnabled) return;
 
     console.log("PublicApp - Banner enabled, checking consent status");
 
-    // Check if user has already given consent
-    if (window.SureConsentManager && window.SureConsentManager.hasConsent()) {
-      console.log(
-        "✅ PublicApp - User has consent, checking for expired cookies"
-      );
-
-      // Check if any cookies have expired
-      const hasExpiredCookies = checkForExpiredCookies();
-      if (hasExpiredCookies) {
-        console.log("🍪 PublicApp - Expired cookies found, showing banner");
-        // Show banner for re-consent
-        setShowBanner(true);
+    // Check geo rules
+    const checkGeoRules = async () => {
+      const shouldShowBasedOnGeo = await shouldShowBannerBasedOnGeo();
+      if (!shouldShowBasedOnGeo) {
+        console.log(
+          "PublicApp - Geo rules indicate banner should not be shown"
+        );
+        setShowBanner(false);
         setShowSettingsButton(false);
         return;
       }
 
-      console.log("📊 Consent data:", window.SureConsentManager.getConsent());
-      // Hide banner, show floating button
-      setShowBanner(false);
-      setShowSettingsButton(true);
-    } else {
-      console.log("❌ PublicApp - No consent, showing banner");
-      // Show banner, hide floating button
-      setShowBanner(true);
-      setShowSettingsButton(false);
-    }
+      // Check if user has already given consent
+      if (window.SureConsentManager && window.SureConsentManager.hasConsent()) {
+        console.log(
+          "✅ PublicApp - User has consent, checking for expired cookies"
+        );
+
+        // Check if any cookies have expired
+        const hasExpiredCookies = checkForExpiredCookies();
+        if (hasExpiredCookies) {
+          console.log("🍪 PublicApp - Expired cookies found, showing banner");
+          // Show banner for re-consent
+          setShowBanner(true);
+          setShowSettingsButton(false);
+          return;
+        }
+
+        console.log("📊 Consent data:", window.SureConsentManager.getConsent());
+        // Hide banner, show floating button
+        setShowBanner(false);
+        setShowSettingsButton(true);
+      } else {
+        console.log("❌ PublicApp - No consent, showing banner");
+        // Show banner, hide floating button
+        setShowBanner(true);
+        setShowSettingsButton(false);
+      }
+    };
+
+    checkGeoRules();
 
     // Add event listener to check for expired cookies when page becomes visible
     const handleVisibilityChange = () => {
@@ -364,7 +462,7 @@ const PublicApp = () => {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [bannerEnabled, customCookies]);
+  }, [bannerEnabled, customCookies, shouldShowBannerBasedOnGeo]);
 
   // Add event listener for consent changes
   useEffect(() => {

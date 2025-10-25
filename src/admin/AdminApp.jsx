@@ -27,6 +27,7 @@ import {
   CalendarCheck,
   Workflow,
   Logs,
+  Globe,
 } from "lucide-react";
 import Dashboard from "../components/Dashboard";
 import QuickCookieBanner from "../components/QuickCookieBanner";
@@ -197,9 +198,9 @@ const AdminApp = () => {
       sectionId: "advanced",
       links: [
         {
-          label: "Geo Rules",
+          label: "Geographic Targeting",
           path: "/advanced/geo-rules",
-          icon: SettingsIcon,
+          icon: Globe,
         },
         {
           label: "Custom Scripts",

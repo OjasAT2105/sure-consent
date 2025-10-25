@@ -78,7 +78,9 @@ class Sure_Consent_Settings {
         'cookie_categories' => array(),
         'custom_cookies' => array(),
         'consent_logging_enabled' => false,  // Add consent logging toggle (off by default)
-        'consent_duration_days' => 365  // Add consent duration setting (default 365 days)
+        'consent_duration_days' => 365,  // Add consent duration setting (default 365 days)
+        'geo_rule_type' => 'worldwide',  // Geo-targeting rule type: worldwide, eu_only, selected
+        'geo_selected_countries' => array()  // Selected countries for geo-targeting
     );
 
     /**
@@ -98,7 +100,7 @@ class Sure_Consent_Settings {
             $option_value = get_option('sure_consent_' . $key, $default);
             
             // Special handling for cookie_categories and custom_cookies - decode JSON
-            if ($key === 'cookie_categories' || $key === 'custom_cookies') {
+            if ($key === 'cookie_categories' || $key === 'custom_cookies' || $key === 'geo_selected_countries') {
                 if (is_string($option_value)) {
                     $decoded = json_decode($option_value, true);
                     $settings[$key] = is_array($decoded) ? $decoded : array();
@@ -133,6 +135,18 @@ class Sure_Consent_Settings {
             return (int) $value;
         }
         
+        // Special handling for geo_selected_countries - ensure it's an array
+        if ($key === 'geo_selected_countries') {
+            if (is_string($value)) {
+                $decoded = json_decode($value, true);
+                return is_array($decoded) ? $decoded : array();
+            } else if (is_array($value)) {
+                return $value;
+            } else {
+                return array();
+            }
+        }
+        
         return $value;
     }
 
@@ -144,8 +158,8 @@ class Sure_Consent_Settings {
             return false;
         }
         
-        // Special handling for cookie_categories and custom_cookies - encode as JSON
-        if (($key === 'cookie_categories' || $key === 'custom_cookies') && is_array($value)) {
+        // Special handling for cookie_categories, custom_cookies, and geo_selected_countries - encode as JSON
+        if (($key === 'cookie_categories' || $key === 'custom_cookies' || $key === 'geo_selected_countries') && is_array($value)) {
             return update_option('sure_consent_' . $key, json_encode($value));
         }
         
@@ -212,6 +226,47 @@ class Sure_Consent_Settings {
             'message' => 'Settings saved successfully',
             'settings' => $updated
         ));
+    }
+    
+    /**
+     * Get EU countries list
+     *
+     * @return array
+     */
+    public static function get_eu_countries() {
+        return apply_filters(
+            'sureconsent_eu_countrylist',
+            array(
+                'AT', // Austria
+                'BE', // Belgium
+                'BG', // Bulgaria
+                'HR', // Croatia
+                'CY', // Cyprus
+                'CZ', // Czech Republic
+                'DK', // Denmark
+                'EE', // Estonia
+                'FI', // Finland
+                'FR', // France
+                'DE', // Germany
+                'GR', // Greece
+                'HU', // Hungary
+                'IE', // Ireland
+                'IT', // Italy
+                'LV', // Latvia
+                'LT', // Lithuania
+                'LU', // Luxembourg
+                'MT', // Malta
+                'NL', // Netherlands
+                'PL', // Poland
+                'PT', // Portugal
+                'RO', // Romania
+                'SK', // Slovakia
+                'SI', // Slovenia
+                'ES', // Spain
+                'SE', // Sweden
+                'GB', // United Kingdom
+            )
+        );
     }
 }
 

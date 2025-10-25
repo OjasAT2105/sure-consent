@@ -104,27 +104,6 @@ const CookieSettings = () => {
             />
           </div>
 
-          {/* Consent Duration Setting */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium">Consent Duration (in days)</h3>
-              <p className="text-sm text-gray-600">
-                How long user consent remains valid before requiring renewal
-                (1-3650 days)
-              </p>
-            </div>
-            <div className="w-32">
-              <Input
-                type="number"
-                min="1"
-                max="3650"
-                value={getCurrentValue("consent_duration_days") || 365}
-                onChange={(value) => handleConsentDurationChange(value)}
-                placeholder="365"
-              />
-            </div>
-          </div>
-
           {/* Message with dynamic link to analytics tab */}
           {getCurrentValue("consent_logging_enabled") && (
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -139,6 +118,29 @@ const CookieSettings = () => {
               </p>
             </div>
           )}
+
+          {/* Consent Duration Setting (input first) */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Input
+                type="number"
+                min="1"
+                max="3650"
+                value={getCurrentValue("consent_duration_days") || 365}
+                onChange={(val) => handleConsentDurationChange(val)}
+                className="w-28"
+              />
+              <div>
+                <h3 className="font-medium text-gray-900">
+                  Consent Duration (in days)
+                </h3>
+                <p className="text-sm text-gray-600">
+                  How long user consent remains valid before requiring renewal
+                  (1-3650 days)
+                </p>
+              </div>
+            </div>
+          </div>
 
           <ActionCard />
         </div>

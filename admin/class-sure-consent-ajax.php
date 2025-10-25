@@ -75,6 +75,13 @@ class Sure_Consent_Ajax {
                 error_log('SureConsent - custom_cookies content: ' . print_r($value, true));
                 $updated[$key] = $value;
             }
+            // Handle geo_selected_countries as JSON (special case)
+            else if ($key === 'geo_selected_countries' && is_array($value)) {
+                $json_value = json_encode($value);
+                update_option($option_name, $json_value);
+                error_log('SureConsent - Saving geo_selected_countries as JSON: ' . $json_value);
+                $updated[$key] = $value;
+            }
             // Handle preview_enabled as boolean
             else if ($key === 'preview_enabled') {
                 update_option($option_name, (bool) $value);
@@ -95,7 +102,7 @@ class Sure_Consent_Ajax {
                 $updated[$key] = $value;
                 
                 // Also update through settings class if it exists (except for special cases)
-                if (class_exists('Sure_Consent_Settings') && $key !== 'cookie_categories' && $key !== 'custom_cookies') {
+                if (class_exists('Sure_Consent_Settings') && $key !== 'cookie_categories' && $key !== 'custom_cookies' && $key !== 'geo_selected_countries') {
                     Sure_Consent_Settings::update_setting($key, $value);
                 }
             }
@@ -158,6 +165,25 @@ class Sure_Consent_Ajax {
         error_log('SureConsent - custom_cookies IS ARRAY?: ' . (is_array($custom_cookies_decoded) ? 'YES' : 'NO'));
         error_log('SureConsent - custom_cookies COUNT: ' . (is_array($custom_cookies_decoded) ? count($custom_cookies_decoded) : '0'));
         
+        // Get geo settings
+        $geo_selected_countries_raw = get_option('sure_consent_geo_selected_countries', '[]');
+        error_log('SureConsent - geo_selected_countries RAW from DB: ' . $geo_selected_countries_raw);
+        
+        // Handle potential JSON decoding errors
+        $geo_selected_countries_decoded = array();
+        if (!empty($geo_selected_countries_raw)) {
+            $geo_selected_countries_decoded = json_decode($geo_selected_countries_raw, true);
+            // If json_decode fails, it returns null
+            if ($geo_selected_countries_decoded === null) {
+                error_log('SureConsent - ERROR: Failed to decode geo_selected_countries JSON: ' . json_last_error_msg());
+                $geo_selected_countries_decoded = array();
+            }
+        }
+        
+        error_log('SureConsent - geo_selected_countries DECODED: ' . print_r($geo_selected_countries_decoded, true));
+        error_log('SureConsent - geo_selected_countries IS ARRAY?: ' . (is_array($geo_selected_countries_decoded) ? 'YES' : 'NO'));
+        error_log('SureConsent - geo_selected_countries COUNT: ' . (is_array($geo_selected_countries_decoded) ? count($geo_selected_countries_decoded) : '0'));
+        
         // Ensure cookie_categories is properly formatted
         $processed_cookie_categories = array();
         if (is_array($cookie_categories_decoded)) {
@@ -168,6 +194,12 @@ class Sure_Consent_Ajax {
         $processed_custom_cookies = array();
         if (is_array($custom_cookies_decoded)) {
             $processed_custom_cookies = $custom_cookies_decoded;
+        }
+        
+        // Ensure geo_selected_countries is properly formatted
+        $processed_geo_selected_countries = array();
+        if (is_array($geo_selected_countries_decoded)) {
+            $processed_geo_selected_countries = $geo_selected_countries_decoded;
         }
         
         $settings = array(
@@ -202,12 +234,15 @@ class Sure_Consent_Ajax {
             'banner_design_template' => (string) get_option('sure_consent_banner_design_template', 'default'),
             'cookie_categories' => $processed_cookie_categories,
             'custom_cookies' => $processed_custom_cookies,
-            'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365)  // Add consent duration setting
+            'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365),  // Add consent duration setting
+            'geo_rule_type' => (string) get_option('sure_consent_geo_rule_type', 'worldwide'),  // Geo rule type
+            'geo_selected_countries' => $processed_geo_selected_countries  // Selected countries for geo-targeting
         );
         
         error_log('SureConsent - Final settings array: ' . print_r($settings, true));
         error_log('SureConsent - cookie_categories from DB: ' . get_option('sure_consent_cookie_categories', '[]'));
         error_log('SureConsent - custom_cookies from DB: ' . get_option('sure_consent_custom_cookies', '[]'));
+        error_log('SureConsent - geo_selected_countries from DB: ' . get_option('sure_consent_geo_selected_countries', '[]'));
         error_log('SureConsent - Sending settings response: ' . print_r($settings, true));
         wp_send_json_success($settings);
     }
@@ -309,6 +344,24 @@ class Sure_Consent_Ajax {
         
         error_log('SureConsent - public custom_cookies DECODED: ' . print_r($custom_cookies_decoded, true));
         
+        // Get geo settings
+        $geo_rule_type = get_option('sure_consent_geo_rule_type', 'worldwide');
+        $geo_selected_countries_raw = get_option('sure_consent_geo_selected_countries', '[]');
+        error_log('SureConsent - public geo_selected_countries RAW from DB: ' . $geo_selected_countries_raw);
+        
+        // Handle potential JSON decoding errors
+        $geo_selected_countries_decoded = array();
+        if (!empty($geo_selected_countries_raw)) {
+            $geo_selected_countries_decoded = json_decode($geo_selected_countries_raw, true);
+            // If json_decode fails, it returns null
+            if ($geo_selected_countries_decoded === null) {
+                error_log('SureConsent - ERROR: Failed to decode public geo_selected_countries JSON: ' . json_last_error_msg());
+                $geo_selected_countries_decoded = array();
+            }
+        }
+        
+        error_log('SureConsent - public geo_selected_countries DECODED: ' . print_r($geo_selected_countries_decoded, true));
+        
         // Ensure cookie_categories is properly formatted
         $processed_cookie_categories = array();
         if (is_array($cookie_categories_decoded)) {
@@ -319,6 +372,12 @@ class Sure_Consent_Ajax {
         $processed_custom_cookies = array();
         if (is_array($custom_cookies_decoded)) {
             $processed_custom_cookies = $custom_cookies_decoded;
+        }
+        
+        // Ensure geo_selected_countries is properly formatted
+        $processed_geo_selected_countries = array();
+        if (is_array($geo_selected_countries_decoded)) {
+            $processed_geo_selected_countries = $geo_selected_countries_decoded;
         }
 
         $settings = array(
@@ -377,7 +436,9 @@ class Sure_Consent_Ajax {
             'custom_css' => (string) get_option('sure_consent_custom_css', ''),
             'cookie_categories' => $processed_cookie_categories,
             'custom_cookies' => $processed_custom_cookies,
-            'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365)  // Add consent duration setting
+            'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365),  // Add consent duration setting
+            'geo_rule_type' => (string) $geo_rule_type,  // Geo rule type
+            'geo_selected_countries' => $processed_geo_selected_countries  // Selected countries for geo-targeting
         );
         
         wp_send_json_success($settings);
