@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button } from "@bsf/force-ui";
+import { Button, Dialog } from "@bsf/force-ui";
 import {
   Plus,
   Edit2,
@@ -9,6 +9,7 @@ import {
   Settings,
   BarChart3,
   Target,
+  Trash2,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import ActionCard from "./ActionCard";
@@ -59,6 +60,14 @@ const CookieCategories = () => {
     name: "",
     description: "",
     icon: "Settings",
+  });
+
+  // State for delete confirmation dialog
+  const [deleteDialog, setDeleteDialog] = useState({
+    isOpen: false,
+    category: null,
+    hasCookies: false,
+    cookieCount: 0,
   });
 
   useEffect(() => {
@@ -154,6 +163,97 @@ const CookieCategories = () => {
   const handleCancelAdd = () => {
     setIsAddingNew(false);
     setNewCategory({ name: "", description: "", icon: "Settings" });
+  };
+
+  // Function to check if a category has associated custom cookies
+  const getCategoryCookieCount = (categoryName) => {
+    const customCookies = getCurrentValue("custom_cookies") || [];
+    return customCookies.filter((cookie) => cookie.category === categoryName)
+      .length;
+  };
+
+  // Function to handle delete request
+  const handleDeleteRequest = (category) => {
+    // Prevent deletion of default/essential categories
+    if (defaultCategories.some((defaultCat) => defaultCat.id === category.id)) {
+      alert("Default categories cannot be deleted.");
+      return;
+    }
+
+    const cookieCount = getCategoryCookieCount(category.name);
+
+    setDeleteDialog({
+      isOpen: true,
+      category: category,
+      hasCookies: cookieCount > 0,
+      cookieCount: cookieCount,
+    });
+  };
+
+  // Function to confirm deletion
+  const confirmDelete = (forceDelete = false) => {
+    if (!deleteDialog.category) return;
+
+    const categoryName = deleteDialog.category.name;
+
+    // If force delete or no cookies, proceed with deletion
+    if (forceDelete || !deleteDialog.hasCookies) {
+      // Remove the category
+      const updatedCategories = categories.filter(
+        (cat) => cat.id !== deleteDialog.category.id
+      );
+      setCategories(updatedCategories);
+      updateSetting("cookie_categories", updatedCategories);
+
+      // If force delete, also remove associated cookies
+      if (forceDelete && deleteDialog.hasCookies) {
+        const customCookies = getCurrentValue("custom_cookies") || [];
+        const updatedCookies = customCookies.filter(
+          (cookie) => cookie.category !== categoryName
+        );
+        updateSetting("custom_cookies", updatedCookies);
+      }
+    }
+
+    // Close dialog
+    setDeleteDialog({
+      isOpen: false,
+      category: null,
+      hasCookies: false,
+      cookieCount: 0,
+    });
+  };
+
+  // Function to change cookies to a different category
+  const handleChangeCookieCategory = (newCategoryName) => {
+    if (!deleteDialog.category) return;
+
+    const oldCategoryName = deleteDialog.category.name;
+
+    // Update cookies to new category
+    const customCookies = getCurrentValue("custom_cookies") || [];
+    const updatedCookies = customCookies.map((cookie) =>
+      cookie.category === oldCategoryName
+        ? { ...cookie, category: newCategoryName }
+        : cookie
+    );
+
+    updateSetting("custom_cookies", updatedCookies);
+
+    // Now proceed with category deletion
+    const updatedCategories = categories.filter(
+      (cat) => cat.id !== deleteDialog.category.id
+    );
+    setCategories(updatedCategories);
+    updateSetting("cookie_categories", updatedCategories);
+
+    // Close dialog
+    setDeleteDialog({
+      isOpen: false,
+      category: null,
+      hasCookies: false,
+      cookieCount: 0,
+    });
   };
 
   return (
@@ -263,6 +363,9 @@ const CookieCategories = () => {
         {categories.map((category) => {
           const Icon = getIcon(category.icon);
           const isEditing = editingId === category.id;
+          const isDefaultCategory = defaultCategories.some(
+            (defaultCat) => defaultCat.id === category.id
+          );
 
           return (
             <div
@@ -338,6 +441,11 @@ const CookieCategories = () => {
                             Always Active (Required)
                           </span>
                         )}
+                        {isDefaultCategory && (
+                          <span className="inline-block mt-1 text-xs text-gray-500 italic">
+                            Default Category
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -349,6 +457,17 @@ const CookieCategories = () => {
                       >
                         Edit
                       </Button>
+                      {!category.required && !isDefaultCategory && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={<Trash2 />}
+                          onClick={() => handleDeleteRequest(category)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed">
@@ -368,6 +487,94 @@ const CookieCategories = () => {
           </p>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialog.isOpen}
+        setOpen={(isOpen) =>
+          setDeleteDialog({ ...deleteDialog, isOpen: isOpen })
+        }
+      >
+        <Dialog.Backdrop />
+        <Dialog.Panel>
+          <Dialog.Header>
+            <Dialog.Title>
+              {deleteDialog.hasCookies
+                ? "Category Has Associated Cookies"
+                : "Confirm Category Deletion"}
+            </Dialog.Title>
+            <Dialog.Description>
+              {deleteDialog.hasCookies
+                ? `The category "${deleteDialog.category?.name}" has ${deleteDialog.cookieCount} custom cookie(s) associated with it.`
+                : `Are you sure you want to delete the category "${deleteDialog.category?.name}"?`}
+            </Dialog.Description>
+          </Dialog.Header>
+          <Dialog.Body>
+            {deleteDialog.hasCookies ? (
+              <div className="space-y-4">
+                <p>You can either:</p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      // Find a different category to move cookies to
+                      const otherCategories = categories.filter(
+                        (cat) =>
+                          cat.id !== deleteDialog.category?.id &&
+                          !defaultCategories.some(
+                            (defaultCat) => defaultCat.id === cat.id
+                          )
+                      );
+
+                      if (otherCategories.length > 0) {
+                        handleChangeCookieCategory(otherCategories[0].name);
+                      } else {
+                        // If no other custom categories, move to first default non-essential category
+                        const nonEssentialDefault = defaultCategories.find(
+                          (cat) => cat.id !== "essential"
+                        );
+                        if (nonEssentialDefault) {
+                          handleChangeCookieCategory(nonEssentialDefault.name);
+                        }
+                      }
+                    }}
+                  >
+                    Move Cookies to Another Category and Delete
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => confirmDelete(true)}
+                  >
+                    Delete Category and All Associated Cookies
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p>This action cannot be undone.</p>
+            )}
+          </Dialog.Body>
+          <Dialog.Footer>
+            <Button
+              variant="ghost"
+              onClick={() =>
+                setDeleteDialog({
+                  isOpen: false,
+                  category: null,
+                  hasCookies: false,
+                  cookieCount: 0,
+                })
+              }
+            >
+              Cancel
+            </Button>
+            {!deleteDialog.hasCookies && (
+              <Button variant="destructive" onClick={() => confirmDelete()}>
+                Delete
+              </Button>
+            )}
+          </Dialog.Footer>
+        </Dialog.Panel>
+      </Dialog>
 
       {/* Info message */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">

@@ -265,6 +265,12 @@ const CreateCustomCookies = () => {
                     </option>
                   ))}
                 </select>
+                {categories.length === 0 && (
+                  <p className="text-xs text-red-500 mt-1">
+                    No categories available. Please create a category first in
+                    Cookie Categories section.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -358,6 +364,7 @@ const CreateCustomCookies = () => {
                 icon={<Save />}
                 onClick={editingId ? handleSaveEdit : handleSaveNew}
                 className="bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={categories.length === 0}
               >
                 {editingId ? "Update Cookie" : "Save Cookie"}
               </Button>

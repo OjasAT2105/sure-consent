@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Settings } from "lucide-react";
 import PreferencesModal from "../components/PreferencesModal";
 import ConsentManager from "../utils/consentManager";
@@ -236,10 +236,22 @@ const PublicApp = () => {
           setDeclineBtnBorderWidth(declineBorderWidth);
           setDeclineBtnBorderRadius(declineBorderRadius);
 
-          // Set button order
-          const order =
+          // Set button order - ensure preferences button is always included
+          let order =
             data.data.button_order || "decline,preferences,accept,accept_all";
-          setButtonOrder(order.split(","));
+          const buttonOrderArray = order.split(",");
+
+          // Ensure preferences button is always in the order
+          if (!buttonOrderArray.includes("preferences")) {
+            console.warn(
+              "PublicApp - preferences button not found in order, adding it"
+            );
+            buttonOrderArray.push("preferences");
+          }
+
+          console.log("PublicApp - Final button order:", buttonOrderArray);
+
+          setButtonOrder(buttonOrderArray);
 
           // Set Preferences button properties
           const preferencesText =
@@ -413,7 +425,7 @@ const PublicApp = () => {
     return false;
   };
 
-  const handleAccept = () => {
+  const handleAccept = useCallback(() => {
     console.log("🟢 User clicked ACCEPT");
 
     // Load saved preferences if available, otherwise use defaults
@@ -496,9 +508,9 @@ const PublicApp = () => {
     // Hide banner, show floating button
     setShowBanner(false);
     setShowSettingsButton(true);
-  };
+  }, [cookieCategories]);
 
-  const handleAcceptAll = () => {
+  const handleAcceptAll = useCallback(() => {
     console.log("🟢 User clicked ACCEPT ALL");
 
     // Save consent - Accept ALL categories
@@ -534,9 +546,9 @@ const PublicApp = () => {
     // Hide banner, show floating button
     setShowBanner(false);
     setShowSettingsButton(true);
-  };
+  }, [cookieCategories]);
 
-  const handleDecline = () => {
+  const handleDecline = useCallback(() => {
     console.log("🔴 User clicked DECLINE");
 
     // Save consent - Decline means only essential (can't decline essential)
@@ -570,7 +582,24 @@ const PublicApp = () => {
     // Hide banner, show floating button
     setShowBanner(false);
     setShowSettingsButton(true);
-  };
+  }, [cookieCategories]);
+
+  // Dedicated handler for Preferences button click
+  const handlePreferencesClick = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("Preferences button clicked in PublicApp");
+    console.log("Setting showPreferencesModal to true in PublicApp");
+    setShowBanner(false);
+    setShowPreferencesModal(true);
+    console.log("showPreferencesModal state set to true in PublicApp");
+    console.log(
+      "Current state values in PublicApp - showBanner:",
+      false,
+      "showPreferencesModal:",
+      true
+    );
+  }, []);
 
   // Function to log custom cookies for enabled categories
   const logCustomCookiesForCategories = (preferences) => {
@@ -587,13 +616,33 @@ const PublicApp = () => {
     });
   };
 
-  const handleReopenBanner = () => {
+  const handleReopenBanner = useCallback(() => {
     console.log("⚙️ User clicked floating settings button");
 
     // Hide floating button, show banner
     setShowSettingsButton(false);
     setShowBanner(true);
-  };
+  }, []);
+
+  // Handle modal close
+  const handleModalClose = useCallback(() => {
+    console.log("PreferencesModal onClose called in PublicApp");
+    console.log("Setting showPreferencesModal to false in PublicApp");
+    setShowPreferencesModal(false);
+    setShowSettingsButton(true);
+    console.log("showPreferencesModal state set to false in PublicApp");
+  }, []);
+
+  // Handle modal save
+  const handleModalSave = useCallback((preferences) => {
+    console.log("Preferences saved:", preferences);
+
+    // Don't save consent again through ConsentManager since it's already saved in the modal
+    // The modal already calls saveConsent when the user clicks Save Preferences
+
+    setShowPreferencesModal(false);
+    setShowSettingsButton(true);
+  }, []);
 
   // Always render the component, but conditionally show the banner based on bannerEnabled
   console.log("PublicApp - Rendering component:", {
@@ -834,30 +883,27 @@ const PublicApp = () => {
                       {declineBtnText}
                     </button>
                   ),
-                  preferences: (
-                    <button
-                      key="preferences"
-                      className="sureconsent-preferences-btn"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setShowBanner(false);
-                        setShowPreferencesModal(true);
-                      }}
-                      style={getButtonStyles(
-                        preferencesBtnColor,
-                        preferencesBtnBgOpacity,
-                        preferencesBtnTextColor,
-                        preferencesBtnBorderStyle,
-                        preferencesBtnBorderColor,
-                        preferencesBtnBorderWidth,
-                        preferencesBtnBorderRadius,
-                        preferencesBtnShowAs
-                      )}
-                    >
-                      {preferencesBtnText}
-                    </button>
-                  ),
+                  preferences:
+                    (console.log("PublicApp - Creating preferences button"),
+                    (
+                      <button
+                        key="preferences"
+                        className="sureconsent-preferences-btn"
+                        onClick={handlePreferencesClick}
+                        style={getButtonStyles(
+                          preferencesBtnColor,
+                          preferencesBtnBgOpacity,
+                          preferencesBtnTextColor,
+                          preferencesBtnBorderStyle,
+                          preferencesBtnBorderColor,
+                          preferencesBtnBorderWidth,
+                          preferencesBtnBorderRadius,
+                          preferencesBtnShowAs
+                        )}
+                      >
+                        {preferencesBtnText}
+                      </button>
+                    )),
                   accept: (
                     <button
                       key="accept"
@@ -897,9 +943,29 @@ const PublicApp = () => {
                     </button>
                   ) : null,
                 };
-                return buttonOrder
-                  .map((buttonType) => buttons[buttonType])
+                // Filter out any undefined buttons and log for debugging
+                const renderedButtons = buttonOrder
+                  .map((buttonType) => {
+                    const button = buttons[buttonType];
+                    if (!button) {
+                      console.warn(
+                        `PublicApp - Button type '${buttonType}' not found`
+                      );
+                    } else {
+                      console.log(
+                        `PublicApp - Button type '${buttonType}' found and will be rendered`
+                      );
+                    }
+                    return button;
+                  })
                   .filter(Boolean);
+
+                console.log(
+                  "PublicApp - Rendering buttons:",
+                  buttonOrder,
+                  renderedButtons
+                );
+                return renderedButtons;
               })()}
             </div>
           </div>
@@ -909,19 +975,8 @@ const PublicApp = () => {
       {/* Preferences Modal */}
       <PreferencesModal
         isOpen={showPreferencesModal}
-        onClose={() => {
-          setShowPreferencesModal(false);
-          setShowSettingsButton(true);
-        }}
-        onSave={(preferences) => {
-          console.log("Preferences saved:", preferences);
-
-          // Don't save consent again through ConsentManager since it's already saved in the modal
-          // The modal already calls saveConsent when the user clicks Save Preferences
-
-          setShowPreferencesModal(false);
-          setShowSettingsButton(true);
-        }}
+        onClose={handleModalClose}
+        onSave={handleModalSave}
         settings={{
           banner_bg_color: bannerBgColor,
           text_color: textColor,
