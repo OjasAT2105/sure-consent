@@ -51,6 +51,14 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
         icon: "Target",
         required: false,
       },
+      {
+        id: "uncategorized",
+        name: "Uncategorized Cookies",
+        description:
+          "These are cookies that do not fit into any of the other categories. They may be used for various purposes that are not specifically defined.",
+        icon: "FolderOpen",
+        required: false,
+      },
     ];
 
     // Use categories from settings if available, otherwise use defaults
@@ -68,7 +76,8 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     // Initialize preferences based on categories using NAMES instead of IDs
     const initialPreferences = {};
     loadedCategories.forEach((cat) => {
-      initialPreferences[cat.name] = cat.required || false;
+      // Only Essential category is always active by default
+      initialPreferences[cat.name] = cat.id === "essential" ? true : false;
     });
 
     // Load saved preferences if available
@@ -76,9 +85,9 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     if (saved) {
       try {
         const savedPrefs = JSON.parse(saved);
-        // Merge with initial preferences, ensuring required cookies stay enabled
+        // Merge with initial preferences, ensuring essential cookies stay enabled
         loadedCategories.forEach((cat) => {
-          if (cat.required) {
+          if (cat.id === "essential") {
             initialPreferences[cat.name] = true;
           } else if (savedPrefs[cat.name] !== undefined) {
             initialPreferences[cat.name] = savedPrefs[cat.name];
@@ -108,9 +117,9 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
   };
 
   const handleToggle = (categoryName) => {
-    // Find if this category is required
+    // Find if this category is essential (always required)
     const category = categories.find((cat) => cat.name === categoryName);
-    if (category && category.required) return; // Cannot disable required cookies
+    if (category && category.id === "essential") return; // Cannot disable essential cookies
 
     setPreferences((prev) => ({
       ...prev,
@@ -391,19 +400,22 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                       {/* Toggle Switch */}
                       <button
                         onClick={() => handleToggle(category.name)}
-                        disabled={category.required}
+                        disabled={category.id === "essential"}
                         style={{
                           width: "48px",
                           height: "24px",
                           borderRadius: "12px",
                           border: "none",
-                          cursor: category.required ? "not-allowed" : "pointer",
+                          cursor:
+                            category.id === "essential"
+                              ? "not-allowed"
+                              : "pointer",
                           backgroundColor: isEnabled
                             ? acceptBtnColor
                             : `${modalTextColor}30`,
                           position: "relative",
                           transition: "background-color 0.2s",
-                          opacity: category.required ? 0.6 : 1,
+                          opacity: category.id === "essential" ? 0.6 : 1,
                           marginRight: "8px",
                         }}
                       >
@@ -640,7 +652,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                       </div>
                     )}
 
-                    {category.required && (
+                    {category.id === "essential" && (
                       <span
                         style={{
                           display: "inline-block",

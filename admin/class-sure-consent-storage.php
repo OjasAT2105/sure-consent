@@ -1,11 +1,13 @@
 <?php
+
 /**
- * Consent Storage Handler
- * Stores user consent decisions with IP tracking
+ * Storage handler for SureConsent plugin
  *
  * @package    Sure_Consent
  * @subpackage Sure_Consent/admin
  */
+
+// Added Uncategorized category support - 2025-10-26
 
 class Sure_Consent_Storage {
 
@@ -35,6 +37,191 @@ class Sure_Consent_Storage {
         
         // Create table on init if it doesn't exist
         add_action('init', array(__CLASS__, 'create_table'));
+        
+        // Check and add default categories if missing
+        add_action('init', array(__CLASS__, 'check_default_categories'));
+    }
+    
+    /**
+     * Check if default categories exist and add them if missing
+     */
+    public static function check_default_categories() {
+        // Only run for admin users
+        if (!is_admin() || !current_user_can('manage_options')) {
+            return;
+        }
+        
+        // Get current cookie categories
+        $cookie_categories_raw = get_option('sure_consent_cookie_categories', '[]');
+        $cookie_categories = json_decode($cookie_categories_raw, true);
+        
+        // If no categories exist, don't add the default categories as it will be handled by frontend
+        if (empty($cookie_categories) || !is_array($cookie_categories)) {
+            return;
+        }
+        
+        // Check if default categories exist and fix their properties if needed
+        $default_categories = array('essential', 'functional', 'analytics', 'marketing', 'uncategorized');
+        $updated_categories = array();
+        $needs_update = false;
+        
+        foreach ($cookie_categories as $category) {
+            if (isset($category['id']) && in_array($category['id'], $default_categories)) {
+                // Ensure all default categories have required=true
+                if (!isset($category['required']) || $category['required'] !== true) {
+                    $category['required'] = true;
+                    $needs_update = true;
+                }
+                
+                // Set specific properties for each category
+                switch ($category['id']) {
+                    case 'essential':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Essential Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These cookies are necessary for the website to function and cannot be switched off. They are usually only set in response to actions made by you such as setting your privacy preferences, logging in or filling in forms.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'Shield';
+                            $needs_update = true;
+                        }
+                        break;
+                        
+                    case 'functional':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Functional Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third party providers whose services we have added to our pages.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'Settings';
+                            $needs_update = true;
+                        }
+                        break;
+                        
+                    case 'analytics':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Analytics Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'BarChart3';
+                            $needs_update = true;
+                        }
+                        break;
+                        
+                    case 'marketing':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Marketing Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'Target';
+                            $needs_update = true;
+                        }
+                        break;
+                        
+                    case 'uncategorized':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Uncategorized Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These are cookies that do not fit into any of the other categories. They may be used for various purposes that are not specifically defined.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'FolderOpen';
+                            $needs_update = true;
+                        }
+                        break;
+                }
+            }
+            $updated_categories[] = $category;
+        }
+        
+        // Add missing default categories
+        $existing_ids = array_column($updated_categories, 'id');
+        foreach ($default_categories as $default_id) {
+            if (!in_array($default_id, $existing_ids)) {
+                $default_category = null;
+                switch ($default_id) {
+                    case 'essential':
+                        $default_category = array(
+                            'id' => 'essential',
+                            'name' => 'Essential Cookies',
+                            'description' => 'These cookies are necessary for the website to function and cannot be switched off. They are usually only set in response to actions made by you such as setting your privacy preferences, logging in or filling in forms.',
+                            'icon' => 'Shield',
+                            'required' => true
+                        );
+                        break;
+                        
+                    case 'functional':
+                        $default_category = array(
+                            'id' => 'functional',
+                            'name' => 'Functional Cookies',
+                            'description' => 'These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third party providers whose services we have added to our pages.',
+                            'icon' => 'Settings',
+                            'required' => true
+                        );
+                        break;
+                        
+                    case 'analytics':
+                        $default_category = array(
+                            'id' => 'analytics',
+                            'name' => 'Analytics Cookies',
+                            'description' => 'These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.',
+                            'icon' => 'BarChart3',
+                            'required' => true
+                        );
+                        break;
+                        
+                    case 'marketing':
+                        $default_category = array(
+                            'id' => 'marketing',
+                            'name' => 'Marketing Cookies',
+                            'description' => 'These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.',
+                            'icon' => 'Target',
+                            'required' => true
+                        );
+                        break;
+                        
+                    case 'uncategorized':
+                        $default_category = array(
+                            'id' => 'uncategorized',
+                            'name' => 'Uncategorized Cookies',
+                            'description' => 'These are cookies that do not fit into any of the other categories. They may be used for various purposes that are not specifically defined.',
+                            'icon' => 'FolderOpen',
+                            'required' => true
+                        );
+                        break;
+                }
+                
+                if ($default_category) {
+                    $updated_categories[] = $default_category;
+                    $needs_update = true;
+                }
+            }
+        }
+        
+        // Update the categories if needed
+        if ($needs_update) {
+            update_option('sure_consent_cookie_categories', json_encode($updated_categories));
+        }
     }
 
     /**

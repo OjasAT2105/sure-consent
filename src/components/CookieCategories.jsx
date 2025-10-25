@@ -10,10 +10,12 @@ import {
   BarChart3,
   Target,
   Trash2,
+  FolderOpen,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
 import ActionCard from "./ActionCard";
 
+// Added Uncategorized category support - 2025-10-26
 const CookieCategories = () => {
   const { getCurrentValue, updateSetting } = useSettings();
 
@@ -32,7 +34,7 @@ const CookieCategories = () => {
       description:
         "These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third party providers whose services we have added to our pages.",
       icon: "Settings",
-      required: false,
+      required: true,
     },
     {
       id: "analytics",
@@ -40,7 +42,7 @@ const CookieCategories = () => {
       description:
         "These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.",
       icon: "BarChart3",
-      required: false,
+      required: true,
     },
     {
       id: "marketing",
@@ -48,7 +50,15 @@ const CookieCategories = () => {
       description:
         "These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.",
       icon: "Target",
-      required: false,
+      required: true,
+    },
+    {
+      id: "uncategorized",
+      name: "Uncategorized Cookies",
+      description:
+        "These are cookies that do not fit into any of the other categories. They may be used for various purposes that are not specifically defined.",
+      icon: "FolderOpen",
+      required: true,
     },
   ];
 
@@ -85,17 +95,144 @@ const CookieCategories = () => {
     console.log("CookieCategories - Is array?", Array.isArray(savedCategories));
     console.log("CookieCategories - Length:", savedCategories?.length);
 
+    let finalCategories = defaultCategories;
+
     if (
       savedCategories &&
       Array.isArray(savedCategories) &&
       savedCategories.length > 0
     ) {
       console.log("CookieCategories - Setting categories to:", savedCategories);
-      setCategories(savedCategories);
+
+      // Check if default categories exist and fix their properties if needed
+      let updatedCategories = [...savedCategories];
+      let needsUpdate = false;
+
+      // Define default category IDs
+      const defaultCategoryIds = [
+        "essential",
+        "functional",
+        "analytics",
+        "marketing",
+        "uncategorized",
+      ];
+
+      for (let i = 0; i < updatedCategories.length; i++) {
+        if (defaultCategoryIds.includes(updatedCategories[i].id)) {
+          // Ensure all default categories have required=true
+          if (updatedCategories[i].required !== true) {
+            updatedCategories[i].required = true;
+            needsUpdate = true;
+          }
+
+          // Set specific properties for each category
+          switch (updatedCategories[i].id) {
+            case "essential":
+              if (!updatedCategories[i].name) {
+                updatedCategories[i].name = "Essential Cookies";
+                needsUpdate = true;
+              }
+              if (!updatedCategories[i].description) {
+                updatedCategories[i].description =
+                  "These cookies are necessary for the website to function and cannot be switched off. They are usually only set in response to actions made by you such as setting your privacy preferences, logging in or filling in forms.";
+                needsUpdate = true;
+              }
+              if (!updatedCategories[i].icon) {
+                updatedCategories[i].icon = "Shield";
+                needsUpdate = true;
+              }
+              break;
+
+            case "functional":
+              if (!updatedCategories[i].name) {
+                updatedCategories[i].name = "Functional Cookies";
+                needsUpdate = true;
+              }
+              if (!updatedCategories[i].description) {
+                updatedCategories[i].description =
+                  "These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third party providers whose services we have added to our pages.";
+                needsUpdate = true;
+              }
+              if (!updatedCategories[i].icon) {
+                updatedCategories[i].icon = "Settings";
+                needsUpdate = true;
+              }
+              break;
+
+            case "analytics":
+              if (!updatedCategories[i].name) {
+                updatedCategories[i].name = "Analytics Cookies";
+                needsUpdate = true;
+              }
+              if (!updatedCategories[i].description) {
+                updatedCategories[i].description =
+                  "These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.";
+                needsUpdate = true;
+              }
+              if (!updatedCategories[i].icon) {
+                updatedCategories[i].icon = "BarChart3";
+                needsUpdate = true;
+              }
+              break;
+
+            case "marketing":
+              if (!updatedCategories[i].name) {
+                updatedCategories[i].name = "Marketing Cookies";
+                needsUpdate = true;
+              }
+              if (!updatedCategories[i].description) {
+                updatedCategories[i].description =
+                  "These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.";
+                needsUpdate = true;
+              }
+              if (!updatedCategories[i].icon) {
+                updatedCategories[i].icon = "Target";
+                needsUpdate = true;
+              }
+              break;
+
+            case "uncategorized":
+              if (!updatedCategories[i].name) {
+                updatedCategories[i].name = "Uncategorized Cookies";
+                needsUpdate = true;
+              }
+              if (!updatedCategories[i].description) {
+                updatedCategories[i].description =
+                  "These are cookies that do not fit into any of the other categories. They may be used for various purposes that are not specifically defined.";
+                needsUpdate = true;
+              }
+              if (
+                !updatedCategories[i].icon ||
+                updatedCategories[i].icon === "Settings"
+              ) {
+                updatedCategories[i].icon = "FolderOpen";
+                needsUpdate = true;
+              }
+              break;
+          }
+        }
+      }
+
+      // Add missing default categories
+      const existingIds = updatedCategories.map((cat) => cat.id);
+      for (const defaultCat of defaultCategories) {
+        if (!existingIds.includes(defaultCat.id)) {
+          updatedCategories = [...updatedCategories, defaultCat];
+          needsUpdate = true;
+        }
+      }
+
+      // Update settings if needed
+      if (needsUpdate) {
+        updateSetting("cookie_categories", updatedCategories);
+      }
+
+      finalCategories = updatedCategories;
     } else {
       console.log("CookieCategories - Using default categories");
-      setCategories(defaultCategories);
     }
+
+    setCategories(finalCategories);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     getCurrentValue("cookie_categories")?.length,
@@ -108,6 +245,7 @@ const CookieCategories = () => {
       Settings: Settings,
       BarChart3: BarChart3,
       Target: Target,
+      FolderOpen: FolderOpen,
     };
     return icons[iconName] || Settings;
   };
@@ -182,8 +320,15 @@ const CookieCategories = () => {
 
   // Function to handle delete request
   const handleDeleteRequest = (category) => {
-    // Prevent deletion of default/essential categories
-    if (defaultCategories.some((defaultCat) => defaultCat.id === category.id)) {
+    // Prevent deletion of all default categories (essential, functional, analytics, marketing, uncategorized)
+    const defaultCategoryIds = [
+      "essential",
+      "functional",
+      "analytics",
+      "marketing",
+      "uncategorized",
+    ];
+    if (defaultCategoryIds.includes(category.id)) {
       alert("Default categories cannot be deleted.");
       return;
     }
@@ -502,7 +647,7 @@ const CookieCategories = () => {
                         <h3 className="text-lg font-semibold text-gray-900">
                           {category.name}
                         </h3>
-                        {category.required && (
+                        {category.id === "essential" && category.required && (
                           <span className="inline-block mt-1 text-xs text-gray-500 italic">
                             Always Active (Required)
                           </span>
@@ -523,7 +668,7 @@ const CookieCategories = () => {
                       >
                         Edit
                       </Button>
-                      {!category.required && !isDefaultCategory && (
+                      {!category.required && (
                         <Button
                           variant="ghost"
                           size="sm"
