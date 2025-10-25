@@ -333,28 +333,28 @@ const GeoRules = () => {
   };
 
   return (
-    <div
-      className="bg-white border rounded-lg shadow-sm"
-      style={{
-        "--tw-border-opacity": 1,
-        borderColor: "rgb(229 231 235 / var(--tw-border-opacity))",
-      }}
-    >
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          {/* <Globe className="h-5 w-5 text-purple-600" /> */}
-          <h2 className="text-xl font-semibold text-gray-800">
-            Geographic Targeting
-          </h2>
-        </div>
-        <p className="text-sm text-gray-500 mt-1">
+    <div>
+      <div className="mb-6">
+        <h1
+          className="font-semibold mb-2"
+          style={{ fontSize: "20px", color: "#111827" }}
+        >
+          Geographic Targeting
+        </h1>
+        <p className="" style={{ fontSize: "14px", color: "#4b5563" }}>
           Configure where to display the cookie consent banner based on user
           location
         </p>
       </div>
-      <div className="p-6">
-        <div className="bg-white border rounded-lg shadow-sm mb-6">
-          <div className="p-4">
+      <div
+        className="bg-white border rounded-lg shadow-sm"
+        style={{
+          "--tw-border-opacity": 1,
+          borderColor: "rgb(229 231 235 / var(--tw-border-opacity))",
+        }}
+      >
+        <div className="p-6">
+          <div className="mb-6">
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Location-based Rules
             </h3>
@@ -422,11 +422,9 @@ const GeoRules = () => {
               </div>
             </div>
           </div>
-        </div>
 
-        {geoRuleType === "selected" && (
-          <div className="bg-white border rounded-lg shadow-sm mb-6">
-            <div className="p-4">
+          {geoRuleType === "selected" && (
+            <div className="mb-6">
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 Select Countries
               </h3>
@@ -477,27 +475,37 @@ const GeoRules = () => {
                   </div>
                   {expandedGroups.eu && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pl-4">
-                      {countryGroups.eu.countries.map((country) => (
-                        <label
-                          key={country.code}
-                          className="flex items-center space-x-2 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedCountries.includes(country.code)}
-                            onChange={(e) =>
-                              handleCountryChange(
-                                country.code,
-                                e.target.checked
-                              )
-                            }
-                            className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                          />
-                          <span className="text-sm text-gray-700">
-                            {country.name} ({country.code})
-                          </span>
-                        </label>
-                      ))}
+                      {countryGroups.eu.countries
+                        .filter(
+                          (country) =>
+                            country.name
+                              .toLowerCase()
+                              .includes(searchTerm.toLowerCase()) ||
+                            country.code
+                              .toLowerCase()
+                              .includes(searchTerm.toLowerCase())
+                        )
+                        .map((country) => (
+                          <label
+                            key={country.code}
+                            className="flex items-center space-x-2 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedCountries.includes(country.code)}
+                              onChange={(e) =>
+                                handleCountryChange(
+                                  country.code,
+                                  e.target.checked
+                                )
+                              }
+                              className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {country.name} ({country.code})
+                            </span>
+                          </label>
+                        ))}
                     </div>
                   )}
                 </div>
@@ -515,27 +523,37 @@ const GeoRules = () => {
                   </div>
                   {expandedGroups.common && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pl-4">
-                      {countryGroups.common.countries.map((country) => (
-                        <label
-                          key={country.code}
-                          className="flex items-center space-x-2 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedCountries.includes(country.code)}
-                            onChange={(e) =>
-                              handleCountryChange(
-                                country.code,
-                                e.target.checked
-                              )
-                            }
-                            className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                          />
-                          <span className="text-sm text-gray-700">
-                            {country.name} ({country.code})
-                          </span>
-                        </label>
-                      ))}
+                      {countryGroups.common.countries
+                        .filter(
+                          (country) =>
+                            country.name
+                              .toLowerCase()
+                              .includes(searchTerm.toLowerCase()) ||
+                            country.code
+                              .toLowerCase()
+                              .includes(searchTerm.toLowerCase())
+                        )
+                        .map((country) => (
+                          <label
+                            key={country.code}
+                            className="flex items-center space-x-2 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedCountries.includes(country.code)}
+                              onChange={(e) =>
+                                handleCountryChange(
+                                  country.code,
+                                  e.target.checked
+                                )
+                              }
+                              className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {country.name} ({country.code})
+                            </span>
+                          </label>
+                        ))}
                     </div>
                   )}
                 </div>
@@ -593,22 +611,22 @@ const GeoRules = () => {
                 {selectedCountries.length} country(s) selected
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!hasChanges || isSaving}
-            className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-              !hasChanges || isSaving
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-            }`}
-          >
-            {isSaving ? "Saving..." : "Save Changes"}
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!hasChanges || isSaving}
+              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
+                !hasChanges || isSaving
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              }`}
+            >
+              {isSaving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

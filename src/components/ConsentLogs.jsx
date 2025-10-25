@@ -494,389 +494,395 @@ const ConsentLogs = () => {
   };
 
   return (
-    <div
-      className="bg-white border rounded-lg shadow-sm"
-      style={{
-        "--tw-border-opacity": 1,
-        borderColor: "rgb(229 231 235 / var(--tw-border-opacity))",
-      }}
-    >
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-xl font-semibold text-gray-800">Consent Logs</h2>
+    <div>
+      <div className="mb-6">
+        <h1
+          className="font-semibold mb-2"
+          style={{ fontSize: "20px", color: "#111827" }}
+        >
+          Consent Logs
+        </h1>
+        <p className="" style={{ fontSize: "14px", color: "#4b5563" }}>
+          View and manage user consent records for GDPR compliance
+        </p>
       </div>
-      <div className="p-6">
-        {/* Message when consent logging is disabled */}
-        {!consentLoggingEnabled && (
-          <div className="p-4 mb-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <p className="text-sm text-yellow-800">
-              Consent logging is currently disabled. No new consent actions will
-              be saved to the database.{" "}
-              <a
-                href={getSettingsLink()}
-                className="font-semibold text-yellow-600 hover:text-yellow-800 underline"
-              >
-                Enable consent logging in the Settings tab
-              </a>{" "}
-              to start recording user consent.
-            </p>
-          </div>
-        )}
+      <div
+        className="bg-white border rounded-lg shadow-sm"
+        style={{
+          "--tw-border-opacity": 1,
+          borderColor: "rgb(229 231 235 / var(--tw-border-opacity))",
+        }}
+      >
+        <div className="p-6">
+          {/* Message when consent logging is disabled */}
+          {!consentLoggingEnabled && (
+            <div className="p-4 mb-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <p className="text-sm text-yellow-800">
+                Consent logging is currently disabled. No new consent actions
+                will be saved to the database.{" "}
+                <a
+                  href={getSettingsLink()}
+                  className="font-semibold text-yellow-600 hover:text-yellow-800 underline"
+                >
+                  Enable consent logging in the Settings tab
+                </a>{" "}
+                to start recording user consent.
+              </p>
+            </div>
+          )}
 
-        {/* Bulk Actions Bar */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            {selectedLogs.length > 0 && (
-              <div className="text-sm text-blue-800">
-                {selectedLogs.length} log(s) selected
-              </div>
-            )}
+          {/* Bulk Actions Bar */}
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              {selectedLogs.length > 0 && (
+                <div className="text-sm text-blue-800">
+                  {selectedLogs.length} log(s) selected
+                </div>
+              )}
+            </div>
+            <div className="flex space-x-2">
+              {selectedLogs.length > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={deselectAllLogs}
+                    disabled={isDeletingSelected}
+                  >
+                    Deselect All
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    icon={<Trash2 className="w-4 h-4" />}
+                    onClick={openBulkDeleteConfirm}
+                    disabled={isDeletingSelected}
+                  >
+                    {isDeletingSelected ? "Deleting..." : "Delete Selected"}
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Trash2 className="w-4 h-4" />}
+                onClick={selectAllLogs}
+              >
+                Select All
+              </Button>
+            </div>
           </div>
-          <div className="flex space-x-2">
-            {selectedLogs.length > 0 && (
-              <>
+
+          {/* Removed filter section as filtering is not working */}
+          {/* Filters - Simplified to only status filter */}
+          {/* <div className="flex flex-wrap gap-4 mb-6">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Consent Status
+              </label>
+              <Select
+                value={filters.status}
+                onValueChange={(value) => handleFilterChange("status", value)}
+              >
+                <Select.Button placeholder="Select status" />
+                <Select.Options>
+                  <Select.Option value="all">All Statuses</Select.Option>
+                  <Select.Option value="accepted">Accepted</Select.Option>
+                  <Select.Option value="decline_all">Decline All</Select.Option>
+                  <Select.Option value="partially_accepted">
+                    Partially Accepted
+                  </Select.Option>
+                </Select.Options>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                variant="primary"
+                icon={<Search className="w-4 h-4" />}
+                onClick={handleSearch}
+              >
+                Search
+              </Button>
+            </div>
+          </div> */}
+
+          {/* Consent Logs Table */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedLogs.length > 0 &&
+                        selectedLogs.length === logs.length
+                      }
+                      onChange={selectAllLogs}
+                      className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    />
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Timestamp
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    IP Address
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Country
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-4 text-center">
+                      <div className="animate-pulse">Loading...</div>
+                    </td>
+                  </tr>
+                ) : logs.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="6"
+                      className="px-6 py-4 text-center text-gray-500"
+                    >
+                      No consent logs found
+                    </td>
+                  </tr>
+                ) : (
+                  logs.map((log) => (
+                    <React.Fragment key={log.id}>
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <input
+                            type="checkbox"
+                            checked={selectedLogs.includes(log.id)}
+                            onChange={() => toggleLogSelection(log.id)}
+                            className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                          />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {log.ip_address}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {log.country || "Unknown"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                              log.status
+                            )}`}
+                          >
+                            {getStatusDisplay(log.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={<Download className="w-4 h-4" />}
+                            onClick={() => handleDownloadPDF(log.id)}
+                          >
+                            PDF
+                          </Button>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td colSpan="6" className="px-6 py-2 bg-gray-50">
+                          <button
+                            onClick={() => toggleExpandRow(log.id)}
+                            className="flex items-center text-sm text-gray-700 hover:text-gray-900"
+                          >
+                            <ChevronDown
+                              className={`w-4 h-4 mr-2 transform transition-transform ${
+                                expandedRows[log.id] ? "rotate-180" : ""
+                              }`}
+                            />
+                            {expandedRows[log.id]
+                              ? "Hide Cookie Details"
+                              : "Show Cookie Details"}
+                          </button>
+
+                          {expandedRows[log.id] && (
+                            <div className="mt-2 ml-6">
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                                {log.preferences &&
+                                  Object.entries(log.preferences).map(
+                                    ([category, accepted]) => (
+                                      <div
+                                        key={category}
+                                        className="flex items-center justify-between p-2 bg-white rounded border"
+                                      >
+                                        <span className="text-sm text-gray-700">
+                                          {category}
+                                        </span>
+                                        <span
+                                          className={`px-2 py-1 text-xs rounded ${
+                                            accepted
+                                              ? "bg-green-100 text-green-800"
+                                              : "bg-red-100 text-red-800"
+                                          }`}
+                                        >
+                                          {accepted ? "Accepted" : "Declined"}
+                                        </span>
+                                      </div>
+                                    )
+                                  )}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Delete Confirmation Dialog */}
+          {deleteConfirmDialog.open && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {deleteConfirmDialog.type === "error"
+                      ? "Error"
+                      : deleteConfirmDialog.type === "success"
+                      ? "Success"
+                      : "Confirm Deletion"}
+                  </h3>
+                  <button
+                    onClick={closeConfirmDialog}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {deleteConfirmDialog.type === "bulk" ? (
+                  <p className="text-gray-600 mb-6">
+                    Are you sure you want to delete {deleteConfirmDialog.count}{" "}
+                    selected log(s)? This action cannot be undone.
+                  </p>
+                ) : (
+                  <p className="text-gray-600 mb-6">
+                    {deleteConfirmDialog.message}
+                  </p>
+                )}
+
+                <div className="flex justify-end space-x-3">
+                  {deleteConfirmDialog.type === "bulk" ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={closeConfirmDialog}
+                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={deleteConfirmDialog.onConfirm}
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="primary"
+                      onClick={deleteConfirmDialog.onConfirm}
+                    >
+                      OK
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && logs.length > 0 && (
+            <div className="flex items-center justify-between mt-6">
+              <div className="text-sm text-gray-700">
+                Showing {indexOfFirstLog + 1} to{" "}
+                {Math.min(indexOfLastLog, totalLogs)} of {totalLogs} results
+              </div>
+              <div className="flex space-x-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={deselectAllLogs}
-                  disabled={isDeletingSelected}
+                  disabled={currentPage === 1}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
                 >
-                  Deselect All
+                  Previous
                 </Button>
+                {/* Show a limited number of page buttons */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Calculate the start page to show
+                  let startPage = Math.max(1, currentPage - 2);
+                  if (startPage + 4 > totalPages) {
+                    startPage = Math.max(1, totalPages - 4);
+                  }
+
+                  const pageNum = startPage + i;
+                  if (pageNum > totalPages) return null;
+
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
-                  icon={<Trash2 className="w-4 h-4" />}
-                  onClick={openBulkDeleteConfirm}
-                  disabled={isDeletingSelected}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
                 >
-                  {isDeletingSelected ? "Deleting..." : "Delete Selected"}
+                  Next
                 </Button>
-              </>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<Trash2 className="w-4 h-4" />}
-              onClick={selectAllLogs}
-            >
-              Select All
-            </Button>
-          </div>
-        </div>
-
-        {/* Removed filter section as filtering is not working */}
-        {/* Filters - Simplified to only status filter */}
-        {/* <div className="flex flex-wrap gap-4 mb-6">
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Consent Status
-            </label>
-            <Select
-              value={filters.status}
-              onValueChange={(value) => handleFilterChange("status", value)}
-            >
-              <Select.Button placeholder="Select status" />
-              <Select.Options>
-                <Select.Option value="all">All Statuses</Select.Option>
-                <Select.Option value="accepted">Accepted</Select.Option>
-                <Select.Option value="decline_all">Decline All</Select.Option>
-                <Select.Option value="partially_accepted">
-                  Partially Accepted
-                </Select.Option>
-              </Select.Options>
-            </Select>
-          </div>
-
-          <div className="flex items-end">
-            <Button
-              variant="primary"
-              icon={<Search className="w-4 h-4" />}
-              onClick={handleSearch}
-            >
-              Search
-            </Button>
-          </div>
-        </div> */}
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  <input
-                    type="checkbox"
-                    checked={
-                      selectedLogs.length === logs.length && logs.length > 0
-                    }
-                    onChange={selectAllLogs}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  IP Address
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Visited Date
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Country
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Consent Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    Loading consent logs...
-                  </td>
-                </tr>
-              ) : logs.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    No consent logs found
-                  </td>
-                </tr>
-              ) : (
-                logs.map((log) => (
-                  <React.Fragment key={log.id}>
-                    <tr
-                      className={
-                        selectedLogs.includes(log.id) ? "bg-blue-50" : ""
-                      }
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <input
-                          type="checkbox"
-                          checked={selectedLogs.includes(log.id)}
-                          onChange={() => toggleLogSelection(log.id)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {log.ip_address}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(log.timestamp).toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {log.country}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                            log.status
-                          )}`}
-                        >
-                          {getStatusDisplay(log.status)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon={<Download className="w-4 h-4" />}
-                          onClick={() => handleDownloadPDF(log.id)}
-                        >
-                          PDF
-                        </Button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td colSpan="6" className="px-6 py-2 bg-gray-50">
-                        <button
-                          onClick={() => toggleExpandRow(log.id)}
-                          className="flex items-center text-sm text-gray-700 hover:text-gray-900"
-                        >
-                          <ChevronDown
-                            className={`w-4 h-4 mr-2 transform transition-transform ${
-                              expandedRows[log.id] ? "rotate-180" : ""
-                            }`}
-                          />
-                          {expandedRows[log.id]
-                            ? "Hide Cookie Details"
-                            : "Show Cookie Details"}
-                        </button>
-
-                        {expandedRows[log.id] && (
-                          <div className="mt-2 ml-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                              {log.preferences &&
-                                Object.entries(log.preferences).map(
-                                  ([category, accepted]) => (
-                                    <div
-                                      key={category}
-                                      className="flex items-center justify-between p-2 bg-white rounded border"
-                                    >
-                                      <span className="text-sm text-gray-700">
-                                        {category}
-                                      </span>
-                                      <span
-                                        className={`px-2 py-1 text-xs rounded ${
-                                          accepted
-                                            ? "bg-green-100 text-green-800"
-                                            : "bg-red-100 text-red-800"
-                                        }`}
-                                      >
-                                        {accepted ? "Accepted" : "Declined"}
-                                      </span>
-                                    </div>
-                                  )
-                                )}
-                            </div>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Delete Confirmation Dialog */}
-        {deleteConfirmDialog.open && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {deleteConfirmDialog.type === "error"
-                    ? "Error"
-                    : deleteConfirmDialog.type === "success"
-                    ? "Success"
-                    : "Confirm Deletion"}
-                </h3>
-                <button
-                  onClick={closeConfirmDialog}
-                  className="text-gray-400 hover:text-gray-500"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {deleteConfirmDialog.type === "bulk" ? (
-                <p className="text-gray-600 mb-6">
-                  Are you sure you want to delete {deleteConfirmDialog.count}{" "}
-                  selected log(s)? This action cannot be undone.
-                </p>
-              ) : (
-                <p className="text-gray-600 mb-6">
-                  {deleteConfirmDialog.message}
-                </p>
-              )}
-
-              <div className="flex justify-end space-x-3">
-                {deleteConfirmDialog.type === "bulk" ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={closeConfirmDialog}
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={deleteConfirmDialog.onConfirm}
-                    >
-                      Delete
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="primary"
-                    onClick={deleteConfirmDialog.onConfirm}
-                  >
-                    OK
-                  </Button>
-                )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {!loading && logs.length > 0 && (
-          <div className="flex items-center justify-between mt-6">
-            <div className="text-sm text-gray-700">
-              Showing {indexOfFirstLog + 1} to{" "}
-              {Math.min(indexOfLastLog, totalLogs)} of {totalLogs} results
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              >
-                Previous
-              </Button>
-              {/* Show a limited number of page buttons */}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                // Calculate the start page to show
-                let startPage = Math.max(1, currentPage - 2);
-                if (startPage + 4 > totalPages) {
-                  startPage = Math.max(1, totalPages - 4);
-                }
-
-                const pageNum = startPage + i;
-                if (pageNum > totalPages) return null;
-
-                return (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? "primary" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(pageNum)}
-                  >
-                    {pageNum}
-                  </Button>
-                );
-              })}
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentPage === totalPages || totalPages === 0}
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                }
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
