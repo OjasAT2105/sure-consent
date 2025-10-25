@@ -6,7 +6,7 @@ import countryData from "../data/countries.json";
 const GeoRules = () => {
   const { getCurrentValue, updateSetting, saveSettings, hasChanges, isSaving } =
     useSettings();
-  
+
   const [geoRuleType, setGeoRuleType] = useState("worldwide");
   const [selectedCountries, setSelectedCountries] = useState([]);
   const [availableCountries, setAvailableCountries] = useState([]);
@@ -17,7 +17,7 @@ const GeoRules = () => {
     common: true,
     all: false,
   });
-  
+
   // Group countries by region (imported from JSON)
   const countryGroups = countryData;
 
@@ -25,23 +25,23 @@ const GeoRules = () => {
   useEffect(() => {
     const ruleType = getCurrentValue("geo_rule_type") || "worldwide";
     const countries = getCurrentValue("geo_selected_countries") || [];
-    
+
     setGeoRuleType(ruleType);
     setSelectedCountries(Array.isArray(countries) ? countries : []);
-    
+
     // Combine all countries for the dropdown
     const allCountries = [
       ...countryGroups.eu.countries,
       ...countryGroups.common.countries,
       ...countryGroups.all.countries,
     ];
-    
+
     // Remove duplicates
     const uniqueCountries = allCountries.filter(
       (country, index, self) =>
         index === self.findIndex((c) => c.code === country.code)
     );
-    
+
     setAvailableCountries(uniqueCountries);
   }, [getCurrentValue]);
 
@@ -54,7 +54,7 @@ const GeoRules = () => {
   // Handle country selection
   const handleCountryChange = (countryCode, isChecked) => {
     let updatedCountries = [...selectedCountries];
-    
+
     if (isChecked) {
       // Add country if not already selected
       if (!updatedCountries.includes(countryCode)) {
@@ -66,7 +66,7 @@ const GeoRules = () => {
         (code) => code !== countryCode
       );
     }
-    
+
     setSelectedCountries(updatedCountries);
     updateSetting("geo_selected_countries", updatedCountries);
   };
@@ -106,10 +106,12 @@ const GeoRules = () => {
       ...countryGroups.common.countries,
       ...countryGroups.all.countries,
     ];
-    
-    return selectedCountries.map(code => {
-      return allCountries.find(country => country.code === code);
-    }).filter(Boolean); // Remove any undefined values
+
+    return selectedCountries
+      .map((code) => {
+        return allCountries.find((country) => country.code === code);
+      })
+      .filter(Boolean); // Remove any undefined values
   };
 
   // Handle save settings
