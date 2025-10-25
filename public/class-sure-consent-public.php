@@ -112,6 +112,16 @@ class Sure_Consent_Public {
 			true 
 		);
 
+		// Pass consent duration and other settings to frontend
+		$consent_duration = get_option('sure_consent_consent_duration_days', 365);
+		
+		wp_localize_script(
+			$this->plugin_name,
+			'sureConsentPublicSettings',
+			array(
+				'consent_duration_days' => (int) $consent_duration
+			)
+		);
 	}
 
 }

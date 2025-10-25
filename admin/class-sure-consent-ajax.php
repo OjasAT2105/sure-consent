@@ -80,6 +80,15 @@ class Sure_Consent_Ajax {
                 update_option($option_name, (bool) $value);
                 $updated[$key] = (bool) $value;
             } 
+            // Handle consent_duration_days as integer
+            else if ($key === 'consent_duration_days') {
+                $duration = (int) $value;
+                // Ensure duration is between 1 and 3650
+                if ($duration < 1) $duration = 1;
+                if ($duration > 3650) $duration = 3650;
+                update_option($option_name, $duration);
+                $updated[$key] = $duration;
+            }
             // Handle all other settings
             else {
                 update_option($option_name, $value);
@@ -192,7 +201,8 @@ class Sure_Consent_Ajax {
             'custom_css' => (string) get_option('sure_consent_custom_css', ''),
             'banner_design_template' => (string) get_option('sure_consent_banner_design_template', 'default'),
             'cookie_categories' => $processed_cookie_categories,
-            'custom_cookies' => $processed_custom_cookies
+            'custom_cookies' => $processed_custom_cookies,
+            'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365)  // Add consent duration setting
         );
         
         error_log('SureConsent - Final settings array: ' . print_r($settings, true));
@@ -366,7 +376,8 @@ class Sure_Consent_Ajax {
             'button_order' => (string) get_option('sure_consent_button_order', 'decline,preferences,accept,accept_all'),
             'custom_css' => (string) get_option('sure_consent_custom_css', ''),
             'cookie_categories' => $processed_cookie_categories,
-            'custom_cookies' => $processed_custom_cookies
+            'custom_cookies' => $processed_custom_cookies,
+            'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365)  // Add consent duration setting
         );
         
         wp_send_json_success($settings);

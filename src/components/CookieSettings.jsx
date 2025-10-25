@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Switch } from "@bsf/force-ui";
+import { Switch, Input } from "@bsf/force-ui";
 import { useSettings } from "../contexts/SettingsContext";
 import ActionCard from "./ActionCard";
 
@@ -17,6 +17,14 @@ const CookieSettings = () => {
 
   const handleConsentLoggingToggle = (checked) => {
     updateSetting("consent_logging_enabled", checked);
+  };
+
+  const handleConsentDurationChange = (value) => {
+    // Ensure the value is a number between 1 and 3650
+    const numValue = parseInt(value, 10);
+    if (!isNaN(numValue) && numValue >= 1 && numValue <= 3650) {
+      updateSetting("consent_duration_days", numValue);
+    }
   };
 
   // Generate dynamic link to analytics tab
@@ -87,13 +95,34 @@ const CookieSettings = () => {
               id="consent-logging-switch"
               label={{
                 description:
-                  "Enable or disable consent logging to database (cookies will still work)",
+                  "Store consent records in database for compliance reporting and analytics",
                 heading: "Enable Consent Logging",
               }}
               onChange={handleConsentLoggingToggle}
               size="sm"
               value={getCurrentValue("consent_logging_enabled") ?? false}
             />
+          </div>
+
+          {/* Consent Duration Setting */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Consent Duration (in days)</h3>
+              <p className="text-sm text-gray-600">
+                How long user consent remains valid before requiring renewal
+                (1-3650 days)
+              </p>
+            </div>
+            <div className="w-32">
+              <Input
+                type="number"
+                min="1"
+                max="3650"
+                value={getCurrentValue("consent_duration_days") || 365}
+                onChange={(value) => handleConsentDurationChange(value)}
+                placeholder="365"
+              />
+            </div>
           </div>
 
           {/* Message with dynamic link to analytics tab */}

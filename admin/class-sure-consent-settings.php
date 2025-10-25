@@ -77,7 +77,8 @@ class Sure_Consent_Settings {
         'show_preview' => false,
         'cookie_categories' => array(),
         'custom_cookies' => array(),
-        'consent_logging_enabled' => false  // Add consent logging toggle (off by default)
+        'consent_logging_enabled' => false,  // Add consent logging toggle (off by default)
+        'consent_duration_days' => 365  // Add consent duration setting (default 365 days)
     );
 
     /**
@@ -106,7 +107,12 @@ class Sure_Consent_Settings {
                 } else {
                     $settings[$key] = array();
                 }
-            } else {
+            } 
+            // Special handling for consent_duration_days - ensure it's an integer
+            else if ($key === 'consent_duration_days') {
+                $settings[$key] = (int) $option_value;
+            }
+            else {
                 $settings[$key] = $option_value;
             }
         }
@@ -120,7 +126,14 @@ class Sure_Consent_Settings {
         if (!array_key_exists($key, self::$settings)) {
             return $default;
         }
-        return get_option('sure_consent_' . $key, self::$settings[$key]);
+        $value = get_option('sure_consent_' . $key, self::$settings[$key]);
+        
+        // Special handling for consent_duration_days - ensure it's an integer
+        if ($key === 'consent_duration_days') {
+            return (int) $value;
+        }
+        
+        return $value;
     }
 
     /**
@@ -134,6 +147,14 @@ class Sure_Consent_Settings {
         // Special handling for cookie_categories and custom_cookies - encode as JSON
         if (($key === 'cookie_categories' || $key === 'custom_cookies') && is_array($value)) {
             return update_option('sure_consent_' . $key, json_encode($value));
+        }
+        
+        // Special handling for consent_duration_days - ensure it's an integer between 1 and 3650
+        if ($key === 'consent_duration_days') {
+            $duration = (int) $value;
+            if ($duration < 1) $duration = 1;
+            if ($duration > 3650) $duration = 3650;
+            return update_option('sure_consent_' . $key, $duration);
         }
         
         return update_option('sure_consent_' . $key, $value);
@@ -171,85 +192,26 @@ class Sure_Consent_Settings {
             wp_die('Insufficient permissions');
         }
 
-        $settings_data = json_decode(stripslashes($_POST['settings']), true);
-        
+        // Get settings data
+        $settings_data = isset($_POST['settings']) ? json_decode(stripslashes($_POST['settings']), true) : array();
+
         if (!is_array($settings_data)) {
             wp_send_json_error('Invalid settings data');
         }
 
-        $updated_settings = array();
-        $errors = array();
+        $updated = array();
 
+        // Save each setting
         foreach ($settings_data as $key => $value) {
-            if (array_key_exists($key, self::$settings)) {
-                $sanitized_value = self::sanitize_setting($key, $value);
-                if (self::update_setting($key, $sanitized_value)) {
-                    $updated_settings[$key] = $sanitized_value;
-                } else {
-                    $errors[] = "Failed to update {$key}";
-                }
-            } else {
-                $errors[] = "Invalid setting key: {$key}";
+            if (self::update_setting($key, $value)) {
+                $updated[$key] = $value;
             }
-        }
-
-        if (!empty($errors)) {
-            wp_send_json_error(array(
-                'message' => 'Some settings failed to save',
-                'errors' => $errors,
-                'updated' => $updated_settings
-            ));
         }
 
         wp_send_json_success(array(
             'message' => 'Settings saved successfully',
-            'settings' => $updated_settings
+            'settings' => $updated
         ));
-    }
-
-    /**
-     * Sanitize setting value based on key
-     */
-    private static function sanitize_setting($key, $value) {
-        switch ($key) {
-            case 'banner_enabled':
-            case 'preview_enabled':
-            case 'enable_banner':
-            case 'show_preview':
-            case 'consent_logging_enabled':
-                return (bool) $value;
-            
-            case 'banner_text':
-            case 'accept_button_text':
-            case 'decline_button_text':
-                return sanitize_textarea_field($value);
-            
-            case 'banner_position':
-                return in_array($value, array('top', 'bottom')) ? $value : 'bottom';
-            
-            case 'notice_type':
-                return in_array($value, array('banner', 'box', 'popup')) ? $value : 'banner';
-            
-            case 'notice_position':
-                $valid_positions = array('top', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right');
-                return in_array($value, $valid_positions) ? $value : 'bottom';
-            
-            case 'banner_color':
-            case 'text_color':
-            case 'accept_button_color':
-            case 'decline_button_color':
-                return sanitize_hex_color($value) ?: $value;
-            
-            case 'compliance_law':
-                return is_array($value) ? $value : array('id' => '1', 'name' => 'GDPR');
-            
-            case 'cookie_categories':
-            case 'custom_cookies':  // Add this line
-                return is_array($value) ? $value : array();
-            
-            default:
-                return sanitize_text_field($value);
-        }
     }
 }
 

@@ -6,7 +6,7 @@
 class ConsentManager {
   constructor() {
     this.CONSENT_COOKIE_NAME = "sureconsent_user_consent";
-    this.CONSENT_COOKIE_EXPIRY = 365; // Days
+    this.CONSENT_COOKIE_EXPIRY = 365; // Default days, will be updated dynamically
     this.consentData = null;
     this.loadConsent();
   }
@@ -45,16 +45,16 @@ class ConsentManager {
 
     this.consentData = consentData;
 
+    // Get dynamic consent duration from WordPress settings
+    const consentDuration = this.getConsentDuration();
+
     // Save to cookie - main consent cookie ONLY
     const cookieValue = encodeURIComponent(JSON.stringify(consentData));
-    this.setCookie(
-      this.CONSENT_COOKIE_NAME,
-      cookieValue,
-      this.CONSENT_COOKIE_EXPIRY
-    );
+    this.setCookie(this.CONSENT_COOKIE_NAME, cookieValue, consentDuration);
 
     console.log("SureConsent - Consent saved:", consentData);
     console.log("📊 Action determined as:", actualAction);
+    console.log("⏰ Consent duration set to:", consentDuration, "days");
     console.log("👉 Cookie is NOW available (no refresh needed)");
     console.log("🔧 To see in DevTools: Right-click on Cookies tab → Refresh");
     console.log("🧪 Or verify by running: document.cookie");
@@ -72,6 +72,30 @@ class ConsentManager {
     }, 0);
 
     return consentData;
+  }
+
+  /**
+   * Get consent duration from WordPress settings
+   * @returns {number} Consent duration in days
+   */
+  getConsentDuration() {
+    // Try to get the duration from the public settings if available
+    if (
+      window.sureConsentPublicSettings &&
+      typeof window.sureConsentPublicSettings.consent_duration_days !==
+        "undefined"
+    ) {
+      const duration = parseInt(
+        window.sureConsentPublicSettings.consent_duration_days,
+        10
+      );
+      if (!isNaN(duration) && duration >= 1 && duration <= 3650) {
+        return duration;
+      }
+    }
+
+    // Fallback to default 365 days
+    return 365;
   }
 
   /**
