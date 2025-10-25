@@ -136,171 +136,199 @@ const BannerDesign = ({ activeTab, closePopup }) => {
     switch (activeTab) {
       case "design-cookie-bar":
         return (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Background Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={bannerBgColor}
-                  onChange={(e) => {
-                    setBannerBgColor(e.target.value);
-                    updateSetting("banner_bg_color", e.target.value);
-                  }}
-                  className="h-8 w-12 rounded border border-gray-300 cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={bannerBgColor}
-                  onChange={(e) => {
-                    setBannerBgColor(e.target.value);
-                    updateSetting("banner_bg_color", e.target.value);
-                  }}
-                  className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
+          <div className="space-y-6">
+            {/* Background Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Background Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Background Color
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={bannerBgColor}
+                      onChange={(e) => {
+                        setBannerBgColor(e.target.value);
+                        updateSetting("banner_bg_color", e.target.value);
+                      }}
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={bannerBgColor}
+                      onChange={(e) => {
+                        setBannerBgColor(e.target.value);
+                        updateSetting("banner_bg_color", e.target.value);
+                      }}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Background Opacity (%)
+                  </Label>
+                  <input
+                    type="number"
+                    value={bgOpacity}
+                    onChange={(e) => {
+                      setBgOpacity(e.target.value);
+                      updateSetting("bg_opacity", e.target.value);
+                    }}
+                    min="0"
+                    max="100"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
               </div>
             </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Background Opacity (%)
-              </Label>
-              <input
-                type="number"
-                value={bgOpacity}
-                onChange={(e) => {
-                  setBgOpacity(e.target.value);
-                  updateSetting("bg_opacity", e.target.value);
-                }}
-                min="0"
-                max="100"
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Text Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={textColor}
-                  onChange={(e) => {
-                    setTextColor(e.target.value);
-                    updateSetting("text_color", e.target.value);
-                  }}
-                  className="h-8 w-12 rounded border border-gray-300 cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={textColor}
-                  onChange={(e) => {
-                    setTextColor(e.target.value);
-                    updateSetting("text_color", e.target.value);
-                  }}
-                  className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                />
+
+            {/* Text Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Text Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Text Color
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={textColor}
+                      onChange={(e) => {
+                        setTextColor(e.target.value);
+                        updateSetting("text_color", e.target.value);
+                      }}
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={textColor}
+                      onChange={(e) => {
+                        setTextColor(e.target.value);
+                        updateSetting("text_color", e.target.value);
+                      }}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Font Family
+                  </Label>
+                  <select
+                    value={font}
+                    onChange={(e) => {
+                      setFont(e.target.value);
+                      updateSetting("font", e.target.value);
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                  </select>
+                </div>
               </div>
             </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Border Style
-              </Label>
-              <select
-                value={borderStyle}
-                onChange={(e) => {
-                  setBorderStyle(e.target.value);
-                  updateSetting("border_style", e.target.value);
-                }}
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="none">None</option>
-                <option value="solid">Solid</option>
-                <option value="dashed">Dashed</option>
-                <option value="dotted">Dotted</option>
-              </select>
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Border Width (px)
-              </Label>
-              <input
-                type="number"
-                value={borderWidth}
-                onChange={(e) => {
-                  setBorderWidth(e.target.value);
-                  updateSetting("border_width", e.target.value);
-                }}
-                min="0"
-                max="10"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Border Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={borderColor}
-                  onChange={(e) => {
-                    setBorderColor(e.target.value);
-                    updateSetting("border_color", e.target.value);
-                  }}
-                  className="h-8 w-12 rounded border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={borderColor}
-                  onChange={(e) => {
-                    setBorderColor(e.target.value);
-                    updateSetting("border_color", e.target.value);
-                  }}
-                  className="flex-1 px-2 py-1 text-sm border rounded"
-                />
+
+            {/* Border Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Border Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Border Style
+                  </Label>
+                  <select
+                    value={borderStyle}
+                    onChange={(e) => {
+                      setBorderStyle(e.target.value);
+                      updateSetting("border_style", e.target.value);
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="none">None</option>
+                    <option value="solid">Solid</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Border Width (px)
+                  </Label>
+                  <input
+                    type="number"
+                    value={borderWidth}
+                    onChange={(e) => {
+                      setBorderWidth(e.target.value);
+                      updateSetting("border_width", e.target.value);
+                    }}
+                    min="0"
+                    max="10"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Border Color
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={borderColor}
+                      onChange={(e) => {
+                        setBorderColor(e.target.value);
+                        updateSetting("border_color", e.target.value);
+                      }}
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={borderColor}
+                      onChange={(e) => {
+                        setBorderColor(e.target.value);
+                        updateSetting("border_color", e.target.value);
+                      }}
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Border Radius (px)
+                  </Label>
+                  <input
+                    type="number"
+                    value={borderRadius}
+                    onChange={(e) => {
+                      setBorderRadius(e.target.value);
+                      updateSetting("border_radius", e.target.value);
+                    }}
+                    min="0"
+                    max="50"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
               </div>
             </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Border Radius (px)
-              </Label>
-              <input
-                type="number"
-                value={borderRadius}
-                onChange={(e) => {
-                  setBorderRadius(e.target.value);
-                  updateSetting("border_radius", e.target.value);
-                }}
-                min="0"
-                max="50"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Font Family
-              </Label>
-              <select
-                value={font}
-                onChange={(e) => {
-                  setFont(e.target.value);
-                  updateSetting("font", e.target.value);
-                }}
-                className="w-full px-2 py-1 text-sm border rounded"
-              >
-                <option value="Arial">Arial</option>
-                <option value="Helvetica">Helvetica</option>
-                <option value="Times New Roman">Times New Roman</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Verdana">Verdana</option>
-              </select>
-            </div>
-            <div className="col-span-2">
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
+
+            {/* Banner Logo */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
                 Banner Logo
-              </Label>
+              </h3>
               <div className="space-y-2">
                 <input
                   type="file"
@@ -316,14 +344,14 @@ const BannerDesign = ({ activeTab, closePopup }) => {
                       reader.readAsDataURL(file);
                     }
                   }}
-                  className="w-full px-2 py-1 text-sm border rounded"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
                 {bannerLogo && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mt-2">
                     <img
                       src={bannerLogo}
                       alt="Banner Logo"
-                      className="h-10 w-auto border rounded"
+                      className="h-12 w-auto border rounded"
                     />
                     <button
                       type="button"
@@ -331,7 +359,7 @@ const BannerDesign = ({ activeTab, closePopup }) => {
                         setBannerLogo("");
                         updateSetting("banner_logo", "");
                       }}
-                      className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                      className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                     >
                       Delete
                     </button>
@@ -344,174 +372,238 @@ const BannerDesign = ({ activeTab, closePopup }) => {
       case "design-accept-btn":
         const acceptShowAs = getCurrentValue("accept_btn_show_as") || "button";
         return (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Button Text
-              </Label>
-              <input
-                type="text"
-                value={getCurrentValue("accept_btn_text") || "Accept"}
-                onChange={(e) =>
-                  updateSetting("accept_btn_text", e.target.value)
-                }
-                maxLength="20"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Text Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={getCurrentValue("accept_btn_text_color") || "#ffffff"}
-                  onChange={(e) =>
-                    updateSetting("accept_btn_text_color", e.target.value)
-                  }
-                  className="h-8 w-12 rounded border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={getCurrentValue("accept_btn_text_color") || "#ffffff"}
-                  onChange={(e) =>
-                    updateSetting("accept_btn_text_color", e.target.value)
-                  }
-                  className="flex-1 px-2 py-1 text-sm border rounded"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Show As
-              </Label>
-              <select
-                value={acceptShowAs}
-                onChange={(e) =>
-                  updateSetting("accept_btn_show_as", e.target.value)
-                }
-                className="w-full px-2 py-1 text-sm border rounded"
-              >
-                <option value="button">Button</option>
-                <option value="link">Link</option>
-              </select>
-            </div>
-            {acceptShowAs === "button" && (
-              <>
+          <div className="space-y-6">
+            {/* Basic Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Basic Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Background Color
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={acceptBtnColor}
-                      onChange={(e) => {
-                        setAcceptBtnColor(e.target.value);
-                        updateSetting("accept_btn_color", e.target.value);
-                      }}
-                      className="h-8 w-12 rounded border cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={acceptBtnColor}
-                      onChange={(e) => {
-                        setAcceptBtnColor(e.target.value);
-                        updateSetting("accept_btn_color", e.target.value);
-                      }}
-                      className="flex-1 px-2 py-1 text-sm border rounded"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Opacity (%)
+                    Button Text
                   </Label>
                   <input
-                    type="number"
-                    value={getCurrentValue("accept_btn_bg_opacity") || "100"}
+                    type="text"
+                    value={getCurrentValue("accept_btn_text") || "Accept"}
                     onChange={(e) =>
-                      updateSetting("accept_btn_bg_opacity", e.target.value)
+                      updateSetting("accept_btn_text", e.target.value)
                     }
-                    min="0"
-                    max="100"
-                    className="w-full px-2 py-1 text-sm border rounded"
+                    maxLength="20"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Style
+                    Show As
                   </Label>
                   <select
-                    value={getCurrentValue("accept_btn_border_style") || "none"}
+                    value={acceptShowAs}
                     onChange={(e) =>
-                      updateSetting("accept_btn_border_style", e.target.value)
+                      updateSetting("accept_btn_show_as", e.target.value)
                     }
-                    className="w-full px-2 py-1 text-sm border rounded"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="none">None</option>
-                    <option value="solid">Solid</option>
-                    <option value="dashed">Dashed</option>
-                    <option value="dotted">Dotted</option>
+                    <option value="button">Button</option>
+                    <option value="link">Link</option>
                   </select>
                 </div>
+              </div>
+            </div>
+
+            {/* Text Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Text Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Color
+                    Text Color
                   </Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={
-                        getCurrentValue("accept_btn_border_color") || "#000000"
+                        getCurrentValue("accept_btn_text_color") || "#ffffff"
                       }
                       onChange={(e) =>
-                        updateSetting("accept_btn_border_color", e.target.value)
+                        updateSetting("accept_btn_text_color", e.target.value)
                       }
-                      className="h-8 w-12 rounded border cursor-pointer"
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
                     />
                     <input
                       type="text"
                       value={
-                        getCurrentValue("accept_btn_border_color") || "#000000"
+                        getCurrentValue("accept_btn_text_color") || "#ffffff"
                       }
                       onChange={(e) =>
-                        updateSetting("accept_btn_border_color", e.target.value)
+                        updateSetting("accept_btn_text_color", e.target.value)
                       }
-                      className="flex-1 px-2 py-1 text-sm border rounded"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Width
-                  </Label>
-                  <input
-                    type="number"
-                    value={getCurrentValue("accept_btn_border_width") || "1"}
-                    onChange={(e) =>
-                      updateSetting("accept_btn_border_width", e.target.value)
-                    }
-                    min="0"
-                    max="10"
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
+              </div>
+            </div>
+
+            {acceptShowAs === "button" && (
+              <>
+                {/* Background Settings */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Background Settings
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Background Color
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={acceptBtnColor}
+                          onChange={(e) => {
+                            setAcceptBtnColor(e.target.value);
+                            updateSetting("accept_btn_color", e.target.value);
+                          }}
+                          className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={acceptBtnColor}
+                          onChange={(e) => {
+                            setAcceptBtnColor(e.target.value);
+                            updateSetting("accept_btn_color", e.target.value);
+                          }}
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Opacity (%)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("accept_btn_bg_opacity") || "100"
+                        }
+                        onChange={(e) =>
+                          updateSetting("accept_btn_bg_opacity", e.target.value)
+                        }
+                        min="0"
+                        max="100"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Radius
-                  </Label>
-                  <input
-                    type="number"
-                    value={getCurrentValue("accept_btn_border_radius") || "4"}
-                    onChange={(e) =>
-                      updateSetting("accept_btn_border_radius", e.target.value)
-                    }
-                    min="0"
-                    max="50"
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
+
+                {/* Border Settings */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Border Settings
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Style
+                      </Label>
+                      <select
+                        value={
+                          getCurrentValue("accept_btn_border_style") || "none"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "accept_btn_border_style",
+                            e.target.value
+                          )
+                        }
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="none">None</option>
+                        <option value="solid">Solid</option>
+                        <option value="dashed">Dashed</option>
+                        <option value="dotted">Dotted</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Width (px)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("accept_btn_border_width") || "1"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "accept_btn_border_width",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="10"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Color
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={
+                            getCurrentValue("accept_btn_border_color") ||
+                            "#000000"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "accept_btn_border_color",
+                              e.target.value
+                            )
+                          }
+                          className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={
+                            getCurrentValue("accept_btn_border_color") ||
+                            "#000000"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "accept_btn_border_color",
+                              e.target.value
+                            )
+                          }
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Radius (px)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("accept_btn_border_radius") || "4"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "accept_btn_border_radius",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="50"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               </>
             )}
@@ -521,205 +613,262 @@ const BannerDesign = ({ activeTab, closePopup }) => {
         const acceptAllShowAs =
           getCurrentValue("accept_all_btn_show_as") || "button";
         return (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Button Text
-              </Label>
-              <input
-                type="text"
-                value={getCurrentValue("accept_all_btn_text") || "Accept All"}
-                onChange={(e) =>
-                  updateSetting("accept_all_btn_text", e.target.value)
-                }
-                maxLength="20"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Text Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={
-                    getCurrentValue("accept_all_btn_text_color") || "#ffffff"
-                  }
-                  onChange={(e) =>
-                    updateSetting("accept_all_btn_text_color", e.target.value)
-                  }
-                  className="h-8 w-12 rounded border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={
-                    getCurrentValue("accept_all_btn_text_color") || "#ffffff"
-                  }
-                  onChange={(e) =>
-                    updateSetting("accept_all_btn_text_color", e.target.value)
-                  }
-                  className="flex-1 px-2 py-1 text-sm border rounded"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Show As
-              </Label>
-              <select
-                value={acceptAllShowAs}
-                onChange={(e) =>
-                  updateSetting("accept_all_btn_show_as", e.target.value)
-                }
-                className="w-full px-2 py-1 text-sm border rounded"
-              >
-                <option value="button">Button</option>
-                <option value="link">Link</option>
-              </select>
-            </div>
-            {acceptAllShowAs === "button" && (
-              <>
+          <div className="space-y-6">
+            {/* Basic Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Basic Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Background Color
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={
-                        getCurrentValue("accept_all_btn_bg_color") || "#2563eb"
-                      }
-                      onChange={(e) =>
-                        updateSetting("accept_all_btn_bg_color", e.target.value)
-                      }
-                      className="h-8 w-12 rounded border cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={
-                        getCurrentValue("accept_all_btn_bg_color") || "#2563eb"
-                      }
-                      onChange={(e) =>
-                        updateSetting("accept_all_btn_bg_color", e.target.value)
-                      }
-                      className="flex-1 px-2 py-1 text-sm border rounded"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Opacity (%)
+                    Button Text
                   </Label>
                   <input
-                    type="number"
+                    type="text"
                     value={
-                      getCurrentValue("accept_all_btn_bg_opacity") || "100"
+                      getCurrentValue("accept_all_btn_text") || "Accept All"
                     }
                     onChange={(e) =>
-                      updateSetting("accept_all_btn_bg_opacity", e.target.value)
+                      updateSetting("accept_all_btn_text", e.target.value)
                     }
-                    min="0"
-                    max="100"
-                    className="w-full px-2 py-1 text-sm border rounded"
+                    maxLength="20"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Style
+                    Show As
                   </Label>
                   <select
-                    value={
-                      getCurrentValue("accept_all_btn_border_style") || "none"
-                    }
+                    value={acceptAllShowAs}
                     onChange={(e) =>
-                      updateSetting(
-                        "accept_all_btn_border_style",
-                        e.target.value
-                      )
+                      updateSetting("accept_all_btn_show_as", e.target.value)
                     }
-                    className="w-full px-2 py-1 text-sm border rounded"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="none">None</option>
-                    <option value="solid">Solid</option>
-                    <option value="dashed">Dashed</option>
-                    <option value="dotted">Dotted</option>
+                    <option value="button">Button</option>
+                    <option value="link">Link</option>
                   </select>
                 </div>
+              </div>
+            </div>
+
+            {/* Text Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Text Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Color
+                    Text Color
                   </Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={
-                        getCurrentValue("accept_all_btn_border_color") ||
-                        "#000000"
+                        getCurrentValue("accept_all_btn_text_color") ||
+                        "#ffffff"
                       }
                       onChange={(e) =>
                         updateSetting(
-                          "accept_all_btn_border_color",
+                          "accept_all_btn_text_color",
                           e.target.value
                         )
                       }
-                      className="h-8 w-12 rounded border cursor-pointer"
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
                     />
                     <input
                       type="text"
                       value={
-                        getCurrentValue("accept_all_btn_border_color") ||
-                        "#000000"
+                        getCurrentValue("accept_all_btn_text_color") ||
+                        "#ffffff"
                       }
                       onChange={(e) =>
                         updateSetting(
-                          "accept_all_btn_border_color",
+                          "accept_all_btn_text_color",
                           e.target.value
                         )
                       }
-                      className="flex-1 px-2 py-1 text-sm border rounded"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Width
-                  </Label>
-                  <input
-                    type="number"
-                    value={
-                      getCurrentValue("accept_all_btn_border_width") || "1"
-                    }
-                    onChange={(e) =>
-                      updateSetting(
-                        "accept_all_btn_border_width",
-                        e.target.value
-                      )
-                    }
-                    min="0"
-                    max="10"
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
+              </div>
+            </div>
+
+            {acceptAllShowAs === "button" && (
+              <>
+                {/* Background Settings */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Background Settings
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Background Color
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={
+                            getCurrentValue("accept_all_btn_bg_color") ||
+                            "#2563eb"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "accept_all_btn_bg_color",
+                              e.target.value
+                            )
+                          }
+                          className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={
+                            getCurrentValue("accept_all_btn_bg_color") ||
+                            "#2563eb"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "accept_all_btn_bg_color",
+                              e.target.value
+                            )
+                          }
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Opacity (%)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("accept_all_btn_bg_opacity") || "100"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "accept_all_btn_bg_opacity",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="100"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Radius
-                  </Label>
-                  <input
-                    type="number"
-                    value={
-                      getCurrentValue("accept_all_btn_border_radius") || "4"
-                    }
-                    onChange={(e) =>
-                      updateSetting(
-                        "accept_all_btn_border_radius",
-                        e.target.value
-                      )
-                    }
-                    min="0"
-                    max="50"
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
+
+                {/* Border Settings */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Border Settings
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Style
+                      </Label>
+                      <select
+                        value={
+                          getCurrentValue("accept_all_btn_border_style") ||
+                          "none"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "accept_all_btn_border_style",
+                            e.target.value
+                          )
+                        }
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="none">None</option>
+                        <option value="solid">Solid</option>
+                        <option value="dashed">Dashed</option>
+                        <option value="dotted">Dotted</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Width (px)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("accept_all_btn_border_width") || "1"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "accept_all_btn_border_width",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="10"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Color
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={
+                            getCurrentValue("accept_all_btn_border_color") ||
+                            "#000000"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "accept_all_btn_border_color",
+                              e.target.value
+                            )
+                          }
+                          className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={
+                            getCurrentValue("accept_all_btn_border_color") ||
+                            "#000000"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "accept_all_btn_border_color",
+                              e.target.value
+                            )
+                          }
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Radius (px)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("accept_all_btn_border_radius") || "4"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "accept_all_btn_border_radius",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="50"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               </>
             )}
@@ -729,182 +878,241 @@ const BannerDesign = ({ activeTab, closePopup }) => {
         const declineShowAs =
           getCurrentValue("decline_btn_show_as") || "button";
         return (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Button Text
-              </Label>
-              <input
-                type="text"
-                value={getCurrentValue("decline_btn_text") || "Decline"}
-                onChange={(e) =>
-                  updateSetting("decline_btn_text", e.target.value)
-                }
-                maxLength="20"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Text Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={getCurrentValue("decline_btn_text_color") || "#000000"}
-                  onChange={(e) =>
-                    updateSetting("decline_btn_text_color", e.target.value)
-                  }
-                  className="h-8 w-12 rounded border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={getCurrentValue("decline_btn_text_color") || "#000000"}
-                  onChange={(e) =>
-                    updateSetting("decline_btn_text_color", e.target.value)
-                  }
-                  className="flex-1 px-2 py-1 text-sm border rounded"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Show As
-              </Label>
-              <select
-                value={declineShowAs}
-                onChange={(e) =>
-                  updateSetting("decline_btn_show_as", e.target.value)
-                }
-                className="w-full px-2 py-1 text-sm border rounded"
-              >
-                <option value="button">Button</option>
-                <option value="link">Link</option>
-              </select>
-            </div>
-            {declineShowAs === "button" && (
-              <>
+          <div className="space-y-6">
+            {/* Basic Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Basic Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Background Color
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={declineBtnColor}
-                      onChange={(e) => {
-                        setDeclineBtnColor(e.target.value);
-                        updateSetting("decline_btn_color", e.target.value);
-                      }}
-                      className="h-8 w-12 rounded border cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={declineBtnColor}
-                      onChange={(e) => {
-                        setDeclineBtnColor(e.target.value);
-                        updateSetting("decline_btn_color", e.target.value);
-                      }}
-                      className="flex-1 px-2 py-1 text-sm border rounded"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Opacity (%)
+                    Button Text
                   </Label>
                   <input
-                    type="number"
-                    value={getCurrentValue("decline_btn_bg_opacity") || "100"}
+                    type="text"
+                    value={getCurrentValue("decline_btn_text") || "Decline"}
                     onChange={(e) =>
-                      updateSetting("decline_btn_bg_opacity", e.target.value)
+                      updateSetting("decline_btn_text", e.target.value)
                     }
-                    min="0"
-                    max="100"
-                    className="w-full px-2 py-1 text-sm border rounded"
+                    maxLength="20"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Style
+                    Show As
                   </Label>
                   <select
-                    value={
-                      getCurrentValue("decline_btn_border_style") || "solid"
-                    }
+                    value={declineShowAs}
                     onChange={(e) =>
-                      updateSetting("decline_btn_border_style", e.target.value)
+                      updateSetting("decline_btn_show_as", e.target.value)
                     }
-                    className="w-full px-2 py-1 text-sm border rounded"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="none">None</option>
-                    <option value="solid">Solid</option>
-                    <option value="dashed">Dashed</option>
-                    <option value="dotted">Dotted</option>
+                    <option value="button">Button</option>
+                    <option value="link">Link</option>
                   </select>
                 </div>
+              </div>
+            </div>
+
+            {/* Text Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Text Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Color
+                    Text Color
                   </Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={
-                        getCurrentValue("decline_btn_border_color") || "#6b7280"
+                        getCurrentValue("decline_btn_text_color") || "#000000"
                       }
                       onChange={(e) =>
-                        updateSetting(
-                          "decline_btn_border_color",
-                          e.target.value
-                        )
+                        updateSetting("decline_btn_text_color", e.target.value)
                       }
-                      className="h-8 w-12 rounded border cursor-pointer"
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
                     />
                     <input
                       type="text"
                       value={
-                        getCurrentValue("decline_btn_border_color") || "#6b7280"
+                        getCurrentValue("decline_btn_text_color") || "#000000"
                       }
                       onChange={(e) =>
-                        updateSetting(
-                          "decline_btn_border_color",
-                          e.target.value
-                        )
+                        updateSetting("decline_btn_text_color", e.target.value)
                       }
-                      className="flex-1 px-2 py-1 text-sm border rounded"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Width
-                  </Label>
-                  <input
-                    type="number"
-                    value={getCurrentValue("decline_btn_border_width") || "1"}
-                    onChange={(e) =>
-                      updateSetting("decline_btn_border_width", e.target.value)
-                    }
-                    min="0"
-                    max="10"
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
+              </div>
+            </div>
+
+            {declineShowAs === "button" && (
+              <>
+                {/* Background Settings */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Background Settings
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Background Color
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={declineBtnColor}
+                          onChange={(e) => {
+                            setDeclineBtnColor(e.target.value);
+                            updateSetting("decline_btn_color", e.target.value);
+                          }}
+                          className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={declineBtnColor}
+                          onChange={(e) => {
+                            setDeclineBtnColor(e.target.value);
+                            updateSetting("decline_btn_color", e.target.value);
+                          }}
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Opacity (%)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("decline_btn_bg_opacity") || "100"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "decline_btn_bg_opacity",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="100"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Radius
-                  </Label>
-                  <input
-                    type="number"
-                    value={getCurrentValue("decline_btn_border_radius") || "4"}
-                    onChange={(e) =>
-                      updateSetting("decline_btn_border_radius", e.target.value)
-                    }
-                    min="0"
-                    max="50"
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
+
+                {/* Border Settings */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Border Settings
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Style
+                      </Label>
+                      <select
+                        value={
+                          getCurrentValue("decline_btn_border_style") || "solid"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "decline_btn_border_style",
+                            e.target.value
+                          )
+                        }
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="none">None</option>
+                        <option value="solid">Solid</option>
+                        <option value="dashed">Dashed</option>
+                        <option value="dotted">Dotted</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Width (px)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("decline_btn_border_width") || "1"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "decline_btn_border_width",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="10"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Color
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={
+                            getCurrentValue("decline_btn_border_color") ||
+                            "#6b7280"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "decline_btn_border_color",
+                              e.target.value
+                            )
+                          }
+                          className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={
+                            getCurrentValue("decline_btn_border_color") ||
+                            "#6b7280"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "decline_btn_border_color",
+                              e.target.value
+                            )
+                          }
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Radius (px)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("decline_btn_border_radius") || "4"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "decline_btn_border_radius",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="50"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               </>
             )}
@@ -914,65 +1122,338 @@ const BannerDesign = ({ activeTab, closePopup }) => {
         const preferencesShowAs =
           getCurrentValue("preferences_btn_show_as") || "button";
         return (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Button Text
-              </Label>
-              <input
-                type="text"
-                value={getCurrentValue("preferences_btn_text") || "Preferences"}
-                onChange={(e) =>
-                  updateSetting("preferences_btn_text", e.target.value)
-                }
-                maxLength="20"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Text Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={
-                    getCurrentValue("preferences_btn_text_color") || "#2563eb"
-                  }
-                  onChange={(e) =>
-                    updateSetting("preferences_btn_text_color", e.target.value)
-                  }
-                  className="h-8 w-12 rounded border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={
-                    getCurrentValue("preferences_btn_text_color") || "#2563eb"
-                  }
-                  onChange={(e) =>
-                    updateSetting("preferences_btn_text_color", e.target.value)
-                  }
-                  className="flex-1 px-2 py-1 text-sm border rounded"
-                />
+          <div className="space-y-6">
+            {/* Basic Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Basic Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Button Text
+                  </Label>
+                  <input
+                    type="text"
+                    value={
+                      getCurrentValue("preferences_btn_text") || "Preferences"
+                    }
+                    onChange={(e) =>
+                      updateSetting("preferences_btn_text", e.target.value)
+                    }
+                    maxLength="20"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Show As
+                  </Label>
+                  <select
+                    value={preferencesShowAs}
+                    onChange={(e) =>
+                      updateSetting("preferences_btn_show_as", e.target.value)
+                    }
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="button">Button</option>
+                    <option value="link">Link</option>
+                  </select>
+                </div>
               </div>
             </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Show As
-              </Label>
-              <select
-                value={preferencesShowAs}
-                onChange={(e) =>
-                  updateSetting("preferences_btn_show_as", e.target.value)
-                }
-                className="w-full px-2 py-1 text-sm border rounded"
-              >
-                <option value="button">Button</option>
-                <option value="link">Link</option>
-              </select>
+
+            {/* Text Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Text Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Text Color
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={
+                        getCurrentValue("preferences_btn_text_color") ||
+                        "#2563eb"
+                      }
+                      onChange={(e) =>
+                        updateSetting(
+                          "preferences_btn_text_color",
+                          e.target.value
+                        )
+                      }
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={
+                        getCurrentValue("preferences_btn_text_color") ||
+                        "#2563eb"
+                      }
+                      onChange={(e) =>
+                        updateSetting(
+                          "preferences_btn_text_color",
+                          e.target.value
+                        )
+                      }
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
+
             {preferencesShowAs === "button" && (
               <>
+                {/* Background Settings */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Background Settings
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Background Color
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={
+                            getCurrentValue("preferences_btn_color") ||
+                            "transparent"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "preferences_btn_color",
+                              e.target.value
+                            )
+                          }
+                          className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={
+                            getCurrentValue("preferences_btn_color") ||
+                            "transparent"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "preferences_btn_color",
+                              e.target.value
+                            )
+                          }
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Opacity (%)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("preferences_btn_bg_opacity") || "100"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "preferences_btn_bg_opacity",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="100"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Border Settings */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Border Settings
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Style
+                      </Label>
+                      <select
+                        value={
+                          getCurrentValue("preferences_btn_border_style") ||
+                          "solid"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "preferences_btn_border_style",
+                            e.target.value
+                          )
+                        }
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="none">None</option>
+                        <option value="solid">Solid</option>
+                        <option value="dashed">Dashed</option>
+                        <option value="dotted">Dotted</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Width (px)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("preferences_btn_border_width") || "1"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "preferences_btn_border_width",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="10"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Color
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={
+                            getCurrentValue("preferences_btn_border_color") ||
+                            "#2563eb"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "preferences_btn_border_color",
+                              e.target.value
+                            )
+                          }
+                          className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={
+                            getCurrentValue("preferences_btn_border_color") ||
+                            "#2563eb"
+                          }
+                          onChange={(e) =>
+                            updateSetting(
+                              "preferences_btn_border_color",
+                              e.target.value
+                            )
+                          }
+                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="block text-xs font-medium text-gray-700 mb-1">
+                        Border Radius (px)
+                      </Label>
+                      <input
+                        type="number"
+                        value={
+                          getCurrentValue("preferences_btn_border_radius") ||
+                          "4"
+                        }
+                        onChange={(e) =>
+                          updateSetting(
+                            "preferences_btn_border_radius",
+                            e.target.value
+                          )
+                        }
+                        min="0"
+                        max="50"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      case "design-settings-btn":
+        return (
+          <div className="space-y-6">
+            {/* Basic Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Basic Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Button Text
+                  </Label>
+                  <input
+                    type="text"
+                    value={
+                      getCurrentValue("settings_btn_text") || "Cookie Settings"
+                    }
+                    onChange={(e) =>
+                      updateSetting("settings_btn_text", e.target.value)
+                    }
+                    maxLength="20"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Text Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Text Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Text Color
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={
+                        getCurrentValue("settings_btn_text_color") || "#ffffff"
+                      }
+                      onChange={(e) =>
+                        updateSetting("settings_btn_text_color", e.target.value)
+                      }
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={
+                        getCurrentValue("settings_btn_text_color") || "#ffffff"
+                      }
+                      onChange={(e) =>
+                        updateSetting("settings_btn_text_color", e.target.value)
+                      }
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Background Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Background Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
                     Background Color
@@ -981,24 +1462,22 @@ const BannerDesign = ({ activeTab, closePopup }) => {
                     <input
                       type="color"
                       value={
-                        getCurrentValue("preferences_btn_color") ||
-                        "transparent"
+                        getCurrentValue("settings_btn_bg_color") || "#6b7280"
                       }
                       onChange={(e) =>
-                        updateSetting("preferences_btn_color", e.target.value)
+                        updateSetting("settings_btn_bg_color", e.target.value)
                       }
-                      className="h-8 w-12 rounded border cursor-pointer"
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
                     />
                     <input
                       type="text"
                       value={
-                        getCurrentValue("preferences_btn_color") ||
-                        "transparent"
+                        getCurrentValue("settings_btn_bg_color") || "#6b7280"
                       }
                       onChange={(e) =>
-                        updateSetting("preferences_btn_color", e.target.value)
+                        updateSetting("settings_btn_bg_color", e.target.value)
                       }
-                      className="flex-1 px-2 py-1 text-sm border rounded"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
@@ -1008,35 +1487,36 @@ const BannerDesign = ({ activeTab, closePopup }) => {
                   </Label>
                   <input
                     type="number"
-                    value={
-                      getCurrentValue("preferences_btn_bg_opacity") || "100"
-                    }
+                    value={getCurrentValue("settings_btn_bg_opacity") || "100"}
                     onChange={(e) =>
-                      updateSetting(
-                        "preferences_btn_bg_opacity",
-                        e.target.value
-                      )
+                      updateSetting("settings_btn_bg_opacity", e.target.value)
                     }
                     min="0"
                     max="100"
-                    className="w-full px-2 py-1 text-sm border rounded"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Border Settings */}
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Border Settings
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
                     Border Style
                   </Label>
                   <select
                     value={
-                      getCurrentValue("preferences_btn_border_style") || "solid"
+                      getCurrentValue("settings_btn_border_style") || "none"
                     }
                     onChange={(e) =>
-                      updateSetting(
-                        "preferences_btn_border_style",
-                        e.target.value
-                      )
+                      updateSetting("settings_btn_border_style", e.target.value)
                     }
-                    className="w-full px-2 py-1 text-sm border rounded"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="none">None</option>
                     <option value="solid">Solid</option>
@@ -1046,240 +1526,73 @@ const BannerDesign = ({ activeTab, closePopup }) => {
                 </div>
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
+                    Border Width (px)
+                  </Label>
+                  <input
+                    type="number"
+                    value={getCurrentValue("settings_btn_border_width") || "1"}
+                    onChange={(e) =>
+                      updateSetting("settings_btn_border_width", e.target.value)
+                    }
+                    min="0"
+                    max="10"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <Label className="block text-xs font-medium text-gray-700 mb-1">
                     Border Color
                   </Label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
                       value={
-                        getCurrentValue("preferences_btn_border_color") ||
-                        "#2563eb"
+                        getCurrentValue("settings_btn_border_color") ||
+                        "#000000"
                       }
                       onChange={(e) =>
                         updateSetting(
-                          "preferences_btn_border_color",
+                          "settings_btn_border_color",
                           e.target.value
                         )
                       }
-                      className="h-8 w-12 rounded border cursor-pointer"
+                      className="h-10 w-12 rounded-lg border border-gray-300 cursor-pointer"
                     />
                     <input
                       type="text"
                       value={
-                        getCurrentValue("preferences_btn_border_color") ||
-                        "#2563eb"
+                        getCurrentValue("settings_btn_border_color") ||
+                        "#000000"
                       }
                       onChange={(e) =>
                         updateSetting(
-                          "preferences_btn_border_color",
+                          "settings_btn_border_color",
                           e.target.value
                         )
                       }
-                      className="flex-1 px-2 py-1 text-sm border rounded"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
                 <div>
                   <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Width
+                    Border Radius (px)
                   </Label>
                   <input
                     type="number"
-                    value={
-                      getCurrentValue("preferences_btn_border_width") || "1"
-                    }
+                    value={getCurrentValue("settings_btn_border_radius") || "4"}
                     onChange={(e) =>
                       updateSetting(
-                        "preferences_btn_border_width",
-                        e.target.value
-                      )
-                    }
-                    min="0"
-                    max="10"
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
-                </div>
-                <div>
-                  <Label className="block text-xs font-medium text-gray-700 mb-1">
-                    Border Radius
-                  </Label>
-                  <input
-                    type="number"
-                    value={
-                      getCurrentValue("preferences_btn_border_radius") || "4"
-                    }
-                    onChange={(e) =>
-                      updateSetting(
-                        "preferences_btn_border_radius",
+                        "settings_btn_border_radius",
                         e.target.value
                       )
                     }
                     min="0"
                     max="50"
-                    className="w-full px-2 py-1 text-sm border rounded"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-              </>
-            )}
-          </div>
-        );
-      case "design-settings-btn":
-        return (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Button Text
-              </Label>
-              <input
-                type="text"
-                value={
-                  getCurrentValue("settings_btn_text") || "Cookie Settings"
-                }
-                onChange={(e) =>
-                  updateSetting("settings_btn_text", e.target.value)
-                }
-                maxLength="20"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Text Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={
-                    getCurrentValue("settings_btn_text_color") || "#ffffff"
-                  }
-                  onChange={(e) =>
-                    updateSetting("settings_btn_text_color", e.target.value)
-                  }
-                  className="h-8 w-12 rounded border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={
-                    getCurrentValue("settings_btn_text_color") || "#ffffff"
-                  }
-                  onChange={(e) =>
-                    updateSetting("settings_btn_text_color", e.target.value)
-                  }
-                  className="flex-1 px-2 py-1 text-sm border rounded"
-                />
               </div>
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Background Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={getCurrentValue("settings_btn_bg_color") || "#6b7280"}
-                  onChange={(e) =>
-                    updateSetting("settings_btn_bg_color", e.target.value)
-                  }
-                  className="h-8 w-12 rounded border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={getCurrentValue("settings_btn_bg_color") || "#6b7280"}
-                  onChange={(e) =>
-                    updateSetting("settings_btn_bg_color", e.target.value)
-                  }
-                  className="flex-1 px-2 py-1 text-sm border rounded"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Opacity (%)
-              </Label>
-              <input
-                type="number"
-                value={getCurrentValue("settings_btn_bg_opacity") || "100"}
-                onChange={(e) =>
-                  updateSetting("settings_btn_bg_opacity", e.target.value)
-                }
-                min="0"
-                max="100"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Border Style
-              </Label>
-              <select
-                value={getCurrentValue("settings_btn_border_style") || "none"}
-                onChange={(e) =>
-                  updateSetting("settings_btn_border_style", e.target.value)
-                }
-                className="w-full px-2 py-1 text-sm border rounded"
-              >
-                <option value="none">None</option>
-                <option value="solid">Solid</option>
-                <option value="dashed">Dashed</option>
-                <option value="dotted">Dotted</option>
-              </select>
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Border Color
-              </Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={
-                    getCurrentValue("settings_btn_border_color") || "#000000"
-                  }
-                  onChange={(e) =>
-                    updateSetting("settings_btn_border_color", e.target.value)
-                  }
-                  className="h-8 w-12 rounded border cursor-pointer"
-                />
-                <input
-                  type="text"
-                  value={
-                    getCurrentValue("settings_btn_border_color") || "#000000"
-                  }
-                  onChange={(e) =>
-                    updateSetting("settings_btn_border_color", e.target.value)
-                  }
-                  className="flex-1 px-2 py-1 text-sm border rounded"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Border Width
-              </Label>
-              <input
-                type="number"
-                value={getCurrentValue("settings_btn_border_width") || "1"}
-                onChange={(e) =>
-                  updateSetting("settings_btn_border_width", e.target.value)
-                }
-                min="0"
-                max="10"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
-            </div>
-            <div>
-              <Label className="block text-xs font-medium text-gray-700 mb-1">
-                Border Radius
-              </Label>
-              <input
-                type="number"
-                value={getCurrentValue("settings_btn_border_radius") || "4"}
-                onChange={(e) =>
-                  updateSetting("settings_btn_border_radius", e.target.value)
-                }
-                min="0"
-                max="50"
-                className="w-full px-2 py-1 text-sm border rounded"
-              />
             </div>
           </div>
         );
@@ -1306,30 +1619,45 @@ const BannerDesign = ({ activeTab, closePopup }) => {
   };
 
   return (
-    <div className="bg-white border rounded-lg shadow-sm">
-      <div className="p-3 border-b border-gray-200 flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-800">{getTitle()}</h2>
+    <div className="bg-white border border-gray-200 rounded-xl shadow-xl">
+      <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-xl">
+        <h2 className="text-2xl font-bold text-gray-900">{getTitle()}</h2>
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
             onClick={resetToDefaults}
-            className="text-red-600 border-red-600 hover:bg-red-50 focus:outline-none focus:ring-0"
+            className="text-red-600 border-red-600 hover:bg-red-50 focus:outline-none focus:ring-0 font-medium px-3 py-1.5 rounded-lg"
           >
             Reset to Default
           </Button>
           {closePopup && (
             <button
               onClick={closePopup}
-              className="p-1 cursor-pointer border-none bg-none focus:outline-none"
-              style={{ border: "none", background: "none" }}
+              className="p-2 cursor-pointer border-none bg-none focus:outline-none rounded-full hover:bg-gray-200 transition-colors"
             >
-              ✕
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6 text-gray-500 hover:text-gray-700"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
             </button>
           )}
         </div>
       </div>
-      <div className="p-3 max-h-[70vh] overflow-y-auto">
+      <div className="p-6 max-h-[70vh] overflow-y-auto bg-white">
+        <div className="mb-6 pb-4 border-b border-gray-100">
+          <p className="text-gray-600 text-sm">
+            Configure the appearance and styling options for this component
+          </p>
+        </div>
         {renderDesignContent()}
       </div>
     </div>
