@@ -231,6 +231,7 @@ class Sure_Consent_Storage {
         global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
         $scanned_cookies_table = $wpdb->prefix . 'sure_consent_scanned_cookies';
+        $scan_history_table = $wpdb->prefix . 'sure_consent_scan_history';
 
         $charset_collate = $wpdb->get_charset_collate();
 
@@ -268,9 +269,23 @@ class Sure_Consent_Storage {
             KEY category (category)
         ) $charset_collate;";
 
+        // Create table for scan history
+        $scan_history_sql = "CREATE TABLE $scan_history_table (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            scan_date datetime DEFAULT CURRENT_TIMESTAMP,
+            total_cookies int(11) DEFAULT 0,
+            scan_type varchar(20) DEFAULT 'current_page',
+            pages_scanned int(11) DEFAULT 1,
+            scan_data longtext,
+            PRIMARY KEY (id),
+            KEY scan_date (scan_date),
+            KEY scan_type (scan_type)
+        ) $charset_collate;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
         dbDelta($scanned_cookies_sql);
+        dbDelta($scan_history_sql);
         
         // Update existing records to add country information
         self::update_existing_records();
@@ -747,6 +762,118 @@ class Sure_Consent_Storage {
         $result = $wpdb->query("DELETE FROM $table_name");
 
         return $result !== false;
+    }
+    
+    /**
+     * Save scan history record
+     */
+    public static function save_scan_history($total_cookies, $scan_type = 'current_page', $pages_scanned = 1, $scan_data = array()) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        // Insert scan history record
+        $result = $wpdb->insert(
+            $table_name,
+            array(
+                'total_cookies' => $total_cookies,
+                'scan_type' => $scan_type,
+                'pages_scanned' => $pages_scanned,
+                'scan_data' => json_encode($scan_data)
+            ),
+            array(
+                '%d', // total_cookies
+                '%s', // scan_type
+                '%d', // pages_scanned
+                '%s'  // scan_data
+            )
+        );
+        
+        return $result !== false ? $wpdb->insert_id : false;
+    }
+    
+    /**
+     * Get scan history records
+     */
+    public static function get_scan_history($limit = 50, $offset = 0) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        // Get scan history records
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table_name ORDER BY scan_date DESC LIMIT %d OFFSET %d",
+            $limit,
+            $offset
+        ));
+        
+        // Process results
+        $processed_results = array();
+        foreach ($results as $result) {
+            $processed_results[] = array(
+                'id' => $result->id,
+                'scan_date' => $result->scan_date,
+                'total_cookies' => $result->total_cookies,
+                'scan_type' => $result->scan_type,
+                'pages_scanned' => $result->pages_scanned,
+                'scan_data' => json_decode($result->scan_data, true)
+            );
+        }
+        
+        return $processed_results;
+    }
+    
+    /**
+     * Get scan history by ID
+     */
+    public static function get_scan_history_by_id($id) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        // Get scan history record by ID
+        $result = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d",
+            $id
+        ));
+        
+        if ($result) {
+            return array(
+                'id' => $result->id,
+                'scan_date' => $result->scan_date,
+                'total_cookies' => $result->total_cookies,
+                'scan_type' => $result->scan_type,
+                'pages_scanned' => $result->pages_scanned,
+                'scan_data' => json_decode($result->scan_data, true)
+            );
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Delete scan history record
+     */
+    public static function delete_scan_history($id) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        // Delete scan history record
+        $result = $wpdb->delete(
+            $table_name,
+            array('id' => $id),
+            array('%d')
+        );
+        
+        return $result !== false;
+    }
+    
+    /**
+     * Get total count of scan history records
+     */
+    public static function get_scan_history_count() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        // Get total count
+        return $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
     }
 }
 

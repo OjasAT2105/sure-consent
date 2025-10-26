@@ -34,6 +34,12 @@ class Sure_Consent_Ajax {
         add_action('wp_ajax_sure_consent_get_scanned_cookies', array(__CLASS__, 'get_scanned_cookies'));
         add_action('wp_ajax_sure_consent_update_scanned_cookie', array(__CLASS__, 'update_scanned_cookie'));
         add_action('wp_ajax_sure_consent_delete_scanned_cookie', array(__CLASS__, 'delete_scanned_cookie'));
+        // Add new actions for scan history
+        add_action('wp_ajax_sure_consent_get_scan_history', array(__CLASS__, 'get_scan_history'));
+        add_action('wp_ajax_sure_consent_get_scan_history_record', array(__CLASS__, 'get_scan_history_record'));
+        add_action('wp_ajax_sure_consent_delete_scan_history_record', array(__CLASS__, 'delete_scan_history_record'));
+        add_action('wp_ajax_sure_consent_export_scan_history_csv', array(__CLASS__, 'export_scan_history_csv'));
+        add_action('wp_ajax_sure_consent_export_scan_history_json', array(__CLASS__, 'export_scan_history_json'));
     }
 
     /**
@@ -769,6 +775,14 @@ class Sure_Consent_Ajax {
                 )
             );
         }
+        
+        // Save scan history
+        $scan_type = $scan_all_pages ? 'all_pages' : 'current_page';
+        $pages_scanned = $scan_all_pages ? count(self::get_all_site_urls()) : 1;
+        $total_cookies = count($all_cookies);
+        
+        // Save to scan history table
+        Sure_Consent_Storage::save_scan_history($total_cookies, $scan_type, $pages_scanned, $all_cookies);
 
         wp_send_json_success(array(
             'message' => 'Cookies scanned and saved successfully',
@@ -896,6 +910,241 @@ class Sure_Consent_Ajax {
         } else {
             wp_send_json_error(array('message' => 'Failed to delete cookie'));
         }
+    }
+    
+    /**
+     * Get scan history records
+     */
+    public static function get_scan_history() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get pagination parameters
+        $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+        $per_page = isset($_POST['per_page']) ? intval($_POST['per_page']) : 10;
+        $offset = ($page - 1) * $per_page;
+        
+        // Get filter parameters
+        $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+        $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+        $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '';
+
+        // Get scan history records
+        $scan_history = Sure_Consent_Storage::get_scan_history($per_page, $offset);
+        
+        // Get total count
+        $total_records = Sure_Consent_Storage::get_scan_history_count();
+        $total_pages = ceil($total_records / $per_page);
+        
+        // Process scan history records to add cookie counts per category
+        $processed_history = array();
+        foreach ($scan_history as $record) {
+            // Get cookie data and count by category
+            $cookie_data = $record['scan_data'] ? $record['scan_data'] : array();
+            $category_counts = array();
+            
+            // Count cookies by category
+            foreach ($cookie_data as $cookie) {
+                $cookie_category = isset($cookie['category']) ? $cookie['category'] : 'Uncategorized';
+                if (!isset($category_counts[$cookie_category])) {
+                    $category_counts[$cookie_category] = 0;
+                }
+                $category_counts[$cookie_category]++;
+            }
+            
+            // Add processed record
+            $processed_history[] = array(
+                'id' => $record['id'],
+                'scan_date' => $record['scan_date'],
+                'total_cookies' => $record['total_cookies'],
+                'scan_type' => $record['scan_type'],
+                'pages_scanned' => $record['pages_scanned'],
+                'category_counts' => $category_counts,
+                'scan_data' => $cookie_data
+            );
+        }
+        
+        wp_send_json_success(array(
+            'history' => $processed_history,
+            'total' => $total_records,
+            'page' => $page,
+            'per_page' => $per_page,
+            'total_pages' => $total_pages
+        ));
+    }
+    
+    /**
+     * Get scan history record by ID
+     */
+    public static function get_scan_history_record() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get record ID
+        $record_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        
+        if (empty($record_id)) {
+            wp_send_json_error(array('message' => 'Invalid record ID'));
+            return;
+        }
+        
+        // Get scan history record
+        $record = Sure_Consent_Storage::get_scan_history_by_id($record_id);
+        
+        if ($record) {
+            wp_send_json_success(array('record' => $record));
+        } else {
+            wp_send_json_error(array('message' => 'Record not found'));
+        }
+    }
+    
+    /**
+     * Delete scan history record
+     */
+    public static function delete_scan_history_record() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get record ID
+        $record_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        
+        if (empty($record_id)) {
+            wp_send_json_error(array('message' => 'Invalid record ID'));
+            return;
+        }
+        
+        // Delete scan history record
+        $result = Sure_Consent_Storage::delete_scan_history($record_id);
+        
+        if ($result) {
+            wp_send_json_success(array('message' => 'Record deleted successfully'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to delete record'));
+        }
+    }
+    
+    /**
+     * Export scan history record as CSV
+     */
+    public static function export_scan_history_csv() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Get record ID
+        $record_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        
+        if (empty($record_id)) {
+            wp_die('Invalid record ID');
+        }
+        
+        // Get scan history record
+        $record = Sure_Consent_Storage::get_scan_history_by_id($record_id);
+        
+        if (!$record) {
+            wp_die('Record not found');
+        }
+        
+        // Set headers for CSV download
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="scan-history-' . $record_id . '.csv"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        // Create CSV output
+        $output = fopen('php://output', 'w');
+        
+        // Add CSV headers
+        fputcsv($output, array('Cookie Name', 'Cookie Value', 'Domain', 'Path', 'Expires', 'Category', 'Note'));
+        
+        // Add cookie data
+        $cookie_data = $record['scan_data'] ? $record['scan_data'] : array();
+        foreach ($cookie_data as $cookie) {
+            fputcsv($output, array(
+                isset($cookie['name']) ? $cookie['name'] : '',
+                isset($cookie['value']) ? $cookie['value'] : '',
+                isset($cookie['domain']) ? $cookie['domain'] : '',
+                isset($cookie['path']) ? $cookie['path'] : '',
+                isset($cookie['expires']) ? $cookie['expires'] : '',
+                isset($cookie['category']) ? $cookie['category'] : '',
+                isset($cookie['note']) ? $cookie['note'] : ''
+            ));
+        }
+        
+        fclose($output);
+        exit;
+    }
+    
+    /**
+     * Export scan history record as JSON
+     */
+    public static function export_scan_history_json() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Get record ID
+        $record_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        
+        if (empty($record_id)) {
+            wp_die('Invalid record ID');
+        }
+        
+        // Get scan history record
+        $record = Sure_Consent_Storage::get_scan_history_by_id($record_id);
+        
+        if (!$record) {
+            wp_die('Record not found');
+        }
+        
+        // Set headers for JSON download
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="scan-history-' . $record_id . '.json"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        // Output JSON data
+        echo json_encode($record['scan_data'], JSON_PRETTY_PRINT);
+        exit;
     }
 }
 
