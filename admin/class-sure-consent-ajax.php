@@ -573,6 +573,62 @@ class Sure_Consent_Ajax {
     }
 
     /**
+     * Get all published pages and posts URLs from WordPress
+     */
+    public static function get_all_site_urls() {
+        // Get all published posts
+        $posts = get_posts(array(
+            'post_type' => 'post',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'fields' => 'ids'
+        ));
+        
+        // Get all published pages
+        $pages = get_posts(array(
+            'post_type' => 'page',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'fields' => 'ids'
+        ));
+        
+        // Get all public post types
+        $post_types = get_post_types(array('public' => true));
+        $all_posts = array();
+        
+        foreach ($post_types as $post_type) {
+            if ($post_type !== 'post' && $post_type !== 'page' && $post_type !== 'attachment') {
+                $custom_posts = get_posts(array(
+                    'post_type' => $post_type,
+                    'post_status' => 'publish',
+                    'numberposts' => -1,
+                    'fields' => 'ids'
+                ));
+                $all_posts = array_merge($all_posts, $custom_posts);
+            }
+        }
+        
+        // Combine all posts
+        $all_content_ids = array_merge($posts, $pages, $all_posts);
+        
+        // Get URLs
+        $urls = array();
+        foreach ($all_content_ids as $post_id) {
+            $urls[] = get_permalink($post_id);
+        }
+        
+        // Add homepage
+        $urls[] = home_url();
+        
+        // Remove duplicates and invalid URLs
+        $urls = array_filter(array_unique($urls), function($url) {
+            return filter_var($url, FILTER_VALIDATE_URL) !== false;
+        });
+        
+        return array_values($urls);
+    }
+
+    /**
      * Scan cookies using Puppeteer for comprehensive detection including third-party cookies
      */
     public static function scan_cookies_with_puppeteer($url) {
@@ -587,6 +643,45 @@ class Sure_Consent_Ajax {
         
         // Execute the Node.js script
         $command = 'node ' . escapeshellarg($script_path) . ' ' . escapeshellarg($url) . ' 2>&1';
+        $output = shell_exec($command);
+        
+        // Check if results file was created
+        if (file_exists($results_path)) {
+            $results = file_get_contents($results_path);
+            $cookies = json_decode($results, true);
+            
+            // Remove the results file
+            unlink($results_path);
+            
+            if (is_array($cookies)) {
+                return $cookies;
+            }
+        }
+        
+        // Return empty array if no results
+        return array();
+    }
+
+    /**
+     * Scan cookies using Puppeteer for multiple URLs
+     */
+    public static function scan_cookies_with_puppeteer_multiple($urls) {
+        // Path to the Node.js script
+        $script_path = plugin_dir_path(__FILE__) . '../puppeteer-scan.js';
+        $results_path = plugin_dir_path(__FILE__) . '../puppeteer-results.json';
+        
+        // Remove previous results if they exist
+        if (file_exists($results_path)) {
+            unlink($results_path);
+        }
+        
+        // Prepare URLs for command line (limit to 50 URLs to prevent command line overflow)
+        $urls = array_slice($urls, 0, 50);
+        $url_args = array_map('escapeshellarg', $urls);
+        $urls_string = implode(' ', $url_args);
+        
+        // Execute the Node.js script with multiple URLs
+        $command = 'node ' . escapeshellarg($script_path) . ' ' . $urls_string . ' 2>&1';
         $output = shell_exec($command);
         
         // Check if results file was created
@@ -624,15 +719,22 @@ class Sure_Consent_Ajax {
 
         // Get scanned cookies data
         $scanned_cookies = isset($_POST['cookies']) ? json_decode(stripslashes($_POST['cookies']), true) : array();
-        $website_url = isset($_POST['url']) ? sanitize_text_field($_POST['url']) : home_url();
+        $scan_all_pages = isset($_POST['scan_all']) ? (bool) $_POST['scan_all'] : false;
         
         if (!is_array($scanned_cookies)) {
             wp_send_json_error(array('message' => 'Invalid cookie data'));
             return;
         }
 
-        // Perform server-side scanning with Puppeteer
-        $puppeteer_cookies = self::scan_cookies_with_puppeteer($website_url);
+        // If scanning all pages, get all URLs and perform comprehensive scan
+        if ($scan_all_pages) {
+            $all_urls = self::get_all_site_urls();
+            $puppeteer_cookies = self::scan_cookies_with_puppeteer_multiple($all_urls);
+        } else {
+            // Single page scan as before
+            $website_url = isset($_POST['url']) ? sanitize_text_field($_POST['url']) : home_url();
+            $puppeteer_cookies = self::scan_cookies_with_puppeteer($website_url);
+        }
         
         // Merge client and server cookies
         $all_cookies = array_merge($scanned_cookies, $puppeteer_cookies);
@@ -672,7 +774,8 @@ class Sure_Consent_Ajax {
             'message' => 'Cookies scanned and saved successfully',
             'count' => count($all_cookies),
             'client_cookies' => count($scanned_cookies),
-            'server_cookies' => count($puppeteer_cookies)
+            'server_cookies' => count($puppeteer_cookies),
+            'scanned_pages' => $scan_all_pages ? count(self::get_all_site_urls()) : 1
         ));
     }
 

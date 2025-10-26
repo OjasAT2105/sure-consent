@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useSettings } from "../contexts/SettingsContext";
 import { Button } from "@bsf/force-ui";
-import { Play, Loader, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Play,
+  Loader,
+  ChevronDown,
+  ChevronRight,
+  Cookie,
+  FolderOpen,
+  AlertCircle,
+} from "lucide-react";
 
 const ScanCookies = () => {
   const { getCurrentValue } = useSettings();
@@ -48,7 +56,7 @@ const ScanCookies = () => {
   };
 
   // Scan cookies
-  const scanCookies = async () => {
+  const scanCookies = async (scanAllPages = false) => {
     setIsScanning(true);
 
     try {
@@ -83,6 +91,7 @@ const ScanCookies = () => {
           nonce: window.sureConsentAjax.nonce || "",
           cookies: JSON.stringify(clientCookies),
           url: websiteUrl,
+          scan_all: scanAllPages ? "1" : "0",
         }),
       });
 
@@ -106,6 +115,48 @@ const ScanCookies = () => {
       ...prev,
       [category]: !prev[category],
     }));
+  };
+
+  // Get category icon
+  const getCategoryIcon = (category) => {
+    switch (category.toLowerCase()) {
+      case "essential":
+        return "🔒";
+      case "functional":
+        return "⚙️";
+      case "analytics":
+        return "📊";
+      case "marketing":
+        return "📢";
+      case "uncategorized":
+        return "📁";
+      default:
+        return "🍪";
+    }
+  };
+
+  // Format expiration date
+  const formatExpiration = (expires) => {
+    if (!expires) return "Session";
+
+    try {
+      const expDate = new Date(expires);
+      const now = new Date();
+      const diffTime = expDate - now;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) {
+        return "Expired";
+      } else if (diffDays === 0) {
+        return "Today";
+      } else if (diffDays === 1) {
+        return "Tomorrow";
+      } else {
+        return `${diffDays} days`;
+      }
+    } catch (e) {
+      return "Invalid Date";
+    }
   };
 
   // Load scanned cookies on component mount
@@ -138,150 +189,191 @@ const ScanCookies = () => {
               cookies where possible.
             </p>
           </div>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={isScanning ? <Loader className="animate-spin" /> : <Play />}
-            onClick={scanCookies}
-            disabled={isScanning}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            {isScanning ? "Scanning..." : "Start Scan"}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={
+                isScanning ? (
+                  <Loader className="animate-spin" />
+                ) : (
+                  <Play size={16} />
+                )
+              }
+              onClick={() => scanCookies(false)}
+              disabled={isScanning}
+            >
+              {isScanning ? "Scanning..." : "Scan Current Page"}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={
+                isScanning ? (
+                  <Loader className="animate-spin" />
+                ) : (
+                  <Play size={16} />
+                )
+              }
+              onClick={() => scanCookies(true)}
+              disabled={isScanning}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {isScanning ? "Scanning..." : "Scan All Pages"}
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Scanned Cookies Accordion */}
       {Object.keys(groupedCookies).length > 0 ? (
-        <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+        <div className="space-y-4">
           {Object.entries(groupedCookies).map(([category, cookies]) => (
-            <div key={category} className="border-b last:border-b-0">
+            <div
+              key={category}
+              className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+            >
+              {/* Category Header */}
               <div
-                className="bg-gray-50 px-6 py-4 border-b cursor-pointer flex justify-between items-center"
+                className="bg-gray-50 px-6 py-4 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors duration-150 flex justify-between items-center"
                 onClick={() => toggleCategory(category)}
               >
-                <div>
-                  <h3 className="font-medium text-gray-900">{category}</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {cookies.length} cookies
-                  </p>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">{getCategoryIcon(category)}</span>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 text-lg">
+                      {category}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {cookies.length} cookies found
+                    </p>
+                  </div>
                 </div>
-                <div>
+                <div className="flex items-center gap-2">
                   {expandedCategories[category] ? (
-                    <ChevronUp className="text-gray-500" />
+                    <ChevronDown className="text-gray-500" size={20} />
                   ) : (
-                    <ChevronDown className="text-gray-500" />
+                    <ChevronRight className="text-gray-500" size={20} />
                   )}
                 </div>
               </div>
+
+              {/* Cookies List */}
               {expandedCategories[category] && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Cookie Name
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Value
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Domain
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Path
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Expiration
-                        </th>
-                        <th
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          Note
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {cookies.map((cookie) => (
-                        <tr key={cookie.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <div className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {cookies.map((cookie) => (
+                      <div
+                        key={cookie.id}
+                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-150"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <h4 className="font-medium text-gray-900 text-sm break-words">
                             {cookie.cookie_name}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                            {cookie.cookie_value}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {cookie.domain}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {cookie.path}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {cookie.expires
-                              ? new Date(cookie.expires).toLocaleDateString()
-                              : "Session"}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                            {cookie.note}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </h4>
+                          <Cookie
+                            size={16}
+                            className="text-gray-400 flex-shrink-0 ml-2"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-xs text-gray-500">
+                              Domain
+                            </span>
+                            <span
+                              className="text-xs text-gray-900 truncate max-w-[120px]"
+                              title={cookie.domain}
+                            >
+                              {cookie.domain}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span className="text-xs text-gray-500">Path</span>
+                            <span
+                              className="text-xs text-gray-900 truncate max-w-[120px]"
+                              title={cookie.path}
+                            >
+                              {cookie.path}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span className="text-xs text-gray-500">
+                              Expires
+                            </span>
+                            <span
+                              className="text-xs text-gray-900"
+                              title={cookie.expires}
+                            >
+                              {formatExpiration(cookie.expires)}
+                            </span>
+                          </div>
+
+                          {cookie.note && (
+                            <div className="pt-2 border-t border-gray-100">
+                              <p className="text-xs text-gray-600 italic">
+                                {cookie.note}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-white border rounded-lg shadow-sm p-12 text-center">
-          <div className="mx-auto h-12 w-12 text-gray-400 mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-12 text-center">
+          <div className="mx-auto h-16 w-16 text-gray-400 mb-4 flex items-center justify-center">
+            <FolderOpen size={48} />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-1">
+          <h3 className="text-xl font-medium text-gray-900 mb-2">
             No cookies scanned yet
           </h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-gray-500 mb-8 max-w-md mx-auto">
             Start a cookie scan to detect all cookies used on your website.
+            Choose between scanning the current page or all pages.
           </p>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={isScanning ? <Loader className="animate-spin" /> : <Play />}
-            onClick={scanCookies}
-            disabled={isScanning}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            {isScanning ? "Scanning..." : "Start Scan"}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={
+                isScanning ? (
+                  <Loader className="animate-spin" />
+                ) : (
+                  <Play size={16} />
+                )
+              }
+              onClick={() => scanCookies(false)}
+              disabled={isScanning}
+              className="px-6"
+            >
+              {isScanning ? "Scanning..." : "Scan Current Page"}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={
+                isScanning ? (
+                  <Loader className="animate-spin" />
+                ) : (
+                  <Play size={16} />
+                )
+              }
+              onClick={() => scanCookies(true)}
+              disabled={isScanning}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-6"
+            >
+              {isScanning ? "Scanning..." : "Scan All Pages"}
+            </Button>
+          </div>
         </div>
       )}
     </div>
