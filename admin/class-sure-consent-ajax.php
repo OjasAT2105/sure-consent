@@ -29,6 +29,11 @@ class Sure_Consent_Ajax {
         // Add new actions for deleting consent logs
         add_action('wp_ajax_sure_consent_delete_consent_log', array(__CLASS__, 'delete_consent_log'));
         add_action('wp_ajax_sure_consent_delete_all_consent_logs', array(__CLASS__, 'delete_all_consent_logs'));
+        // Add new actions for cookie scanning
+        add_action('wp_ajax_sure_consent_scan_cookies', array(__CLASS__, 'scan_cookies'));
+        add_action('wp_ajax_sure_consent_get_scanned_cookies', array(__CLASS__, 'get_scanned_cookies'));
+        add_action('wp_ajax_sure_consent_update_scanned_cookie', array(__CLASS__, 'update_scanned_cookie'));
+        add_action('wp_ajax_sure_consent_delete_scanned_cookie', array(__CLASS__, 'delete_scanned_cookie'));
     }
 
     /**
@@ -564,6 +569,229 @@ class Sure_Consent_Ajax {
             }
         } else {
             wp_send_json_error(array('message' => 'Storage class not found'));
+        }
+    }
+
+    /**
+     * Scan cookies using Puppeteer for comprehensive detection including third-party cookies
+     */
+    public static function scan_cookies_with_puppeteer($url) {
+        // Path to the Node.js script
+        $script_path = plugin_dir_path(__FILE__) . '../puppeteer-scan.js';
+        $results_path = plugin_dir_path(__FILE__) . '../puppeteer-results.json';
+        
+        // Remove previous results if they exist
+        if (file_exists($results_path)) {
+            unlink($results_path);
+        }
+        
+        // Execute the Node.js script
+        $command = 'node ' . escapeshellarg($script_path) . ' ' . escapeshellarg($url) . ' 2>&1';
+        $output = shell_exec($command);
+        
+        // Check if results file was created
+        if (file_exists($results_path)) {
+            $results = file_get_contents($results_path);
+            $cookies = json_decode($results, true);
+            
+            // Remove the results file
+            unlink($results_path);
+            
+            if (is_array($cookies)) {
+                return $cookies;
+            }
+        }
+        
+        // Return empty array if no results
+        return array();
+    }
+
+    /**
+     * Scan cookies and save to database
+     */
+    public static function scan_cookies() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get scanned cookies data
+        $scanned_cookies = isset($_POST['cookies']) ? json_decode(stripslashes($_POST['cookies']), true) : array();
+        $website_url = isset($_POST['url']) ? sanitize_text_field($_POST['url']) : home_url();
+        
+        if (!is_array($scanned_cookies)) {
+            wp_send_json_error(array('message' => 'Invalid cookie data'));
+            return;
+        }
+
+        // Perform server-side scanning with Puppeteer
+        $puppeteer_cookies = self::scan_cookies_with_puppeteer($website_url);
+        
+        // Merge client and server cookies
+        $all_cookies = array_merge($scanned_cookies, $puppeteer_cookies);
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scanned_cookies';
+
+        // First, delete all existing scanned cookies
+        $wpdb->query("TRUNCATE TABLE $table_name");
+
+        // Insert new scanned cookies
+        foreach ($all_cookies as $cookie) {
+            $wpdb->insert(
+                $table_name,
+                array(
+                    'cookie_name' => sanitize_text_field($cookie['name']),
+                    'cookie_value' => sanitize_text_field($cookie['value']),
+                    'domain' => sanitize_text_field($cookie['domain']),
+                    'path' => sanitize_text_field($cookie['path']),
+                    'expires' => !empty($cookie['expires']) ? date('Y-m-d H:i:s', strtotime($cookie['expires'])) : null,
+                    'category' => sanitize_text_field($cookie['category']),
+                    'note' => isset($cookie['note']) ? sanitize_text_field($cookie['note']) : ''
+                ),
+                array(
+                    '%s', // cookie_name
+                    '%s', // cookie_value
+                    '%s', // domain
+                    '%s', // path
+                    '%s', // expires
+                    '%s', // category
+                    '%s'  // note
+                )
+            );
+        }
+
+        wp_send_json_success(array(
+            'message' => 'Cookies scanned and saved successfully',
+            'count' => count($all_cookies),
+            'client_cookies' => count($scanned_cookies),
+            'server_cookies' => count($puppeteer_cookies)
+        ));
+    }
+
+    /**
+     * Get scanned cookies from database
+     */
+    public static function get_scanned_cookies() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scanned_cookies';
+
+        // Get all scanned cookies
+        $cookies = $wpdb->get_results("SELECT * FROM $table_name ORDER BY category, cookie_name");
+
+        wp_send_json_success(array(
+            'cookies' => $cookies
+        ));
+    }
+
+    /**
+     * Update a scanned cookie
+     */
+    public static function update_scanned_cookie() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get cookie data
+        $cookie_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '';
+        $note = isset($_POST['note']) ? sanitize_text_field($_POST['note']) : '';
+
+        if (empty($cookie_id)) {
+            wp_send_json_error(array('message' => 'Invalid cookie ID'));
+            return;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scanned_cookies';
+
+        // Update cookie
+        $result = $wpdb->update(
+            $table_name,
+            array(
+                'category' => $category,
+                'note' => $note
+            ),
+            array('id' => $cookie_id),
+            array(
+                '%s', // category
+                '%s'  // note
+            ),
+            array('%d') // id
+        );
+
+        if ($result !== false) {
+            wp_send_json_success(array('message' => 'Cookie updated successfully'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to update cookie'));
+        }
+    }
+
+    /**
+     * Delete a scanned cookie
+     */
+    public static function delete_scanned_cookie() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get cookie ID
+        $cookie_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+
+        if (empty($cookie_id)) {
+            wp_send_json_error(array('message' => 'Invalid cookie ID'));
+            return;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scanned_cookies';
+
+        // Delete cookie
+        $result = $wpdb->delete(
+            $table_name,
+            array('id' => $cookie_id),
+            array('%d') // id
+        );
+
+        if ($result !== false) {
+            wp_send_json_success(array('message' => 'Cookie deleted successfully'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to delete cookie'));
         }
     }
 }

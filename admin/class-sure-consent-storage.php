@@ -230,6 +230,7 @@ class Sure_Consent_Storage {
     public static function create_table() {
         global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
+        $scanned_cookies_table = $wpdb->prefix . 'sure_consent_scanned_cookies';
 
         $charset_collate = $wpdb->get_charset_collate();
 
@@ -250,8 +251,26 @@ class Sure_Consent_Storage {
             KEY country (country)
         ) $charset_collate;";
 
+        // Create table for scanned cookies
+        $scanned_cookies_sql = "CREATE TABLE $scanned_cookies_table (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            cookie_name varchar(255) NOT NULL,
+            cookie_value text,
+            domain varchar(255),
+            path varchar(255),
+            expires datetime DEFAULT NULL,
+            category varchar(50) DEFAULT 'Uncategorized',
+            note text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cookie_name (cookie_name),
+            KEY domain (domain),
+            KEY category (category)
+        ) $charset_collate;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
+        dbDelta($scanned_cookies_sql);
         
         // Update existing records to add country information
         self::update_existing_records();
