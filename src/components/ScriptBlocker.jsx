@@ -237,6 +237,7 @@ const ScriptBlocker = () => {
                         <option value="functional">Functional</option>
                         <option value="analytics">Analytics</option>
                         <option value="marketing">Marketing</option>
+                        <option value="uncategorized">Uncategorized</option>
                       </select>
                       <Switch
                         size="sm"

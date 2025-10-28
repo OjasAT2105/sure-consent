@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Script Blocker Test</title>
+    <script>
+      // Simulate the WordPress localized settings
+      window.sureConsentPublicSettings = {
+        script_blocker_enabled: true,
+        blocked_scripts: [
+          {
+            url: "youtube.com",
+            description: "YouTube Embedded Videos",
+            category: "marketing",
+            enabled: true,
+          },
+        ],
+        cookie_categories: [
+          {
+            id: "essential",
+            name: "Essential Cookies",
+          },
+          {
+            id: "marketing",
+            name: "Marketing Cookies",
+          },
+        ],
+      };
+    </script>
+  </head>
+  <body>
+    <h1>Script Blocker Test</h1>
+
+    <p>
+      This page tests the script blocker functionality with a YouTube embed.
+    </p>
+
+    <!-- YouTube Embed -->
+    <iframe
+      width="560"
+      height="315"
+      src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+      frameborder="0"
+      allowfullscreen
+    ></iframe>
+
+    <p>
+      If the script blocker is working correctly, you should see an overlay
+      asking for consent before the YouTube video loads.
+    </p>
+
+    <button onclick="simulateConsent()">Simulate Consent</button>
+
+    <script>
+      function simulateConsent() {
+        // Simulate giving consent to marketing cookies
+        const consentData = {
+          marketing: true,
+          essential: true,
+        };
+
+        // Dispatch the consent event
+        const event = new CustomEvent("sureconsentConsentGiven", {
+          detail: {
+            preferences: consentData,
+          },
+        });
+
+        window.dispatchEvent(event);
+      }
+    </script>
+  </body>
+</html>

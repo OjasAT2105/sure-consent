@@ -408,6 +408,23 @@ class Sure_Consent_Ajax {
         
         error_log('SureConsent - public geo_selected_countries DECODED: ' . print_r($geo_selected_countries_decoded, true));
         
+        // Get script blocker settings
+        $blocked_scripts_raw = get_option('sure_consent_blocked_scripts', '[]');
+        error_log('SureConsent - public blocked_scripts RAW from DB: ' . $blocked_scripts_raw);
+        
+        // Handle potential JSON decoding errors
+        $blocked_scripts_decoded = array();
+        if (!empty($blocked_scripts_raw)) {
+            $blocked_scripts_decoded = json_decode($blocked_scripts_raw, true);
+            // If json_decode fails, it returns null
+            if ($blocked_scripts_decoded === null) {
+                error_log('SureConsent - ERROR: Failed to decode public blocked_scripts JSON: ' . json_last_error_msg());
+                $blocked_scripts_decoded = array();
+            }
+        }
+        
+        error_log('SureConsent - public blocked_scripts DECODED: ' . print_r($blocked_scripts_decoded, true));
+        
         // Ensure cookie_categories is properly formatted
         $processed_cookie_categories = array();
         if (is_array($cookie_categories_decoded)) {
