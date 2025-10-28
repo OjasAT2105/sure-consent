@@ -36,99 +36,138 @@ function findChromeExecutable() {
   }
 }
 
-// Function to categorize cookies based on their names
+// Function to categorize cookies based on their names using comprehensive mapping
 function categorizeCookie(cookieName) {
   const name = cookieName.toLowerCase();
 
-  // Essential cookies (strictly necessary for website functionality)
-  if (
-    name.includes("session") ||
-    name.includes("login") ||
-    name.includes("auth") ||
-    name.includes("token") ||
-    name.includes("csrf") ||
-    name.includes("security") ||
-    name.includes("cart") ||
-    name.includes("checkout") ||
-    name.includes("user") ||
-    name.includes("pref") ||
-    name.includes("setting") ||
-    name.includes("lang") ||
-    name.includes("locale") ||
-    name.includes("currency") ||
-    name.includes("gdpr") ||
-    name.includes("consent") ||
-    name.includes("cookie") ||
-    name.includes("sureconsent")
-  ) {
+  // 🧱 Essential Cookies
+  // Used for authentication, security, session handling, or core website operation
+  const essentialKeywords = [
+    "session",
+    "wp_session",
+    "wordpress_",
+    "woocommerce_",
+    "cart",
+    "checkout",
+    "csrf",
+    "token",
+    "auth",
+    "secure_auth",
+    "phpsessid",
+    "logged_in",
+    "login",
+    "sessid",
+    "wp-settings",
+    "wp-saving-post",
+    "nonce",
+    "xsrf",
+    "laravel_session",
+    "jsessionid",
+    "connect.sid",
+    "cookie_consent",
+  ];
+
+  if (essentialKeywords.some((keyword) => name.includes(keyword))) {
     return "Essential Cookies";
   }
 
-  // Analytics cookies
-  if (
-    name.includes("ga") ||
-    name.includes("google") ||
-    name.includes("analytics") ||
-    name.includes("utm") ||
-    name.includes("gtag") ||
-    name.includes("gtm") ||
-    name.includes("matomo") ||
-    name.includes("piwik") ||
-    name.includes("_ga") ||
-    name.includes("_gid") ||
-    name.includes("_gat")
-  ) {
+  // ⚙️ Functional Cookies
+  // Used for remembering user preferences, language, UI settings, or personalization
+  const functionalKeywords = [
+    "lang",
+    "locale",
+    "theme",
+    "mode",
+    "timezone",
+    "pref_",
+    "remember",
+    "viewed",
+    "currency",
+    "settings",
+    "customization",
+    "user_pref",
+    "accessibility",
+    "font_size",
+    "site_lang",
+    "display",
+    "consent_choice",
+  ];
+
+  if (functionalKeywords.some((keyword) => name.includes(keyword))) {
+    return "Functional Cookies";
+  }
+
+  // 📊 Analytics Cookies
+  // Used by tracking and analytics tools to measure site performance or user behavior
+  const analyticsKeywords = [
+    "_ga",
+    "_gid",
+    "_gat",
+    "_gcl",
+    "utm_",
+    "analytics",
+    "collect",
+    "_hj",
+    "hubspotutk",
+    "_clck",
+    "_clsk",
+    "_uetsid",
+    "_uetvid",
+    "amplitude_id",
+    "mixpanel",
+    "_vwo",
+    "_vis_opt",
+    "_pk",
+    "_snowplow",
+    "matomo",
+    "adobe_analytics",
+    "_sf",
+    "_ym",
+    "yandex_metrika",
+    "_fbp_analytic",
+  ];
+
+  if (analyticsKeywords.some((keyword) => name.includes(keyword))) {
     return "Analytics Cookies";
   }
 
-  // Marketing/Advertising cookies
-  if (
-    name.includes("ad") ||
-    name.includes("ads") ||
-    name.includes("advert") ||
-    name.includes("facebook") ||
-    name.includes("fb") ||
-    name.includes("twitter") ||
-    name.includes("linkedin") ||
-    name.includes("instagram") ||
-    name.includes("pinterest") ||
-    name.includes("youtube") ||
-    name.includes("tiktok") ||
-    name.includes("taboola") ||
-    name.includes("outbrain") ||
-    name.includes("doubleclick") ||
-    name.includes("taboola") ||
-    name.includes("criteo") ||
-    name.includes("yahoo") ||
-    name.includes("bing") ||
-    name.includes("gclid") ||
-    name.includes("fbclid") ||
-    name.includes("msclkid")
-  ) {
-    return "Marketing Cookies";
-  }
+  // 🎯 Marketing Cookies
+  // Used for ad personalization, retargeting, social media tracking, and affiliate campaigns
+  const marketingKeywords = [
+    "fb_",
+    "fbp",
+    "fr",
+    "tr",
+    "pixel",
+    "ads",
+    "adwords",
+    "gclid",
+    "doubleclick",
+    "affiliate",
+    "trk_",
+    "campaign",
+    "marketing",
+    "_uet",
+    "_uetsid",
+    "_uetvid",
+    "_gcl_aw",
+    "_gcl_dc",
+    "linkedin_insight",
+    "li_gc",
+    "liap",
+    "twitter_ads",
+    "_tt_enable_cookie",
+    "tt_sessionid",
+    "outbrain",
+    "taboola",
+    "bing_",
+    "criteo",
+    "_scid",
+    "sc_fb",
+  ];
 
-  // Functional cookies
-  if (
-    name.includes("theme") ||
-    name.includes("layout") ||
-    name.includes("design") ||
-    name.includes("custom") ||
-    name.includes("personal") ||
-    name.includes("preference") ||
-    name.includes("config") ||
-    name.includes("widget") ||
-    name.includes("embed") ||
-    name.includes("video") ||
-    name.includes("audio") ||
-    name.includes("map") ||
-    name.includes("social") ||
-    name.includes("share") ||
-    name.includes("comment") ||
-    name.includes("rating") ||
-    name.includes("review")
-  ) {
-    return "Functional Cookies";
+  if (marketingKeywords.some((keyword) => name.includes(keyword))) {
+    return "Marketing Cookies";
   }
 
   // Default to uncategorized
