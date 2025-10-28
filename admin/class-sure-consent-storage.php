@@ -386,9 +386,11 @@ class Sure_Consent_Storage {
         $preferences = isset($_POST['preferences']) ? stripslashes($_POST['preferences']) : '';
         $action_type = isset($_POST['action_type']) ? sanitize_text_field($_POST['action_type']) : 'unknown';
         
-        // Normalize action types - accept_all and accepted should both be treated as accepted
-        if ($action_type === 'accept_all' || $action_type === 'accepted') {
+        // Normalize action types
+        if ($action_type === 'accept_all') {
             $action_type = 'accepted';
+        } else if ($action_type === 'decline_all') {
+            $action_type = 'declined';
         }
         
         // Get user agent
@@ -583,6 +585,8 @@ class Sure_Consent_Storage {
             $normalized_action = $log->action;
             if ($log->action === 'accept_all') {
                 $normalized_action = 'accepted';
+            } else if ($log->action === 'decline_all') {
+                $normalized_action = 'declined';
             }
             
             $processed_log = array(

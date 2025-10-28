@@ -226,9 +226,25 @@ class ConsentManager {
   acceptAll(categories) {
     const preferences = {};
     categories.forEach((cat) => {
-      preferences[cat.name] = true;
+      preferences[cat.id] = true;
     });
     return this.saveConsent(preferences, "accepted");
+  }
+
+  /**
+   * Decline all non-essential cookies
+   */
+  declineAll(categories) {
+    const preferences = {};
+    categories.forEach((cat) => {
+      // Only accept essential cookies, decline all others
+      if (cat.id === "essential") {
+        preferences[cat.id] = true;
+      } else {
+        preferences[cat.id] = false;
+      }
+    });
+    return this.saveConsent(preferences, "decline_all");
   }
 
   /**
@@ -378,7 +394,7 @@ class ConsentManager {
    * Determine action type based on preferences
    * @param {Object} preferences - User's consent preferences
    * @param {string} suggestedAction - Suggested action from user interaction
-   * @returns {string} - 'accepted', 'decline_all', or 'partially_accepted'
+   * @returns {string} - 'accepted', 'declined', or 'partially_accepted'
    */
   determineAction(preferences, suggestedAction) {
     // Normalize suggested action - accept_all should be treated as accepted
@@ -398,11 +414,12 @@ class ConsentManager {
     const categoryValues = Object.values(preferences);
     const allTrue = categoryValues.every((val) => val === true);
     const allFalse = categoryValues.every((val) => val === false);
-    const onlyEssential = Object.keys(preferences).every((key) =>
-      key.toLowerCase().includes("essential")
+    const onlyEssential = Object.keys(preferences).every((key) => {
+      // Check if this is an essential cookie category
+      return key === "essential"
         ? preferences[key] === true
-        : preferences[key] === false
-    );
+        : preferences[key] === false;
+    });
 
     // All categories accepted
     if (allTrue) {
@@ -411,7 +428,7 @@ class ConsentManager {
 
     // All declined (only essential)
     if (allFalse || onlyEssential) {
-      return "decline_all";
+      return "declined";
     }
 
     // Some accepted, some declined = partially accepted

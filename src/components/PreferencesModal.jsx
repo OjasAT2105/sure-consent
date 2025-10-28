@@ -73,11 +73,11 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     const loadedCustomCookies = settings.custom_cookies || [];
     setCustomCookies(loadedCustomCookies);
 
-    // Initialize preferences based on categories using NAMES instead of IDs
+    // Initialize preferences based on categories using IDs for consistency
     const initialPreferences = {};
     loadedCategories.forEach((cat) => {
       // Only Essential category is always active by default
-      initialPreferences[cat.name] = cat.id === "essential" ? true : false;
+      initialPreferences[cat.id] = cat.id === "essential" ? true : false;
     });
 
     // Load saved preferences if available
@@ -88,9 +88,9 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
         // Merge with initial preferences, ensuring essential cookies stay enabled
         loadedCategories.forEach((cat) => {
           if (cat.id === "essential") {
-            initialPreferences[cat.name] = true;
-          } else if (savedPrefs[cat.name] !== undefined) {
-            initialPreferences[cat.name] = savedPrefs[cat.name];
+            initialPreferences[cat.id] = true;
+          } else if (savedPrefs[cat.id] !== undefined) {
+            initialPreferences[cat.id] = savedPrefs[cat.id];
           }
         });
         setPreferences(initialPreferences);
@@ -116,14 +116,14 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     return icons[iconName] || Settings;
   };
 
-  const handleToggle = (categoryName) => {
+  const handleToggle = (categoryId) => {
     // Find if this category is essential (always required)
-    const category = categories.find((cat) => cat.name === categoryName);
+    const category = categories.find((cat) => cat.id === categoryId);
     if (category && category.id === "essential") return; // Cannot disable essential cookies
 
     setPreferences((prev) => ({
       ...prev,
-      [categoryName]: !prev[categoryName],
+      [categoryId]: !prev[categoryId],
     }));
   };
 
@@ -146,7 +146,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     console.log("🟢 PreferencesModal - Accept All clicked");
     const allAccepted = {};
     categories.forEach((cat) => {
-      allAccepted[cat.name] = true;
+      allAccepted[cat.id] = true;
     });
     setPreferences(allAccepted);
     localStorage.setItem(
@@ -171,8 +171,13 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     console.log("🔴 PreferencesModal - Reject All clicked");
     const essentialOnly = {};
     categories.forEach((cat) => {
-      // Only enable required cookies
-      essentialOnly[cat.name] = cat.required || false;
+      // Only enable essential cookies (those marked as required)
+      // and explicitly set non-essential cookies to false
+      if (cat.id === "essential") {
+        essentialOnly[cat.id] = true;
+      } else {
+        essentialOnly[cat.id] = false;
+      }
     });
     setPreferences(essentialOnly);
     localStorage.setItem(
@@ -223,9 +228,9 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
   const logCustomCookiesForCategories = (preferences) => {
     console.log("🍪 Custom Cookies by Category:");
     categories.forEach((category) => {
-      if (preferences[category.name]) {
+      if (preferences[category.id]) {
         const categoryCookies = customCookies.filter(
-          (cookie) => cookie.category === category.name
+          (cookie) => cookie.category === category.id
         );
         if (categoryCookies.length > 0) {
           console.log(`📁 ${category.name}:`, categoryCookies);
@@ -244,8 +249,8 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
   const declineBtnBorderColor = settings.decline_btn_border_color || "#6b7280";
 
   // Group custom cookies by category
-  const getCookiesByCategory = (categoryName) => {
-    return customCookies.filter((cookie) => cookie.category === categoryName);
+  const getCookiesByCategory = (categoryId) => {
+    return customCookies.filter((cookie) => cookie.category === categoryId);
   };
 
   return (
@@ -353,9 +358,9 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
             >
               {categories.map((category) => {
                 const Icon = getIconComponent(category.icon);
-                const isEnabled = preferences[category.name];
-                const categoryCookies = getCookiesByCategory(category.name);
-                const isExpanded = expandedCategory === category.name;
+                const isEnabled = preferences[category.id];
+                const categoryCookies = getCookiesByCategory(category.id);
+                const isExpanded = expandedCategory === category.id;
 
                 return (
                   <div
@@ -399,7 +404,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
 
                       {/* Toggle Switch */}
                       <button
-                        onClick={() => handleToggle(category.name)}
+                        onClick={() => handleToggle(category.id)}
                         disabled={category.id === "essential"}
                         style={{
                           width: "48px",
@@ -446,7 +451,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                       {/* Accordion Toggle for Cookies */}
                       {categoryCookies.length > 0 && (
                         <button
-                          onClick={() => toggleCategoryCookies(category.name)}
+                          onClick={() => toggleCategoryCookies(category.id)}
                           style={{
                             background: "none",
                             border: "none",

@@ -30,6 +30,7 @@ const ConsentLogs = () => {
     type: "single",
     logId: null,
   });
+  const [cookieCategories, setCookieCategories] = useState([]); // Add state for cookie categories
   const logsPerPage = 10;
 
   // Check if consent logging is enabled
@@ -57,6 +58,11 @@ const ConsentLogs = () => {
             ? data.data.consent_logging_enabled
             : true;
         setConsentLoggingEnabled(isEnabled);
+
+        // Set cookie categories from settings
+        if (data.data.cookie_categories) {
+          setCookieCategories(data.data.cookie_categories);
+        }
       }
     } catch (error) {
       console.error("Error checking consent logging status:", error);
@@ -121,11 +127,8 @@ const ConsentLogs = () => {
 
   // Also fetch logs when page changes (for pagination)
   useEffect(() => {
-    if (currentPage > 1) {
-      // Only fetch if not the initial load
-      console.log("SureConsent - Page changed to:", currentPage);
-      fetchConsentLogs();
-    }
+    console.log("SureConsent - Page changed to:", currentPage);
+    fetchConsentLogs();
   }, [currentPage]);
 
   const toggleExpandRow = (id) => {
@@ -133,6 +136,12 @@ const ConsentLogs = () => {
       ...prev,
       [id]: !prev[id],
     }));
+  };
+
+  // Function to get category name by ID
+  const getCategoryName = (categoryId) => {
+    const category = cookieCategories.find((cat) => cat.id === categoryId);
+    return category ? category.name : categoryId;
   };
 
   const getStatusDisplay = (status) => {
@@ -275,10 +284,14 @@ const ConsentLogs = () => {
 
         doc.setFont("helvetica", "normal");
 
-        // Create table for preferences
+        // Create table for preferences with category names instead of IDs
         const preferencesData = [];
         for (const [category, accepted] of Object.entries(log.preferences)) {
-          preferencesData.push([category, accepted ? "Accepted" : "Declined"]);
+          const categoryName = getCategoryName(category);
+          preferencesData.push([
+            categoryName,
+            accepted ? "Accepted" : "Declined",
+          ]);
         }
 
         autoTable(doc, {
@@ -347,8 +360,16 @@ const ConsentLogs = () => {
         { maxWidth: 170 }
       );
 
-      // Save the PDF
-      doc.save(`consent-log-${logId}.pdf`);
+      // Save the PDF with proper content type to avoid security warnings
+      const pdfBlob = doc.output("blob");
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `consent-log-${logId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error generating PDF:", error);
       // Using popup instead of alert
@@ -736,25 +757,30 @@ const ConsentLogs = () => {
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                                 {log.preferences &&
                                   Object.entries(log.preferences).map(
-                                    ([category, accepted]) => (
-                                      <div
-                                        key={category}
-                                        className="flex items-center justify-between p-2 bg-white rounded border"
-                                      >
-                                        <span className="text-sm text-gray-700">
-                                          {category}
-                                        </span>
-                                        <span
-                                          className={`px-2 py-1 text-xs rounded ${
-                                            accepted
-                                              ? "bg-green-100 text-green-800"
-                                              : "bg-red-100 text-red-800"
-                                          }`}
+                                    ([category, accepted]) => {
+                                      // Use category name instead of ID
+                                      const categoryName =
+                                        getCategoryName(category);
+                                      return (
+                                        <div
+                                          key={category}
+                                          className="flex items-center justify-between p-2 bg-white rounded border"
                                         >
-                                          {accepted ? "Accepted" : "Declined"}
-                                        </span>
-                                      </div>
-                                    )
+                                          <span className="text-sm text-gray-700">
+                                            {categoryName}
+                                          </span>
+                                          <span
+                                            className={`px-2 py-1 text-xs rounded ${
+                                              accepted
+                                                ? "bg-green-100 text-green-800"
+                                                : "bg-red-100 text-red-800"
+                                            }`}
+                                          >
+                                            {accepted ? "Accepted" : "Declined"}
+                                          </span>
+                                        </div>
+                                      );
+                                    }
                                   )}
                               </div>
                             </div>
@@ -841,6 +867,14 @@ const ConsentLogs = () => {
                   variant="outline"
                   size="sm"
                   disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(1)}
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === 1}
                   onClick={() =>
                     setCurrentPage((prev) => Math.max(prev - 1, 1))
                   }
@@ -878,6 +912,14 @@ const ConsentLogs = () => {
                   }
                 >
                   Next
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  onClick={() => setCurrentPage(totalPages)}
+                >
+                  Last
                 </Button>
               </div>
             </div>

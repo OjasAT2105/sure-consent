@@ -45,7 +45,7 @@ const CreateCustomCookies = () => {
     ) {
       setNewCookie((prev) => ({
         ...prev,
-        category: savedCategories[0].name,
+        category: savedCategories[0].id, // Use category ID instead of name
       }));
     }
   }, [getCurrentValue]);
@@ -57,7 +57,7 @@ const CreateCustomCookies = () => {
     setNewCookie({
       name: "",
       description: "",
-      category: categories.length > 0 ? categories[0].name : "",
+      category: categories.length > 0 ? categories[0].id : "", // Use category ID instead of name
       duration: "",
       provider: "",
       purpose: "",
@@ -111,7 +111,7 @@ const CreateCustomCookies = () => {
     setNewCookie({
       name: "",
       description: "",
-      category: categories.length > 0 ? categories[0].name : "",
+      category: categories.length > 0 ? categories[0].id : "", // Use category ID instead of name
       duration: "",
       provider: "",
       purpose: "",

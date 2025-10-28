@@ -614,17 +614,18 @@ const PublicApp = () => {
     // Save consent - Accept ALL categories
     const preferences = {};
 
-    // Enable ALL cookie categories
+    // Enable ALL cookie categories using IDs for consistency
     if (cookieCategories && cookieCategories.length > 0) {
       cookieCategories.forEach((cat) => {
-        preferences[cat.name] = true; // Accept everything
+        preferences[cat.id] = true; // Accept everything using ID
       });
     } else {
       // Fallback to default categories - all true
-      preferences["Essential Cookies"] = true;
-      preferences["Functional Cookies"] = true;
-      preferences["Analytics Cookies"] = true;
-      preferences["Marketing Cookies"] = true;
+      preferences["essential"] = true;
+      preferences["functional"] = true;
+      preferences["analytics"] = true;
+      preferences["marketing"] = true;
+      preferences["uncategorized"] = true;
     }
 
     // Save preferences to localStorage so PreferencesModal will show them as enabled
@@ -653,14 +654,21 @@ const PublicApp = () => {
     const preferences = {};
     if (cookieCategories && cookieCategories.length > 0) {
       cookieCategories.forEach((cat) => {
-        preferences[cat.name] = cat.required || false;
+        // For decline action, we only accept essential cookies
+        // and explicitly set non-essential cookies to false
+        if (cat.id === "essential") {
+          preferences[cat.id] = true;
+        } else {
+          preferences[cat.id] = false;
+        }
       });
     } else {
       // Fallback to default categories
-      preferences["Essential Cookies"] = true;
-      preferences["Functional Cookies"] = false;
-      preferences["Analytics Cookies"] = false;
-      preferences["Marketing Cookies"] = false;
+      preferences["essential"] = true;
+      preferences["functional"] = false;
+      preferences["analytics"] = false;
+      preferences["marketing"] = false;
+      preferences["uncategorized"] = false;
     }
 
     // Save preferences to localStorage so PreferencesModal will show the correct state
@@ -703,9 +711,9 @@ const PublicApp = () => {
   const logCustomCookiesForCategories = (preferences) => {
     console.log("🍪 Custom Cookies by Category:");
     cookieCategories.forEach((category) => {
-      if (preferences[category.name]) {
+      if (preferences[category.id]) {
         const categoryCookies = customCookies.filter(
-          (cookie) => cookie.category === category.name
+          (cookie) => cookie.category === category.id
         );
         if (categoryCookies.length > 0) {
           console.log(`📁 ${category.name}:`, categoryCookies);
