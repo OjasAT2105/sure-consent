@@ -3,34 +3,32 @@ import { Button, Dialog } from "@bsf/force-ui";
 import {
   Calendar,
   Download,
-  Filter,
-  X,
   ChevronDown,
   ChevronRight,
-  Eye,
   Trash2,
   FileText,
-  FileJson,
 } from "lucide-react";
 
 const ScanHistory = () => {
   const [scanHistory, setScanHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [expandedRows, setExpandedRows] = useState({});
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportRecordId, setExportRecordId] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     perPage: 10,
     totalPages: 1,
     total: 0,
   });
-  const [expandedRows, setExpandedRows] = useState({});
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [recordToDelete, setRecordToDelete] = useState(null);
-  const [showExportDialog, setShowExportDialog] = useState(false);
-  const [exportRecordId, setExportRecordId] = useState(null);
+  const [selectedRecords, setSelectedRecords] = useState([]); // For bulk selection
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false); // For bulk delete loading state
 
   // Fetch scan history
   const fetchScanHistory = async (page = 1) => {
+    console.log("ScanHistory - Fetching scan history, page:", page);
     setLoading(true);
     try {
       const response = await fetch(window.sureConsentAjax.ajaxurl, {
@@ -42,12 +40,18 @@ const ScanHistory = () => {
           action: "sure_consent_get_scan_history",
           nonce: window.sureConsentAjax.nonce || "",
           page: page,
-          per_page: pagination.perPage,
+          per_page: 10,
         }),
       });
 
       const data = await response.json();
+      console.log("ScanHistory - Received data:", data);
+
       if (data.success && data.data) {
+        console.log(
+          "ScanHistory - Setting scan history data:",
+          data.data.history
+        );
         setScanHistory(data.data.history || []);
         setPagination({
           page: data.data.page || 1,
@@ -55,9 +59,13 @@ const ScanHistory = () => {
           totalPages: data.data.total_pages || 1,
           total: data.data.total || 0,
         });
+      } else {
+        console.error("ScanHistory - Failed to fetch scan history:", data);
+        setScanHistory([]);
       }
     } catch (error) {
-      console.error("Failed to fetch scan history:", error);
+      console.error("ScanHistory - Failed to fetch scan history:", error);
+      setScanHistory([]);
     } finally {
       setLoading(false);
     }
@@ -113,6 +121,39 @@ const ScanHistory = () => {
       console.error("Failed to delete scan record:", error);
     }
     return false;
+  };
+
+  // Delete multiple scan history records
+  const deleteMultipleScanRecords = async (ids) => {
+    try {
+      const deletePromises = ids.map((id) =>
+        fetch(window.sureConsentAjax.ajaxurl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "sure_consent_delete_scan_history_record",
+            nonce: window.sureConsentAjax.nonce || "",
+            id: id,
+          }),
+        })
+      );
+
+      const responses = await Promise.all(deletePromises);
+      const results = await Promise.all(responses.map((res) => res.json()));
+
+      // Count successful deletions
+      const successCount = results.filter((result) => result.success).length;
+
+      // Refresh the history list
+      fetchScanHistory(pagination.page);
+
+      return successCount;
+    } catch (error) {
+      console.error("Failed to delete scan records:", error);
+    }
+    return 0;
   };
 
   // Export scan history as CSV
@@ -273,27 +314,58 @@ const ScanHistory = () => {
     return "🍪";
   };
 
-  // Confirm delete
-  const confirmDelete = (id) => {
-    setRecordToDelete(id);
+  // Toggle selection of a single record
+  const toggleRecordSelection = (recordId) => {
+    setSelectedRecords((prev) => {
+      if (prev.includes(recordId)) {
+        return prev.filter((id) => id !== recordId);
+      } else {
+        return [...prev, recordId];
+      }
+    });
+  };
+
+  // Select all records on current page
+  const selectAllRecords = () => {
+    const currentPageRecordIds = scanHistory.map((record) => record.id);
+    setSelectedRecords(currentPageRecordIds);
+  };
+
+  // Deselect all records
+  const deselectAllRecords = () => {
+    setSelectedRecords([]);
+  };
+
+  // Open bulk delete confirmation
+  const openBulkDeleteConfirm = () => {
+    if (selectedRecords.length === 0) {
+      alert("Please select at least one record to delete");
+      return;
+    }
     setShowDeleteDialog(true);
   };
 
-  // Handle delete
-  const handleDelete = async () => {
-    if (recordToDelete) {
-      const success = await deleteScanRecord(recordToDelete);
-      if (success) {
-        setShowDeleteDialog(false);
-        setRecordToDelete(null);
-      }
-    }
-  };
+  // Confirm and delete selected records
+  const confirmBulkDelete = async () => {
+    setIsDeletingSelected(true);
+    setShowDeleteDialog(false);
 
-  // Show export options
-  const showExportOptions = (id) => {
-    setExportRecordId(id);
-    setShowExportDialog(true);
+    try {
+      const successCount = await deleteMultipleScanRecords(selectedRecords);
+
+      // Refresh the history list
+      fetchScanHistory(pagination.page);
+      setSelectedRecords([]);
+
+      alert(
+        `${successCount} of ${selectedRecords.length} record(s) deleted successfully.`
+      );
+    } catch (error) {
+      console.error("Error deleting records:", error);
+      alert("Error deleting records");
+    } finally {
+      setIsDeletingSelected(false);
+    }
   };
 
   // Load scan history on component mount
@@ -315,8 +387,44 @@ const ScanHistory = () => {
         </p>
       </div>
 
-      {/* Scan History Table */}
       <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+        {/* Bulk Actions Bar */}
+        <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+          <div>
+            {selectedRecords.length > 0 && (
+              <div className="text-sm text-blue-800">
+                {selectedRecords.length} record(s) selected
+              </div>
+            )}
+          </div>
+          <div className="flex space-x-2">
+            {selectedRecords.length > 0 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={deselectAllRecords}
+                  disabled={isDeletingSelected}
+                >
+                  Deselect All
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  icon={<Trash2 size={16} />}
+                  onClick={openBulkDeleteConfirm}
+                  disabled={isDeletingSelected}
+                >
+                  {isDeletingSelected ? "Deleting..." : "Delete Selected"}
+                </Button>
+              </>
+            )}
+            <Button variant="outline" size="sm" onClick={selectAllRecords}>
+              Select All
+            </Button>
+          </div>
+        </div>
+
         {loading ? (
           <div className="p-12 text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] text-purple-600 motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
@@ -328,6 +436,20 @@ const ScanHistory = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={
+                          selectedRecords.length > 0 &&
+                          selectedRecords.length === scanHistory.length
+                        }
+                        onChange={selectAllRecords}
+                        className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                      />
+                    </th>
                     <th
                       scope="col"
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -370,6 +492,14 @@ const ScanHistory = () => {
                   {scanHistory.map((record) => (
                     <React.Fragment key={record.id}>
                       <tr className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <input
+                            type="checkbox"
+                            checked={selectedRecords.includes(record.id)}
+                            onChange={() => toggleRecordSelection(record.id)}
+                            className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                          />
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div className="flex items-center">
                             <Calendar
@@ -422,25 +552,20 @@ const ScanHistory = () => {
                             <Button
                               variant="ghost"
                               size="xs"
-                              onClick={() => showExportOptions(record.id)}
+                              onClick={() => {
+                                setExportRecordId(record.id);
+                                setShowExportDialog(true);
+                              }}
                               title="Export"
                             >
                               <Download size={16} />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={() => confirmDelete(record.id)}
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
                             </Button>
                           </div>
                         </td>
                       </tr>
                       {expandedRows[record.id] && (
                         <tr>
-                          <td colSpan="6" className="px-6 py-4 bg-gray-50">
+                          <td colSpan="7" className="px-6 py-4 bg-gray-50">
                             <div className="rounded-lg border border-gray-200 p-4">
                               <h3 className="font-medium text-gray-900 mb-3">
                                 Scan Details
@@ -504,6 +629,83 @@ const ScanHistory = () => {
                                   ))}
                                 </div>
                               </div>
+
+                              {/* Display actual scanned cookies */}
+                              {record.scan_data &&
+                                record.scan_data.length > 0 && (
+                                  <div className="mt-6">
+                                    <h4 className="text-sm font-medium text-gray-900 mb-3">
+                                      Scanned Cookies ({record.scan_data.length}
+                                      )
+                                    </h4>
+                                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                      <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                          <tr>
+                                            <th
+                                              scope="col"
+                                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                            >
+                                              Cookie Name
+                                            </th>
+                                            <th
+                                              scope="col"
+                                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                            >
+                                              Category
+                                            </th>
+                                            <th
+                                              scope="col"
+                                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                            >
+                                              Domain
+                                            </th>
+                                            <th
+                                              scope="col"
+                                              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                            >
+                                              Expires
+                                            </th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                          {record.scan_data.map(
+                                            (cookie, index) => (
+                                              <tr
+                                                key={index}
+                                                className="hover:bg-gray-50"
+                                              >
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                  {cookie.name}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                    {getCategoryIcon(
+                                                      cookie.category
+                                                    )}
+                                                    <span className="ml-1">
+                                                      {cookie.category}
+                                                    </span>
+                                                  </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                  {cookie.domain || "-"}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                  {cookie.expires
+                                                    ? new Date(
+                                                        cookie.expires
+                                                      ).toLocaleDateString()
+                                                    : "Session"}
+                                                </td>
+                                              </tr>
+                                            )
+                                          )}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                )}
                             </div>
                           </td>
                         </tr>
@@ -627,8 +829,8 @@ const ScanHistory = () => {
           <Dialog.Header>
             <Dialog.Title>Confirm Delete</Dialog.Title>
             <Dialog.Description>
-              Are you sure you want to delete this scan history record? This
-              action cannot be undone.
+              Are you sure you want to delete {selectedRecords.length} selected
+              scan history record(s)? This action cannot be undone.
             </Dialog.Description>
           </Dialog.Header>
           <Dialog.Footer>
@@ -639,11 +841,11 @@ const ScanHistory = () => {
               Cancel
             </Button>
             <Button
-              variant="primary"
-              onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              variant="destructive"
+              onClick={confirmBulkDelete}
+              disabled={isDeletingSelected}
             >
-              Delete
+              {isDeletingSelected ? "Deleting..." : "Delete"}
             </Button>
           </Dialog.Footer>
         </Dialog.Panel>
@@ -654,43 +856,35 @@ const ScanHistory = () => {
         <Dialog.Backdrop />
         <Dialog.Panel>
           <Dialog.Header>
-            <Dialog.Title>Export Scan Results</Dialog.Title>
+            <Dialog.Title>Export Options</Dialog.Title>
             <Dialog.Description>
-              Choose the format to export the scan results.
+              Choose the format to export this scan history record.
             </Dialog.Description>
           </Dialog.Header>
-          <Dialog.Body>
-            <div className="flex flex-col gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  exportScanHistoryCSV(exportRecordId);
-                  setShowExportDialog(false);
-                }}
-                className="flex items-center justify-center"
-              >
-                <FileText size={16} className="mr-2" />
-                Export as CSV
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  exportScanHistoryJSON(exportRecordId);
-                  setShowExportDialog(false);
-                }}
-                className="flex items-center justify-center"
-              >
-                <FileJson size={16} className="mr-2" />
-                Export as JSON
-              </Button>
-            </div>
-          </Dialog.Body>
           <Dialog.Footer>
             <Button
               variant="secondary"
               onClick={() => setShowExportDialog(false)}
             >
               Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                exportScanHistoryCSV(exportRecordId);
+                setShowExportDialog(false);
+              }}
+            >
+              Export as CSV
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                exportScanHistoryJSON(exportRecordId);
+                setShowExportDialog(false);
+              }}
+            >
+              Export as JSON
             </Button>
           </Dialog.Footer>
         </Dialog.Panel>

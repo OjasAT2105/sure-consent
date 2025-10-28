@@ -832,11 +832,19 @@ class Sure_Consent_Ajax {
         $pages_scanned = $scan_all_pages ? count(self::get_all_site_urls()) : 1;
         $total_cookies = count($all_cookies);
         
-        error_log('SureConsent - Saving scan history: ' . $total_cookies . ' cookies, ' . $pages_scanned . ' pages, type: ' . $scan_type);
+        error_log('SureConsent - About to save scan history');
+        error_log('SureConsent - Total cookies: ' . $total_cookies);
+        error_log('SureConsent - Scan type: ' . $scan_type);
+        error_log('SureConsent - Pages scanned: ' . $pages_scanned);
+        error_log('SureConsent - Scan data sample: ' . print_r(array_slice($all_cookies, 0, 3), true));
         
         // Save to scan history table
         $history_id = Sure_Consent_Storage::save_scan_history($total_cookies, $scan_type, $pages_scanned, $all_cookies);
-        error_log('SureConsent - Scan history saved with ID: ' . $history_id);
+        error_log('SureConsent - Scan history save result: ' . ($history_id ? 'SUCCESS (ID: ' . $history_id . ')' : 'FAILED'));
+        
+        if (!$history_id) {
+            error_log('SureConsent - Failed to save scan history. Last DB error: ' . $wpdb->last_error);
+        }
 
         wp_send_json_success(array(
             'message' => 'Cookies scanned and saved successfully',
@@ -971,14 +979,18 @@ class Sure_Consent_Ajax {
      * Get scan history records
      */
     public static function get_scan_history() {
+        error_log('SureConsent - get_scan_history called');
+        
         // Verify nonce for security
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            error_log('SureConsent - Security check failed in get_scan_history');
             wp_send_json_error(array('message' => 'Security check failed'));
             return;
         }
 
         // Check user capabilities
         if (!current_user_can('manage_options')) {
+            error_log('SureConsent - Insufficient permissions in get_scan_history');
             wp_send_json_error(array('message' => 'Insufficient permissions'));
             return;
         }
@@ -988,6 +1000,8 @@ class Sure_Consent_Ajax {
         $per_page = isset($_POST['per_page']) ? intval($_POST['per_page']) : 10;
         $offset = ($page - 1) * $per_page;
         
+        error_log('SureConsent - Page: ' . $page . ', Per page: ' . $per_page . ', Offset: ' . $offset);
+        
         // Get filter parameters
         $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
         $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
@@ -995,10 +1009,13 @@ class Sure_Consent_Ajax {
 
         // Get scan history records
         $scan_history = Sure_Consent_Storage::get_scan_history($per_page, $offset);
+        error_log('SureConsent - Retrieved scan history: ' . print_r($scan_history, true));
         
         // Get total count
         $total_records = Sure_Consent_Storage::get_scan_history_count();
+        error_log('SureConsent - Total records: ' . $total_records);
         $total_pages = ceil($total_records / $per_page);
+        error_log('SureConsent - Total pages: ' . $total_pages);
         
         // Process scan history records to add cookie counts per category
         $processed_history = array();
@@ -1010,6 +1027,7 @@ class Sure_Consent_Ajax {
             // Count cookies by category
             foreach ($cookie_data as $cookie) {
                 $cookie_category = isset($cookie['category']) ? $cookie['category'] : 'Uncategorized';
+                error_log('SureConsent - Processing cookie with category: ' . $cookie_category);
                 if (!isset($category_counts[$cookie_category])) {
                     $category_counts[$cookie_category] = 0;
                 }
@@ -1027,6 +1045,8 @@ class Sure_Consent_Ajax {
                 'scan_data' => $cookie_data
             );
         }
+        
+        error_log('SureConsent - Processed history: ' . print_r($processed_history, true));
         
         wp_send_json_success(array(
             'history' => $processed_history,

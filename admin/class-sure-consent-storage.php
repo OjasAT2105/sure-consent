@@ -284,7 +284,7 @@ class Sure_Consent_Storage {
         ) $charset_collate;";
 
         // Create table for scheduled scans
-        /*$sql = "CREATE TABLE $scheduled_scans_table_name (
+        $scheduled_scans_sql = "CREATE TABLE $scheduled_scans_table (
             id int(11) NOT NULL AUTO_INCREMENT,
             frequency varchar(20) NOT NULL,
             start_date date NOT NULL,
@@ -296,13 +296,18 @@ class Sure_Consent_Storage {
             PRIMARY KEY (id)
         ) $charset_collate;";
 
-        dbDelta($sql);*/
-
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql);
-        dbDelta($scanned_cookies_sql);
-        dbDelta($scan_history_sql);
-        dbDelta($scheduled_scans_sql);
+        error_log('SureConsent - Creating tables...');
+        $result1 = dbDelta($sql);
+        error_log('SureConsent - Consent logs table result: ' . print_r($result1, true));
+        $result2 = dbDelta($scanned_cookies_sql);
+        error_log('SureConsent - Scanned cookies table result: ' . print_r($result2, true));
+        $result3 = dbDelta($scan_history_sql);
+        error_log('SureConsent - Scan history table result: ' . print_r($result3, true));
+        $result4 = dbDelta($scheduled_scans_sql);
+        error_log('SureConsent - Scheduled scans table result: ' . print_r($result4, true));
+        
+        error_log('SureConsent - Finished creating tables');
         
         // Update existing records to add country information
         self::update_existing_records();
@@ -790,6 +795,13 @@ class Sure_Consent_Storage {
         
         error_log('SureConsent - Saving scan history - Total cookies: ' . $total_cookies . ', Scan type: ' . $scan_type . ', Pages scanned: ' . $pages_scanned);
         
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+        if (!$table_exists) {
+            error_log('SureConsent - Scan history table does not exist: ' . $table_name);
+            return false;
+        }
+        
         // Insert scan history record
         $result = $wpdb->insert(
             $table_name,
@@ -813,7 +825,7 @@ class Sure_Consent_Storage {
             error_log('SureConsent - Scan history saved successfully with ID: ' . $wpdb->insert_id);
             return $wpdb->insert_id;
         } else {
-            error_log('SureConsent - Failed to save scan history');
+            error_log('SureConsent - Failed to save scan history. Error: ' . $wpdb->last_error);
             return false;
         }
     }
@@ -825,12 +837,21 @@ class Sure_Consent_Storage {
         global $wpdb;
         $table_name = $wpdb->prefix . 'sure_consent_scan_history';
         
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+        if (!$table_exists) {
+            error_log('SureConsent - Scan history table does not exist: ' . $table_name);
+            return array();
+        }
+        
         // Get scan history records
         $results = $wpdb->get_results($wpdb->prepare(
             "SELECT * FROM $table_name ORDER BY scan_date DESC LIMIT %d OFFSET %d",
             $limit,
             $offset
         ));
+        
+        error_log('SureConsent - Retrieved ' . count($results) . ' scan history records');
         
         // Process results
         $processed_results = array();
@@ -899,8 +920,17 @@ class Sure_Consent_Storage {
         global $wpdb;
         $table_name = $wpdb->prefix . 'sure_consent_scan_history';
         
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+        if (!$table_exists) {
+            error_log('SureConsent - Scan history table does not exist: ' . $table_name);
+            return 0;
+        }
+        
         // Get total count
-        return $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+        $count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+        error_log('SureConsent - Scan history count: ' . $count);
+        return $count;
     }
     
     /**

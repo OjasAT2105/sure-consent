@@ -1,61 +1,73 @@
 <?php
-// Test database connection and data
+// Database test
 require_once('../../../wp-config.php');
 
 global $wpdb;
-$table_name = $wpdb->prefix . 'sure_consent_logs';
+
+// Enable error reporting
+$wpdb->show_errors();
 
 echo "<h2>Database Test</h2>";
+echo "<pre>";
 
-// Test basic connection
-echo "<h3>Basic Connection Test</h3>";
-echo "<p>Table name: $table_name</p>";
+// Test database connection
+echo "Testing database connection...\n";
+echo "WordPress table prefix: " . $wpdb->prefix . "\n";
+echo "Last error: " . $wpdb->last_error . "\n";
 
-// Check if table exists
-$table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
-echo "<p>Table exists: " . ($table_exists ? 'Yes' : 'No') . "</p>";
+// Check if tables exist
+$tables = array(
+    'sure_consent_logs',
+    'sure_consent_scanned_cookies',
+    'sure_consent_scan_history',
+    'sure_consent_scheduled_scans'
+);
 
-if ($table_exists) {
-    // Get record count
-    $total_records = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
-    echo "<p>Total records: $total_records</p>";
+foreach ($tables as $table) {
+    $full_table_name = $wpdb->prefix . $table;
+    echo "\nChecking table: $full_table_name\n";
     
-    // Get action counts
-    $action_counts = $wpdb->get_results("SELECT action, COUNT(*) as count FROM $table_name GROUP BY action");
-    echo "<h3>Action Counts</h3>";
-    if (!empty($action_counts)) {
-        echo "<ul>";
-        foreach ($action_counts as $row) {
-            echo "<li>Action: {$row->action}, Count: {$row->count}</li>";
-        }
-        echo "</ul>";
+    // Try to show table status
+    $table_status = $wpdb->get_row("SHOW TABLE STATUS LIKE '$full_table_name'");
+    if ($table_status) {
+        echo "  Table exists\n";
+        echo "  Engine: {$table_status->Engine}\n";
+        echo "  Rows: {$table_status->Rows}\n";
     } else {
-        echo "<p>No records found</p>";
+        echo "  Table does not exist\n";
+        echo "  Last error: " . $wpdb->last_error . "\n";
     }
     
-    // Test a simple query with the accepted filter
-    echo "<h3>Test Query with 'accepted' filter</h3>";
-    $test_query = "SELECT * FROM $table_name WHERE (action = 'accepted' OR action = 'accept_all') ORDER BY timestamp DESC LIMIT 5";
-    echo "<p>Query: $test_query</p>";
-    
-    $test_results = $wpdb->get_results($test_query);
-    echo "<p>Results count: " . count($test_results) . "</p>";
-    
-    if (!empty($test_results)) {
-        echo "<table border='1'>";
-        echo "<tr><th>ID</th><th>Action</th><th>Timestamp</th></tr>";
-        foreach ($test_results as $row) {
-            echo "<tr>";
-            echo "<td>{$row->id}</td>";
-            echo "<td>{$row->action}</td>";
-            echo "<td>{$row->timestamp}</td>";
-            echo "</tr>";
-        }
-        echo "</table>";
+    // Try to count records anyway
+    $count = $wpdb->get_var("SELECT COUNT(*) FROM $full_table_name");
+    if ($count !== null) {
+        echo "  Record count: $count\n";
+    } else {
+        echo "  Could not count records: " . $wpdb->last_error . "\n";
     }
-} else {
-    echo "<p>Table does not exist!</p>";
 }
 
-echo "<p>Test completed.</p>";
+// Test creating the tables if they don't exist
+echo "\nTesting table creation...\n";
+require_once('admin/class-sure-consent-storage.php');
+Sure_Consent_Storage::create_table();
+
+// Check again
+echo "\nChecking tables after creation attempt...\n";
+foreach ($tables as $table) {
+    $full_table_name = $wpdb->prefix . $table;
+    echo "\nChecking table: $full_table_name\n";
+    
+    $table_status = $wpdb->get_row("SHOW TABLE STATUS LIKE '$full_table_name'");
+    if ($table_status) {
+        echo "  Table exists\n";
+        echo "  Engine: {$table_status->Engine}\n";
+        echo "  Rows: {$table_status->Rows}\n";
+    } else {
+        echo "  Table still does not exist\n";
+        echo "  Last error: " . $wpdb->last_error . "\n";
+    }
+}
+
+echo "</pre>";
 ?>
