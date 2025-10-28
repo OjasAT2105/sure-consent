@@ -216,20 +216,61 @@ const ScanHistory = () => {
 
   // Get category icon
   const getCategoryIcon = (category) => {
-    switch (category.toLowerCase()) {
+    // Debug log to see what category names we're getting
+    console.log("ScanHistory - Category received:", category);
+
+    // Convert to lowercase for case-insensitive comparison
+    const lowerCategory = category.toLowerCase();
+
+    // Check for exact matches first (both short and full names)
+    switch (lowerCategory) {
       case "essential":
+      case "essential cookies":
+        console.log("ScanHistory - Matched essential category");
         return "🔒";
       case "functional":
+      case "functional cookies":
+        console.log("ScanHistory - Matched functional category");
         return "⚙️";
       case "analytics":
+      case "analytics cookies":
+        console.log("ScanHistory - Matched analytics category");
         return "📊";
       case "marketing":
+      case "marketing cookies":
+        console.log("ScanHistory - Matched marketing category");
         return "📢";
       case "uncategorized":
+      case "uncategorized cookies":
+        console.log("ScanHistory - Matched uncategorized category");
         return "📁";
-      default:
-        return "🍪";
     }
+
+    // Check for partial matches (more flexible)
+    if (lowerCategory.includes("essential")) {
+      console.log("ScanHistory - Partial match for essential category");
+      return "🔒";
+    }
+    if (lowerCategory.includes("functional")) {
+      console.log("ScanHistory - Partial match for functional category");
+      return "⚙️";
+    }
+    if (lowerCategory.includes("analytics")) {
+      console.log("ScanHistory - Partial match for analytics category");
+      return "📊";
+    }
+    if (lowerCategory.includes("marketing")) {
+      console.log("ScanHistory - Partial match for marketing category");
+      return "📢";
+    }
+    if (lowerCategory.includes("uncategorized")) {
+      console.log("ScanHistory - Partial match for uncategorized category");
+      return "📁";
+    }
+
+    // Default icon
+    console.log("ScanHistory - Using default icon for category:", category);
+    return "🍪";
   };
 
   // Confirm delete

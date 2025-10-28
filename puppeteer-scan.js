@@ -36,6 +36,105 @@ function findChromeExecutable() {
   }
 }
 
+// Function to categorize cookies based on their names
+function categorizeCookie(cookieName) {
+  const name = cookieName.toLowerCase();
+
+  // Essential cookies (strictly necessary for website functionality)
+  if (
+    name.includes("session") ||
+    name.includes("login") ||
+    name.includes("auth") ||
+    name.includes("token") ||
+    name.includes("csrf") ||
+    name.includes("security") ||
+    name.includes("cart") ||
+    name.includes("checkout") ||
+    name.includes("user") ||
+    name.includes("pref") ||
+    name.includes("setting") ||
+    name.includes("lang") ||
+    name.includes("locale") ||
+    name.includes("currency") ||
+    name.includes("gdpr") ||
+    name.includes("consent") ||
+    name.includes("cookie") ||
+    name.includes("sureconsent")
+  ) {
+    return "Essential Cookies";
+  }
+
+  // Analytics cookies
+  if (
+    name.includes("ga") ||
+    name.includes("google") ||
+    name.includes("analytics") ||
+    name.includes("utm") ||
+    name.includes("gtag") ||
+    name.includes("gtm") ||
+    name.includes("matomo") ||
+    name.includes("piwik") ||
+    name.includes("_ga") ||
+    name.includes("_gid") ||
+    name.includes("_gat")
+  ) {
+    return "Analytics Cookies";
+  }
+
+  // Marketing/Advertising cookies
+  if (
+    name.includes("ad") ||
+    name.includes("ads") ||
+    name.includes("advert") ||
+    name.includes("facebook") ||
+    name.includes("fb") ||
+    name.includes("twitter") ||
+    name.includes("linkedin") ||
+    name.includes("instagram") ||
+    name.includes("pinterest") ||
+    name.includes("youtube") ||
+    name.includes("tiktok") ||
+    name.includes("taboola") ||
+    name.includes("outbrain") ||
+    name.includes("doubleclick") ||
+    name.includes("taboola") ||
+    name.includes("criteo") ||
+    name.includes("yahoo") ||
+    name.includes("bing") ||
+    name.includes("gclid") ||
+    name.includes("fbclid") ||
+    name.includes("msclkid")
+  ) {
+    return "Marketing Cookies";
+  }
+
+  // Functional cookies
+  if (
+    name.includes("theme") ||
+    name.includes("layout") ||
+    name.includes("design") ||
+    name.includes("custom") ||
+    name.includes("personal") ||
+    name.includes("preference") ||
+    name.includes("config") ||
+    name.includes("widget") ||
+    name.includes("embed") ||
+    name.includes("video") ||
+    name.includes("audio") ||
+    name.includes("map") ||
+    name.includes("social") ||
+    name.includes("share") ||
+    name.includes("comment") ||
+    name.includes("rating") ||
+    name.includes("review")
+  ) {
+    return "Functional Cookies";
+  }
+
+  // Default to uncategorized
+  return "Uncategorized Cookies";
+}
+
 async function scanMultipleUrls(urls) {
   console.log(
     "Starting Puppeteer multi-page cookie scan for",
@@ -88,6 +187,9 @@ async function scanMultipleUrls(urls) {
           cookies.split(";").forEach((cookie) => {
             const [name, value] = cookie.trim().split("=");
             if (name) {
+              // Categorize the cookie based on its name
+              const category = categorizeCookie(name);
+
               // Store cookie with source URL information
               const cookieKey = `${name}__${request.url()}`;
               allCookies.set(cookieKey, {
@@ -96,7 +198,7 @@ async function scanMultipleUrls(urls) {
                 domain: new URL(request.url()).hostname,
                 path: "/",
                 expires: null,
-                category: "Uncategorized",
+                category: category,
                 note: `Detected via request headers on ${request.url()}`,
               });
             }
@@ -132,6 +234,9 @@ async function scanMultipleUrls(urls) {
 
         // Add cookies from page.cookies()
         pageCookies.forEach((cookie) => {
+          // Categorize the cookie based on its name
+          const category = categorizeCookie(cookie.name);
+
           const cookieKey = `${cookie.name}__${cookie.domain}${cookie.path}`;
           allCookies.set(cookieKey, {
             name: cookie.name,
@@ -142,7 +247,7 @@ async function scanMultipleUrls(urls) {
               cookie.expires === -1
                 ? null
                 : new Date(cookie.expires * 1000).toISOString(),
-            category: "Uncategorized",
+            category: category,
             note: "Detected via Puppeteer page.cookies()",
           });
         });

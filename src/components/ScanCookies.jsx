@@ -19,6 +19,105 @@ const ScanCookies = () => {
   const [groupedCookies, setGroupedCookies] = useState({});
   const [expandedCategories, setExpandedCategories] = useState({});
 
+  // Function to categorize cookies based on their names
+  const categorizeCookie = (cookieName) => {
+    const name = cookieName.toLowerCase();
+
+    // Essential cookies (strictly necessary for website functionality)
+    if (
+      name.includes("session") ||
+      name.includes("login") ||
+      name.includes("auth") ||
+      name.includes("token") ||
+      name.includes("csrf") ||
+      name.includes("security") ||
+      name.includes("cart") ||
+      name.includes("checkout") ||
+      name.includes("user") ||
+      name.includes("pref") ||
+      name.includes("setting") ||
+      name.includes("lang") ||
+      name.includes("locale") ||
+      name.includes("currency") ||
+      name.includes("gdpr") ||
+      name.includes("consent") ||
+      name.includes("cookie") ||
+      name.includes("sureconsent")
+    ) {
+      return "Essential Cookies";
+    }
+
+    // Analytics cookies
+    if (
+      name.includes("ga") ||
+      name.includes("google") ||
+      name.includes("analytics") ||
+      name.includes("utm") ||
+      name.includes("gtag") ||
+      name.includes("gtm") ||
+      name.includes("matomo") ||
+      name.includes("piwik") ||
+      name.includes("_ga") ||
+      name.includes("_gid") ||
+      name.includes("_gat")
+    ) {
+      return "Analytics Cookies";
+    }
+
+    // Marketing/Advertising cookies
+    if (
+      name.includes("ad") ||
+      name.includes("ads") ||
+      name.includes("advert") ||
+      name.includes("facebook") ||
+      name.includes("fb") ||
+      name.includes("twitter") ||
+      name.includes("linkedin") ||
+      name.includes("instagram") ||
+      name.includes("pinterest") ||
+      name.includes("youtube") ||
+      name.includes("tiktok") ||
+      name.includes("taboola") ||
+      name.includes("outbrain") ||
+      name.includes("doubleclick") ||
+      name.includes("taboola") ||
+      name.includes("criteo") ||
+      name.includes("yahoo") ||
+      name.includes("bing") ||
+      name.includes("gclid") ||
+      name.includes("fbclid") ||
+      name.includes("msclkid")
+    ) {
+      return "Marketing Cookies";
+    }
+
+    // Functional cookies
+    if (
+      name.includes("theme") ||
+      name.includes("layout") ||
+      name.includes("design") ||
+      name.includes("custom") ||
+      name.includes("personal") ||
+      name.includes("preference") ||
+      name.includes("config") ||
+      name.includes("widget") ||
+      name.includes("embed") ||
+      name.includes("video") ||
+      name.includes("audio") ||
+      name.includes("map") ||
+      name.includes("social") ||
+      name.includes("share") ||
+      name.includes("comment") ||
+      name.includes("rating") ||
+      name.includes("review")
+    ) {
+      return "Functional Cookies";
+    }
+
+    // Default to uncategorized
+    return "Uncategorized Cookies";
+  };
+
   // Group cookies by category
   const groupCookiesByCategory = (cookies) => {
     const grouped = {};
@@ -58,6 +157,11 @@ const ScanCookies = () => {
 
   // Scan cookies
   const scanCookies = async (scanAllPages = false) => {
+    console.log(
+      "SureConsent - scanCookies called with scanAllPages:",
+      scanAllPages
+    );
+
     // Set the appropriate loading state
     if (scanAllPages) {
       setIsScanningAllPages(true);
@@ -71,20 +175,25 @@ const ScanCookies = () => {
         .split(";")
         .map((cookie) => {
           const [name, value] = cookie.trim().split("=");
+          // Categorize the cookie based on its name
+          const category = categorizeCookie(name);
           return {
             name: name || "",
             value: value || "",
             domain: window.location.hostname,
             path: "/",
             expires: null,
-            category: "Uncategorized",
+            category: category,
             note: "Client-side cookie",
           };
         })
         .filter((cookie) => cookie.name);
 
+      console.log("SureConsent - Client cookies found:", clientCookies.length);
+
       // Get the current website URL
       const websiteUrl = window.location.origin;
+      console.log("SureConsent - Website URL:", websiteUrl);
 
       // Send scanned cookies to backend
       const response = await fetch(window.sureConsentAjax.ajaxurl, {
@@ -101,8 +210,12 @@ const ScanCookies = () => {
         }),
       });
 
+      console.log("SureConsent - Scan request sent to backend");
       const data = await response.json();
+      console.log("SureConsent - Scan response received:", data);
+
       if (data.success) {
+        console.log("SureConsent - Scan successful, refreshing cookie list");
         // Refresh the cookie list
         await fetchScannedCookies();
 
@@ -116,9 +229,12 @@ const ScanCookies = () => {
               cookieCount: data.data?.count || 0,
               clientCookies: data.data?.client_cookies || 0,
               serverCookies: data.data?.server_cookies || 0,
+              customCookies: data.data?.custom_cookies || 0,
             },
           })
         );
+
+        console.log("SureConsent - Scan completed successfully");
       } else {
         console.error("Failed to save scanned cookies:", data.data?.message);
       }
@@ -144,20 +260,47 @@ const ScanCookies = () => {
 
   // Get category icon
   const getCategoryIcon = (category) => {
-    switch (category.toLowerCase()) {
+    // Convert to lowercase for case-insensitive comparison
+    const lowerCategory = category.toLowerCase();
+
+    // Check for exact matches first (both short and full names)
+    switch (lowerCategory) {
       case "essential":
+      case "essential cookies":
         return "🔒";
       case "functional":
+      case "functional cookies":
         return "⚙️";
       case "analytics":
+      case "analytics cookies":
         return "📊";
       case "marketing":
+      case "marketing cookies":
         return "📢";
       case "uncategorized":
+      case "uncategorized cookies":
         return "📁";
-      default:
-        return "🍪";
     }
+
+    // Check for partial matches (more flexible)
+    if (lowerCategory.includes("essential")) {
+      return "🔒";
+    }
+    if (lowerCategory.includes("functional")) {
+      return "⚙️";
+    }
+    if (lowerCategory.includes("analytics")) {
+      return "📊";
+    }
+    if (lowerCategory.includes("marketing")) {
+      return "📢";
+    }
+    if (lowerCategory.includes("uncategorized")) {
+      return "📁";
+    }
+
+    // Default icon
+    return "🍪";
   };
 
   // Format expiration date
@@ -297,9 +440,10 @@ const ScanCookies = () => {
                 </h3>
                 <div className="mt-2 text-sm text-green-700">
                   <p>
-                    Found {scannedCookies.length} cookies on your website. You
-                    can now preview the cookie banner to see how it will appear
-                    to your visitors.
+                    Found {scannedCookies.length} cookies on your website. This
+                    includes custom cookies you've defined. You can now preview
+                    the cookie banner to see how it will appear to your
+                    visitors.
                   </p>
                 </div>
               </div>

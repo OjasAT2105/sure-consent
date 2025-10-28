@@ -763,7 +763,36 @@ class Sure_Consent_Ajax {
         
         // Merge client and server cookies
         $all_cookies = array_merge($scanned_cookies, $puppeteer_cookies);
-        error_log('SureConsent - Total cookies found: ' . count($all_cookies));
+        error_log('SureConsent - Total cookies found before adding custom cookies: ' . count($all_cookies));
+
+        // Get custom cookies from settings and add them to the scan results
+        $custom_cookies_raw = get_option('sure_consent_custom_cookies', '[]');
+        $custom_cookies = json_decode($custom_cookies_raw, true);
+        
+        // If json_decode fails, initialize as empty array
+        if ($custom_cookies === null) {
+            $custom_cookies = array();
+        }
+        
+        error_log('SureConsent - Found ' . count($custom_cookies) . ' custom cookies to include in scan');
+        
+        // Convert custom cookies to the same format as scanned cookies
+        $formatted_custom_cookies = array();
+        foreach ($custom_cookies as $custom_cookie) {
+            $formatted_custom_cookies[] = array(
+                'name' => isset($custom_cookie['name']) ? sanitize_text_field($custom_cookie['name']) : '',
+                'value' => '', // Custom cookies don't have actual values in scanning
+                'domain' => isset($custom_cookie['domain']) ? sanitize_text_field($custom_cookie['domain']) : window.location.hostname,
+                'path' => '/',
+                'expires' => isset($custom_cookie['expires']) ? sanitize_text_field($custom_cookie['expires']) : null,
+                'category' => isset($custom_cookie['category']) ? sanitize_text_field($custom_cookie['category']) : 'Uncategorized',
+                'note' => isset($custom_cookie['description']) ? 'Custom cookie: ' . sanitize_text_field($custom_cookie['description']) : 'Custom cookie'
+            );
+        }
+        
+        // Merge custom cookies with scanned cookies
+        $all_cookies = array_merge($all_cookies, $formatted_custom_cookies);
+        error_log('SureConsent - Total cookies after adding custom cookies: ' . count($all_cookies));
 
         global $wpdb;
         $table_name = $wpdb->prefix . 'sure_consent_scanned_cookies';
@@ -814,6 +843,7 @@ class Sure_Consent_Ajax {
             'count' => count($all_cookies),
             'client_cookies' => count($scanned_cookies),
             'server_cookies' => count($puppeteer_cookies),
+            'custom_cookies' => count($formatted_custom_cookies),
             'scanned_pages' => $scan_all_pages ? count(self::get_all_site_urls()) : 1
         ));
     }
