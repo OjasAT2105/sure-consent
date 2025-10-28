@@ -97,6 +97,15 @@ class Sure_Consent_Ajax {
                 error_log('SureConsent - Saving geo_selected_countries as JSON: ' . $json_value);
                 $updated[$key] = $value;
             }
+            // Handle blocked_scripts as JSON (special case)
+            else if ($key === 'blocked_scripts' && is_array($value)) {
+                $json_value = json_encode($value);
+                update_option($option_name, $json_value);
+                error_log('SureConsent - Saving blocked_scripts as JSON: ' . $json_value);
+                error_log('SureConsent - blocked_scripts data type: ' . gettype($value));
+                error_log('SureConsent - blocked_scripts content: ' . print_r($value, true));
+                $updated[$key] = $value;
+            }
             // Handle preview_enabled as boolean
             else if ($key === 'preview_enabled') {
                 update_option($option_name, (bool) $value);
@@ -199,6 +208,25 @@ class Sure_Consent_Ajax {
         error_log('SureConsent - geo_selected_countries IS ARRAY?: ' . (is_array($geo_selected_countries_decoded) ? 'YES' : 'NO'));
         error_log('SureConsent - geo_selected_countries COUNT: ' . (is_array($geo_selected_countries_decoded) ? count($geo_selected_countries_decoded) : '0'));
         
+        // Get script blocker settings
+        $blocked_scripts_raw = get_option('sure_consent_blocked_scripts', '[]');
+        error_log('SureConsent - blocked_scripts RAW from DB: ' . $blocked_scripts_raw);
+        
+        // Handle potential JSON decoding errors
+        $blocked_scripts_decoded = array();
+        if (!empty($blocked_scripts_raw)) {
+            $blocked_scripts_decoded = json_decode($blocked_scripts_raw, true);
+            // If json_decode fails, it returns null
+            if ($blocked_scripts_decoded === null) {
+                error_log('SureConsent - ERROR: Failed to decode blocked_scripts JSON: ' . json_last_error_msg());
+                $blocked_scripts_decoded = array();
+            }
+        }
+        
+        error_log('SureConsent - blocked_scripts DECODED: ' . print_r($blocked_scripts_decoded, true));
+        error_log('SureConsent - blocked_scripts IS ARRAY?: ' . (is_array($blocked_scripts_decoded) ? 'YES' : 'NO'));
+        error_log('SureConsent - blocked_scripts COUNT: ' . (is_array($blocked_scripts_decoded) ? count($blocked_scripts_decoded) : '0'));
+        
         // Ensure cookie_categories is properly formatted
         $processed_cookie_categories = array();
         if (is_array($cookie_categories_decoded)) {
@@ -216,7 +244,7 @@ class Sure_Consent_Ajax {
         if (is_array($geo_selected_countries_decoded)) {
             $processed_geo_selected_countries = $geo_selected_countries_decoded;
         }
-        
+
         $settings = array(
             'message_heading' => (string) get_option('sure_consent_message_heading', ''),
             'message_description' => (string) get_option('sure_consent_message_description', 'We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.'),
@@ -249,9 +277,12 @@ class Sure_Consent_Ajax {
             'banner_design_template' => (string) get_option('sure_consent_banner_design_template', 'default'),
             'cookie_categories' => $processed_cookie_categories,
             'custom_cookies' => $processed_custom_cookies,
+            'consent_logging_enabled' => (bool) get_option('sure_consent_consent_logging_enabled', false),
             'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365),  // Add consent duration setting
             'geo_rule_type' => (string) get_option('sure_consent_geo_rule_type', 'worldwide'),  // Geo rule type
-            'geo_selected_countries' => $processed_geo_selected_countries  // Selected countries for geo-targeting
+            'geo_selected_countries' => $processed_geo_selected_countries,  // Selected countries for geo-targeting
+            'script_blocker_enabled' => (bool) get_option('sure_consent_script_blocker_enabled', false),  // Script blocker toggle
+            'blocked_scripts' => $blocked_scripts_decoded  // Blocked scripts list
         );
         
         error_log('SureConsent - Final settings array: ' . print_r($settings, true));
@@ -453,7 +484,9 @@ class Sure_Consent_Ajax {
             'custom_cookies' => $processed_custom_cookies,
             'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365),  // Add consent duration setting
             'geo_rule_type' => (string) $geo_rule_type,  // Geo rule type
-            'geo_selected_countries' => $processed_geo_selected_countries  // Selected countries for geo-targeting
+            'geo_selected_countries' => $processed_geo_selected_countries,  // Selected countries for geo-targeting
+            'script_blocker_enabled' => (bool) get_option('sure_consent_script_blocker_enabled', false),  // Script blocker toggle
+            'blocked_scripts' => $blocked_scripts_decoded  // Blocked scripts list
         );
         
         wp_send_json_success($settings);

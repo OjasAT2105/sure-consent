@@ -31,6 +31,7 @@ import {
   CheckCircle,
   Bell,
   FilePenLine,
+  RouteOff,
 } from "lucide-react";
 import Dashboard from "../components/Dashboard";
 import QuickCookieBanner from "../components/QuickCookieBanner";
@@ -52,6 +53,7 @@ import Settings from "../components/Settings";
 import Laws from "../components/Laws";
 import ActionCard from "../components/ActionCard";
 import PreviewBanner from "../components/PreviewBanner";
+import ScriptBlocker from "../components/ScriptBlocker";
 import { useSettings } from "../contexts/SettingsContext";
 
 const PreviewButton = () => {
@@ -234,9 +236,9 @@ const AdminApp = () => {
           icon: Globe,
         },
         {
-          label: "Custom Scripts",
+          label: "Script Blocker",
           path: "/advanced/scripts",
-          icon: SettingsIcon,
+          icon: RouteOff,
         },
       ],
     },
@@ -348,7 +350,7 @@ const AdminApp = () => {
       case "/advanced/geo-rules":
         return <GeoRules />;
       case "/advanced/scripts":
-        return <Settings />; // Placeholder
+        return <ScriptBlocker />;
       default:
         return <Dashboard />;
     }

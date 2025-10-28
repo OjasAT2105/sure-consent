@@ -272,6 +272,235 @@ function sure_consent_scan_completed_notice() {
 // Add custom cron schedule
 
 /**
+ * Block scripts until consent is given
+ */
+add_action('wp_head', 'sureconsent_block_scripts', 1);
+
+function sureconsent_block_scripts() {
+    // Check if script blocker is enabled
+    $script_blocker_enabled = get_option('sure_consent_script_blocker_enabled', false);
+    
+    if (!$script_blocker_enabled) {
+        return;
+    }
+    
+    // Get blocked scripts
+    $blocked_scripts_raw = get_option('sure_consent_blocked_scripts', '[]');
+    $blocked_scripts = json_decode($blocked_scripts_raw, true);
+    
+    if (empty($blocked_scripts) || !is_array($blocked_scripts)) {
+        return;
+    }
+    
+    // Check if user has given consent
+    $consent_given = isset($_COOKIE['sure_consent_preferences']) && 
+                     $_COOKIE['sure_consent_preferences'] !== 'decline_all';
+    
+    if ($consent_given) {
+        return; // Don't block if consent is given
+    }
+    
+    // Get cookie categories for overlay
+    $cookie_categories_raw = get_option('sure_consent_cookie_categories', '[]');
+    $cookie_categories = json_decode($cookie_categories_raw, true);
+    
+    // Create category mapping for overlay
+    $category_names = array();
+    if (is_array($cookie_categories)) {
+        foreach ($cookie_categories as $category) {
+            if (isset($category['id']) && isset($category['name'])) {
+                $category_names[$category['id']] = $category['name'];
+            }
+        }
+    }
+    
+    // Block scripts by adding data attributes and overlay
+    echo "<script>\n";
+    echo "document.addEventListener('DOMContentLoaded', function() {\n";
+    echo "  // Block scripts until consent is given\n";
+    echo "  var blockedScripts = " . json_encode($blocked_scripts) . ";\n";
+    echo "  var categoryNames = " . json_encode($category_names) . ";\n";
+    echo "  \n";
+    echo "  blockedScripts.forEach(function(scriptConfig) {\n";
+    echo "    if (!scriptConfig.enabled) return;\n";
+    echo "    \n";
+    echo "    // Handle script tags with matching src\n";
+    echo "    var scripts = document.querySelectorAll('script[src*=\"' + scriptConfig.url + '\"]');\n";
+    echo "    scripts.forEach(function(script) {\n";
+    echo "      // Store original src\n";
+    echo "      script.setAttribute('data-sureconsent-src', script.src);\n";
+    echo "      // Remove src to prevent loading\n";
+    echo "      script.removeAttribute('src');\n";
+    echo "      // Add blocked class\n";
+    echo "      script.classList.add('sureconsent-blocked-script');\n";
+    echo "      \n";
+    echo "      // Create overlay for the script\n";
+    echo "      createScriptOverlay(script, scriptConfig);\n";
+    echo "    });\n";
+    echo "    \n";
+    echo "    // Handle inline scripts that reference these URLs\n";
+    echo "    var inlineScripts = document.querySelectorAll('script:not([src])');\n";
+    echo "    inlineScripts.forEach(function(script) {\n";
+    echo "      if (script.textContent && script.textContent.includes(scriptConfig.url)) {\n";
+    echo "        script.setAttribute('data-sureconsent-content', script.textContent);\n";
+    echo "        script.textContent = '';\n";
+    echo "        script.classList.add('sureconsent-blocked-inline-script');\n";
+    echo "        \n";
+    echo "        // Create overlay for the inline script\n";
+    echo "        createScriptOverlay(script, scriptConfig);\n";
+    echo "      }\n";
+    echo "    });\n";
+    echo "    \n";
+    echo "    // Handle iframes with matching src\n";
+    echo "    var iframes = document.querySelectorAll('iframe[src*=\"' + scriptConfig.url + '\"]');\n";
+    echo "    iframes.forEach(function(iframe) {\n";
+    echo "      // Store original src\n";
+    echo "      iframe.setAttribute('data-sureconsent-src', iframe.src);\n";
+    echo "      // Remove src to prevent loading\n";
+    echo "      iframe.removeAttribute('src');\n";
+    echo "      // Add blocked class\n";
+    echo "      iframe.classList.add('sureconsent-blocked-iframe');\n";
+    echo "      \n";
+    echo "      // Create overlay for the iframe\n";
+    echo "      createScriptOverlay(iframe, scriptConfig);\n";
+    echo "    });\n";
+    echo "    \n";
+    echo "    // Handle embedded content (divs, spans, etc.) that might contain blocked URLs\n";
+    echo "    var embeddedElements = document.querySelectorAll('[data-src*=\"' + scriptConfig.url + '\"], [src*=\"' + scriptConfig.url + '\"]');\n";
+    echo "    embeddedElements.forEach(function(element) {\n";
+    echo "      // Store original src/data-src\n";
+    echo "      if (element.hasAttribute('data-src')) {\n";
+    echo "        element.setAttribute('data-sureconsent-data-src', element.getAttribute('data-src'));\n";
+    echo "        element.removeAttribute('data-src');\n";
+    echo "      }\n";
+    echo "      if (element.hasAttribute('src')) {\n";
+    echo "        element.setAttribute('data-sureconsent-src', element.getAttribute('src'));\n";
+    echo "        element.removeAttribute('src');\n";
+    echo "      }\n";
+    echo "      // Add blocked class\n";
+    echo "      element.classList.add('sureconsent-blocked-embedded');\n";
+    echo "      \n";
+    echo "      // Create overlay for the embedded content\n";
+    echo "      createScriptOverlay(element, scriptConfig);\n";
+    echo "    });\n";
+    echo "  });\n";
+    echo "  \n";
+    echo "  // Function to create overlay for blocked content\n";
+    echo "  function createScriptOverlay(element, scriptConfig) {\n";
+    echo "    // Create overlay container\n";
+    echo "    var overlay = document.createElement('div');\n";
+    echo "    overlay.className = 'sureconsent-script-overlay';\n";
+    echo "    overlay.style.cssText = `\n";
+    echo "      position: relative;\n";
+    echo "      display: block;\n";
+    echo "      background: #f3f4f6;\n";
+    echo "      border: 1px dashed #d1d5db;\n";
+    echo "      border-radius: 6px;\n";
+    echo "      padding: 16px;\n";
+    echo "      margin: 8px 0;\n";
+    echo "      text-align: center;\n";
+    echo "      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n";
+    echo "    `;\n";
+    echo "    \n";
+    echo "    // Create overlay content\n";
+    echo "    var categoryName = categoryNames[scriptConfig.category] || scriptConfig.category;\n";
+    echo "    overlay.innerHTML = `\n";
+    echo "      <div style='color: #374151; font-size: 14px; margin-bottom: 8px;'>\n";
+    echo "        <strong>Cookie Consent Required</strong>\n";
+    echo "      </div>\n";
+    echo "      <div style='color: #6b7280; font-size: 12px; margin-bottom: 12px;'>\n";
+    echo "        This content requires <strong>` + categoryName + `</strong> cookies to be enabled.\n";
+    echo "      </div>\n";
+    echo "      <button onclick='openConsentPreferences()' style='\n";
+    echo "        background: #4f46e5;\n";
+    echo "        color: white;\n";
+    echo "        border: none;\n";
+    echo "        border-radius: 4px;\n";
+    echo "        padding: 8px 16px;\n";
+    echo "        font-size: 12px;\n";
+    echo "        cursor: pointer;\n";
+    echo "        transition: background 0.2s;\n";
+    echo "      ' onmouseover='this.style.background=\"#4338ca\"' onmouseout='this.style.background=\"#4f46e5\"'>\n";
+    echo "        Manage Cookie Preferences\n";
+    echo "      </button>\n";
+    echo "    `;\n";
+    echo "    \n";
+    echo "    // Insert overlay after the element\n";
+    echo "    element.parentNode.insertBefore(overlay, element.nextSibling);\n";
+    echo "  }\n";
+    echo "  \n";
+    echo "  // Function to open consent preferences\n";
+    echo "  window.openConsentPreferences = function() {\n";
+    echo "    // Dispatch event to open preferences modal\n";
+    echo "    window.dispatchEvent(new CustomEvent('sureconsentOpenPreferences'));\n";
+    echo "  };\n";
+    echo "  \n";
+    echo "  // Listen for consent events\n";
+    echo "  window.addEventListener('sureconsentConsentGiven', function() {\n";
+    echo "    // Remove overlays\n";
+    echo "    document.querySelectorAll('.sureconsent-script-overlay').forEach(function(overlay) {\n";
+    echo "      overlay.remove();\n";
+    echo "    });\n";
+    echo "    \n";
+    echo "    // Re-enable blocked scripts\n";
+    echo "    document.querySelectorAll('.sureconsent-blocked-script').forEach(function(script) {\n";
+    echo "      var originalSrc = script.getAttribute('data-sureconsent-src');\n";
+    echo "      if (originalSrc) {\n";
+    echo "        script.src = originalSrc;\n";
+    echo "        script.removeAttribute('data-sureconsent-src');\n";
+    echo "        script.classList.remove('sureconsent-blocked-script');\n";
+    echo "      }\n";
+    echo "    });\n";
+    echo "    \n";
+    echo "    // Re-enable blocked inline scripts\n";
+    echo "    document.querySelectorAll('.sureconsent-blocked-inline-script').forEach(function(script) {\n";
+    echo "      var originalContent = script.getAttribute('data-sureconsent-content');\n";
+    echo "      if (originalContent) {\n";
+    echo "        script.textContent = originalContent;\n";
+    echo "        script.removeAttribute('data-sureconsent-content');\n";
+    echo "        script.classList.remove('sureconsent-blocked-inline-script');\n";
+    echo "      }\n";
+    echo "    });\n";
+    echo "    \n";
+    echo "    // Re-enable blocked iframes\n";
+    echo "    document.querySelectorAll('.sureconsent-blocked-iframe').forEach(function(iframe) {\n";
+    echo "      var originalSrc = iframe.getAttribute('data-sureconsent-src');\n";
+    echo "      if (originalSrc) {\n";
+    echo "        iframe.src = originalSrc;\n";
+    echo "        iframe.removeAttribute('data-sureconsent-src');\n";
+    echo "        iframe.classList.remove('sureconsent-blocked-iframe');\n";
+    echo "      }\n";
+    echo "    });\n";
+    echo "    \n";
+    echo "    // Re-enable blocked embedded content\n";
+    echo "    document.querySelectorAll('.sureconsent-blocked-embedded').forEach(function(element) {\n";
+    echo "      if (element.hasAttribute('data-sureconsent-data-src')) {\n";
+    echo "        element.setAttribute('data-src', element.getAttribute('data-sureconsent-data-src'));\n";
+    echo "        element.removeAttribute('data-sureconsent-data-src');\n";
+    echo "      }\n";
+    echo "      if (element.hasAttribute('data-sureconsent-src')) {\n";
+    echo "        element.setAttribute('src', element.getAttribute('data-sureconsent-src'));\n";
+    echo "        element.removeAttribute('data-sureconsent-src');\n";
+    echo "      }\n";
+    echo "      element.classList.remove('sureconsent-blocked-embedded');\n";
+    echo "    });\n";
+    echo "  });\n";
+    echo "});\n";
+    echo "</script>\n";
+    
+    // Add CSS for the overlay
+    echo "<style>\n";
+    echo "  .sureconsent-script-overlay {\n";
+    echo "    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;\n";
+    echo "  }\n";
+    echo "  \n";
+    echo "  .sureconsent-script-overlay button {\n";
+    echo "    font-family: inherit !important;\n";
+    echo "  }\n";
+    echo "</style>\n";
+}
+
+/**
  * Add React root div to footer for public cookie banner.
  */
 add_action( 'wp_footer', 'sureconsent_add_public_root' );

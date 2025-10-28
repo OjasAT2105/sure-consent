@@ -523,90 +523,159 @@ const PublicApp = () => {
     return false;
   };
 
-  const handleAccept = useCallback(() => {
-    console.log("🟢 User clicked ACCEPT");
+  // Handle accept action
+  const handleAccept = async (preferences = null) => {
+    console.log(
+      "PublicApp - handleAccept called with preferences:",
+      preferences
+    );
 
-    // Load saved preferences if available, otherwise use defaults
-    let preferences = {};
-    const saved = localStorage.getItem("sureconsent_preferences");
+    // Determine action type based on preferences
+    let actionType = "accepted";
+    if (preferences === "accept_all") {
+      actionType = "accept_all";
+    } else if (preferences === "decline_all") {
+      actionType = "decline_all";
+    }
 
-    if (saved) {
-      try {
-        preferences = JSON.parse(saved);
-        // Ensure required cookies stay enabled
-        if (cookieCategories && cookieCategories.length > 0) {
-          cookieCategories.forEach((cat) => {
-            if (cat.required) {
-              preferences[cat.name] = true;
-            }
-          });
+    // If no preferences provided, use all categories as accepted
+    let preferencesToSave = preferences;
+    if (!preferences || typeof preferences !== "object") {
+      // Create preferences object with all categories accepted
+      preferencesToSave = {};
+      cookieCategories.forEach((category) => {
+        // Essential cookies are always accepted
+        if (category.id === "essential") {
+          preferencesToSave[category.id] = true;
+        } else {
+          // For other categories, accept by default unless it's a decline action
+          preferencesToSave[category.id] = actionType !== "decline_all";
         }
+      });
+
+      // Add custom cookies to preferences
+      customCookies.forEach((cookie) => {
+        if (cookie.category) {
+          // Only set if not already set
+          if (preferencesToSave[cookie.category] === undefined) {
+            preferencesToSave[cookie.category] = actionType !== "decline_all";
+          }
+        }
+      });
+    }
+
+    // Ensure preferencesToSave is a clean object without circular references
+    const cleanPreferencesToSave = {};
+    if (preferencesToSave && typeof preferencesToSave === "object") {
+      try {
+        // Try to stringify and parse to remove circular references
+        const stringified = JSON.stringify(preferencesToSave);
+        Object.assign(cleanPreferencesToSave, JSON.parse(stringified));
       } catch (e) {
-        console.error("Failed to parse preferences:", e);
-        // Fall back to defaults
-        preferences = {};
-      }
-    }
-
-    // If no saved preferences, use defaults (only essential cookies)
-    if (Object.keys(preferences).length === 0) {
-      if (cookieCategories && cookieCategories.length > 0) {
-        cookieCategories.forEach((cat) => {
-          preferences[cat.name] = cat.required || false;
+        // If stringify fails, manually copy properties
+        Object.keys(preferencesToSave).forEach((key) => {
+          const value = preferencesToSave[key];
+          // Only copy primitive values
+          if (
+            value === null ||
+            typeof value === "string" ||
+            typeof value === "number" ||
+            typeof value === "boolean"
+          ) {
+            cleanPreferencesToSave[key] = value;
+          } else if (Array.isArray(value)) {
+            // For arrays, create a shallow copy
+            cleanPreferencesToSave[key] = [...value];
+          } else if (typeof value === "object") {
+            // For objects, create a shallow copy if possible
+            try {
+              cleanPreferencesToSave[key] = { ...value };
+            } catch (e) {
+              // If that fails too, skip this property
+              console.warn("Skipping non-serializable property:", key);
+            }
+          }
         });
-      } else {
-        // Fallback to default categories
-        preferences["Essential Cookies"] = true;
-        preferences["Functional Cookies"] = false;
-        preferences["Analytics Cookies"] = false;
-        preferences["Marketing Cookies"] = false;
       }
     }
 
-    // Save preferences to localStorage so PreferencesModal will show the correct state
-    localStorage.setItem(
-      "sureconsent_preferences",
-      JSON.stringify(preferences)
+    console.log(
+      "PublicApp - Final preferences to save:",
+      cleanPreferencesToSave
     );
 
-    // Log custom cookies for enabled categories
-    logCustomCookiesForCategories(preferences);
+    try {
+      // Save consent to backend
+      const response = await fetch(window.sureConsentAjax.ajaxurl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          action: "sure_consent_save_consent",
+          nonce: window.sureConsentAjax.nonce || "",
+          preferences: JSON.stringify(cleanPreferencesToSave),
+          action_type: actionType,
+        }),
+      });
 
-    // Determine the correct action type based on preferences
-    // If this is the default state (only essential cookies enabled), use "partially_accepted"
-    // If all cookies are enabled, use "accepted"
-    let actionType = "partially_accepted";
+      const data = await response.json();
+      console.log("PublicApp - Consent saved:", data);
 
-    // Check if all categories are enabled
-    const allCategoriesEnabled = Object.values(preferences).every(
-      (val) => val === true
-    );
-    const onlyEssentialEnabled = Object.values(preferences).every(
-      (val, index) => {
-        const key = Object.keys(preferences)[index];
-        // If it's an essential cookie, it should be true
-        // If it's not an essential cookie, it should be false
-        return key.toLowerCase().includes("essential")
-          ? val === true
-          : val === false;
+      if (data.success) {
+        // Save preferences to localStorage
+        localStorage.setItem(
+          "sureConsentPreferences",
+          JSON.stringify(cleanPreferencesToSave)
+        );
+
+        // Set cookie with expiration (1 year by default, or use setting)
+        const consentDurationDays =
+          window.sureConsentSettings?.consent_duration_days || 365;
+        const expirationDate = new Date();
+        expirationDate.setTime(
+          expirationDate.getTime() + consentDurationDays * 24 * 60 * 60 * 1000
+        );
+
+        // Create cookie string
+        let cookieString = `sure_consent_preferences=${encodeURIComponent(
+          JSON.stringify(cleanPreferencesToSave)
+        )};`;
+        cookieString += `expires=${expirationDate.toUTCString()};`;
+        cookieString += "path=/;";
+
+        // Add SameSite and Secure attributes if on HTTPS
+        if (window.location.protocol === "https:") {
+          cookieString += "Secure;SameSite=Lax;";
+        } else {
+          cookieString += "SameSite=Lax;";
+        }
+
+        document.cookie = cookieString;
+        console.log("PublicApp - Cookie set:", cookieString);
+
+        // Hide the banner
+        setShowBanner(false);
+
+        // Dispatch custom event for script blocker
+        window.dispatchEvent(
+          new CustomEvent("sureconsentConsentGiven", {
+            detail: { preferences: cleanPreferencesToSave },
+          })
+        );
+
+        // Close preferences modal if open
+        setShowPreferencesModal(false);
+
+        // Reload the page to load blocked scripts
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       }
-    );
-
-    if (allCategoriesEnabled) {
-      actionType = "accepted";
-    } else if (onlyEssentialEnabled) {
-      actionType = "partially_accepted";
+    } catch (error) {
+      console.error("PublicApp - Failed to save consent:", error);
     }
-
-    if (window.SureConsentManager) {
-      window.SureConsentManager.saveConsent(preferences, actionType);
-      console.log(`💾 Consent saved (${actionType}):`, preferences);
-    }
-
-    // Hide banner, show floating button
-    setShowBanner(false);
-    setShowSettingsButton(true);
-  }, [cookieCategories]);
+  };
 
   const handleAcceptAll = useCallback(() => {
     console.log("🟢 User clicked ACCEPT ALL");
@@ -713,6 +782,26 @@ const PublicApp = () => {
       }
     });
   };
+
+  // Add effect to handle opening preferences from overlay
+  useEffect(() => {
+    const handleOpenPreferences = () => {
+      console.log("PublicApp - Opening preferences from overlay");
+      setShowPreferencesModal(true);
+    };
+
+    window.addEventListener(
+      "sureconsentOpenPreferences",
+      handleOpenPreferences
+    );
+
+    return () => {
+      window.removeEventListener(
+        "sureconsentOpenPreferences",
+        handleOpenPreferences
+      );
+    };
+  }, []);
 
   const handleReopenBanner = useCallback(() => {
     console.log("⚙️ User clicked floating settings button");

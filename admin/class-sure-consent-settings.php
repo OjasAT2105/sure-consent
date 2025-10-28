@@ -80,7 +80,9 @@ class Sure_Consent_Settings {
         'consent_logging_enabled' => false,  // Add consent logging toggle (off by default)
         'consent_duration_days' => 365,  // Add consent duration setting (default 365 days)
         'geo_rule_type' => 'worldwide',  // Geo-targeting rule type: worldwide, eu_only, selected
-        'geo_selected_countries' => array()  // Selected countries for geo-targeting
+        'geo_selected_countries' => array(),  // Selected countries for geo-targeting
+        'script_blocker_enabled' => false,  // Script blocker toggle (off by default)
+        'blocked_scripts' => array()  // Blocked scripts list (empty by default)
     );
 
     /**
@@ -100,7 +102,7 @@ class Sure_Consent_Settings {
             $option_value = get_option('sure_consent_' . $key, $default);
             
             // Special handling for cookie_categories and custom_cookies - decode JSON
-            if ($key === 'cookie_categories' || $key === 'custom_cookies' || $key === 'geo_selected_countries') {
+            if ($key === 'cookie_categories' || $key === 'custom_cookies' || $key === 'geo_selected_countries' || $key === 'blocked_scripts') {
                 if (is_string($option_value)) {
                     $decoded = json_decode($option_value, true);
                     $settings[$key] = is_array($decoded) ? $decoded : array();
@@ -136,7 +138,7 @@ class Sure_Consent_Settings {
         }
         
         // Special handling for geo_selected_countries - ensure it's an array
-        if ($key === 'geo_selected_countries') {
+        if ($key === 'geo_selected_countries' || $key === 'blocked_scripts') {
             if (is_string($value)) {
                 $decoded = json_decode($value, true);
                 return is_array($decoded) ? $decoded : array();
@@ -159,7 +161,7 @@ class Sure_Consent_Settings {
         }
         
         // Special handling for cookie_categories, custom_cookies, and geo_selected_countries - encode as JSON
-        if (($key === 'cookie_categories' || $key === 'custom_cookies' || $key === 'geo_selected_countries') && is_array($value)) {
+        if (($key === 'cookie_categories' || $key === 'custom_cookies' || $key === 'geo_selected_countries' || $key === 'blocked_scripts') && is_array($value)) {
             return update_option('sure_consent_' . $key, json_encode($value));
         }
         
