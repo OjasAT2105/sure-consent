@@ -1,15 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSettings } from "../contexts/SettingsContext";
 import { Button } from "@bsf/force-ui";
-import {
-  Play,
-  Loader,
-  ChevronDown,
-  ChevronRight,
-  Cookie,
-  FolderOpen,
-  AlertCircle,
-} from "lucide-react";
+import { Play, Loader } from "lucide-react";
 
 const ScanCookies = () => {
   const { getCurrentValue } = useSettings();
@@ -18,6 +10,46 @@ const ScanCookies = () => {
   const [scannedCookies, setScannedCookies] = useState([]);
   const [groupedCookies, setGroupedCookies] = useState({});
   const [expandedCategories, setExpandedCategories] = useState({});
+  // Add state for toast notification
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  // Group cookies by category
+  const groupCookiesByCategory = (cookies) => {
+    const grouped = {};
+    cookies.forEach((cookie) => {
+      const category = cookie.category || "Uncategorized";
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(cookie);
+    });
+    return grouped;
+  };
+
+  // Fetch scanned cookies from database
+  const fetchScannedCookies = async () => {
+    try {
+      const response = await fetch(window.sureConsentAjax.ajaxurl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          action: "sure_consent_get_scanned_cookies",
+          nonce: window.sureConsentAjax.nonce || "",
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success && data.data && data.data.cookies) {
+        setScannedCookies(data.data.cookies);
+        setGroupedCookies(groupCookiesByCategory(data.data.cookies));
+      }
+    } catch (error) {
+      console.error("Failed to fetch scanned cookies:", error);
+    }
+  };
 
   // Function to categorize cookies based on their names
   const categorizeCookie = (cookieName) => {
@@ -118,43 +150,6 @@ const ScanCookies = () => {
     return "Uncategorized Cookies";
   };
 
-  // Group cookies by category
-  const groupCookiesByCategory = (cookies) => {
-    const grouped = {};
-    cookies.forEach((cookie) => {
-      const category = cookie.category || "Uncategorized";
-      if (!grouped[category]) {
-        grouped[category] = [];
-      }
-      grouped[category].push(cookie);
-    });
-    return grouped;
-  };
-
-  // Fetch scanned cookies from database
-  const fetchScannedCookies = async () => {
-    try {
-      const response = await fetch(window.sureConsentAjax.ajaxurl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          action: "sure_consent_get_scanned_cookies",
-          nonce: window.sureConsentAjax.nonce || "",
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success && data.data && data.data.cookies) {
-        setScannedCookies(data.data.cookies);
-        setGroupedCookies(groupCookiesByCategory(data.data.cookies));
-      }
-    } catch (error) {
-      console.error("Failed to fetch scanned cookies:", error);
-    }
-  };
-
   // Scan cookies
   const scanCookies = async (scanAllPages = false) => {
     console.log(
@@ -222,6 +217,19 @@ const ScanCookies = () => {
         // Set scan completion flag
         sessionStorage.setItem("scanCompleted", "true");
 
+        // Show toast notification
+        setToastMessage(
+          `Scan Completed Successfully!\n\nFound ${
+            data.data?.count || 0
+          } cookies on your website. This includes custom cookies you've defined. You can now preview the cookie banner to see how it will appear to your visitors.`
+        );
+        setShowToast(true);
+
+        // Hide toast after 5 seconds
+        setTimeout(() => {
+          setShowToast(false);
+        }, 5000);
+
         // Dispatch a custom event to notify other components
         window.dispatchEvent(
           new CustomEvent("scanCompleted", {
@@ -250,7 +258,7 @@ const ScanCookies = () => {
     }
   };
 
-  // Toggle category expansion
+  // Toggle category expansion (allow multiple categories to be expanded)
   const toggleCategory = (category) => {
     setExpandedCategories((prev) => ({
       ...prev,
@@ -357,6 +365,60 @@ const ScanCookies = () => {
 
   return (
     <div>
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed top-4 right-4 z-50 mt-4 mr-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 shadow-lg max-w-md animate-fade-in">
+            <div className="flex items-start">
+              <svg
+                className="h-5 w-5 text-green-400 mt-0.5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-green-800">
+                  Scan Completed Successfully!
+                </h3>
+                <div className="mt-2 text-sm text-green-700 whitespace-pre-line">
+                  {toastMessage.split("\n\n")[1]}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="ml-4 flex-shrink-0 text-green-500 hover:text-green-700"
+                onClick={() => setShowToast(false)}
+              >
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+            {/* Progress bar for auto-hide */}
+            <div className="mt-3">
+              <div className="h-1 w-full bg-green-200 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500 rounded-full animate-progress-bar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
         <h1
           className="font-semibold mb-2"
@@ -416,44 +478,9 @@ const ScanCookies = () => {
         </div>
       </div>
 
-      {/* Success message after scanning */}
-      {!isScanningCurrentPage &&
-        !isScanningAllPages &&
-        Object.keys(groupedCookies).length > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center">
-              <svg
-                className="h-5 w-5 text-green-400"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
-                  Scan Completed Successfully!
-                </h3>
-                <div className="mt-2 text-sm text-green-700">
-                  <p>
-                    Found {scannedCookies.length} cookies on your website. This
-                    includes custom cookies you've defined. You can now preview
-                    the cookie banner to see how it will appear to your
-                    visitors.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
       {/* Scanned Cookies Accordion */}
       {Object.keys(groupedCookies).length > 0 ? (
-        <div className="space-y-4">
+        <div className="space-y-4 mb-6">
           {Object.entries(groupedCookies).map(([category, cookies]) => (
             <div
               key={category}
@@ -476,78 +503,80 @@ const ScanCookies = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {expandedCategories[category] ? (
-                    <ChevronDown className="text-gray-500" size={20} />
-                  ) : (
-                    <ChevronRight className="text-gray-500" size={20} />
-                  )}
+                  <span className="text-sm text-gray-500">
+                    {cookies.length} cookies
+                  </span>
+                  <svg
+                    className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${
+                      expandedCategories[category] ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </div>
               </div>
 
-              {/* Cookies List */}
+              {/* Category Cookies */}
               {expandedCategories[category] && (
                 <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {cookies.map((cookie) => (
-                      <div
-                        key={cookie.id}
-                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-150"
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-medium text-gray-900 text-sm break-words">
-                            {cookie.cookie_name}
-                          </h4>
-                          <Cookie
-                            size={16}
-                            className="text-gray-400 flex-shrink-0 ml-2"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between">
-                            <span className="text-xs text-gray-500">
-                              Domain
-                            </span>
-                            <span
-                              className="text-xs text-gray-900 truncate max-w-[120px]"
-                              title={cookie.domain}
-                            >
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 cookie-details-table">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Cookie Name
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Value
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Domain
+                          </th>
+                          <th
+                            scope="col"
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                          >
+                            Expires
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {cookies.map((cookie, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {cookie.cookie_name}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                              {cookie.cookie_value || "-"}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {cookie.domain}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-xs text-gray-500">Path</span>
-                            <span
-                              className="text-xs text-gray-900 truncate max-w-[120px]"
-                              title={cookie.path}
-                            >
-                              {cookie.path}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between">
-                            <span className="text-xs text-gray-500">
-                              Expires
-                            </span>
-                            <span
-                              className="text-xs text-gray-900"
-                              title={cookie.expires}
-                            >
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {formatExpiration(cookie.expires)}
-                            </span>
-                          </div>
-
-                          {cookie.note && (
-                            <div className="pt-2 border-t border-gray-100">
-                              <p className="text-xs text-gray-600 italic">
-                                {cookie.note}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
@@ -555,51 +584,27 @@ const ScanCookies = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-12 text-center">
-          <div className="mx-auto h-16 w-16 text-gray-400 mb-4 flex items-center justify-center">
-            <FolderOpen size={48} />
-          </div>
-          <h3 className="text-xl font-medium text-gray-900 mb-2">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+          <svg
+            className="mx-auto h-12 w-12 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">
             No cookies scanned yet
           </h3>
-          <p className="text-gray-500 mb-8 max-w-md mx-auto">
-            Start a cookie scan to detect all cookies used on your website.
-            Choose between scanning the current page or all pages.
+          <p className="mt-1 text-sm text-gray-500">
+            Get started by scanning your website for cookies.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={
-                isScanningCurrentPage ? (
-                  <Loader className="animate-spin" />
-                ) : (
-                  <Play size={16} />
-                )
-              }
-              onClick={() => scanCookies(false)}
-              disabled={isScanningCurrentPage}
-              className="px-6"
-            >
-              {isScanningCurrentPage ? "Scanning..." : "Scan Current Page"}
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              icon={
-                isScanningAllPages ? (
-                  <Loader className="animate-spin" />
-                ) : (
-                  <Play size={16} />
-                )
-              }
-              onClick={() => scanCookies(true)}
-              disabled={isScanningCurrentPage || isScanningAllPages}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-6"
-            >
-              {isScanningAllPages ? "Scanning..." : "Scan All Pages"}
-            </Button>
-          </div>
         </div>
       )}
     </div>

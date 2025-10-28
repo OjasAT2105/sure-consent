@@ -222,7 +222,7 @@ const ScanHistory = () => {
     }
   };
 
-  // Toggle row expansion
+  // Toggle row expansion (allow multiple rows to be expanded)
   const toggleRowExpansion = (id) => {
     setExpandedRows((prev) => ({
       ...prev,

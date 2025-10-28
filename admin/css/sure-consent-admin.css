@@ -14,3 +14,70 @@
 #sureconsent-admin-root {
   min-height: 500px;
 }
+
+/* Toast notification animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes progress-bar {
+  0% {
+    width: 100%;
+  }
+  100% {
+    width: 0%;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-progress-bar {
+  animation: progress-bar 5s linear forwards;
+}
+
+/* Add spacing from top for toast notification */
+.fixed.top-4.right-4 {
+  top: 1rem; /* 16px from top */
+  right: 1rem; /* 16px from right */
+}
+
+/* Ensure cookie table is visible and properly styled */
+.cookie-details-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cookie-details-table th,
+.cookie-details-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cookie-details-table th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.cookie-details-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.cookie-details-table .truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
