@@ -16,10 +16,6 @@ import {
 const ScanHistory = () => {
   const [scanHistory, setScanHistory] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({
-    dateFrom: "",
-    dateTo: "",
-  });
   const [pagination, setPagination] = useState({
     page: 1,
     perPage: 10,
@@ -47,8 +43,6 @@ const ScanHistory = () => {
           nonce: window.sureConsentAjax.nonce || "",
           page: page,
           per_page: pagination.perPage,
-          date_from: filters.dateFrom,
-          date_to: filters.dateTo,
         }),
       });
 
@@ -202,28 +196,6 @@ const ScanHistory = () => {
     }
   };
 
-  // Handle filter change
-  const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  // Apply filters
-  const applyFilters = () => {
-    fetchScanHistory(1);
-  };
-
-  // Clear filters
-  const clearFilters = () => {
-    setFilters({
-      dateFrom: "",
-      dateTo: "",
-    });
-    fetchScanHistory(1);
-  };
-
   // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -300,62 +272,6 @@ const ScanHistory = () => {
         <p className="" style={{ fontSize: "14px", color: "#4b5563" }}>
           View history of all cookie scans performed on your website.
         </p>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white border rounded-lg shadow-sm p-6 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-          <h2 className="text-lg font-medium text-gray-900">Filters</h2>
-          <div className="flex gap-2">
-            <div className="flex gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                icon={<Filter size={14} />}
-                onClick={applyFilters}
-                disabled={loading}
-                className="bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
-              >
-                Apply
-              </Button>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<X size={14} />}
-                onClick={clearFilters}
-                disabled={loading}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-300"
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date From
-            </label>
-            <input
-              type="date"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              value={filters.dateFrom}
-              onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date To
-            </label>
-            <input
-              type="date"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              value={filters.dateTo}
-              onChange={(e) => handleFilterChange("dateTo", e.target.value)}
-            />
-          </div>
-        </div>
       </div>
 
       {/* Scan History Table */}
@@ -596,7 +512,7 @@ const ScanHistory = () => {
                 </div>
                 <div>
                   <nav
-                    className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                    className="flex items-center justify-between mt-6"
                     aria-label="Pagination"
                   >
                     <Button
@@ -616,11 +532,11 @@ const ScanHistory = () => {
                         }
                         size="sm"
                         onClick={() => handlePageChange(i + 1)}
-                        className={
+                        className={`mx-1 ${
                           pagination.page === i + 1
                             ? "bg-purple-600 text-white"
                             : ""
-                        }
+                        }`}
                       >
                         {i + 1}
                       </Button>
@@ -630,7 +546,7 @@ const ScanHistory = () => {
                       size="sm"
                       onClick={() => handlePageChange(pagination.page + 1)}
                       disabled={pagination.page >= pagination.totalPages}
-                      className="rounded-r-md"
+                      className="rounded-r-md ml-1"
                     >
                       Next
                     </Button>

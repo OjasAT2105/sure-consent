@@ -200,12 +200,76 @@ if (class_exists('Sure_Consent_Storage')) {
     Sure_Consent_Storage::init();
     // Update existing records with country information
     add_action('init', array('Sure_Consent_Storage', 'update_existing_records'));
+    
+    // Schedule cron job for checking scheduled scans
+    if (!wp_next_scheduled('sure_consent_check_scheduled_scans')) {
+        error_log('SureConsent - Scheduling cron job for sure_consent_check_scheduled_scans');
+        wp_schedule_event(time(), 'minutely', 'sure_consent_check_scheduled_scans');
+    } else {
+        error_log('SureConsent - Cron job already scheduled for sure_consent_check_scheduled_scans');
+        error_log('SureConsent - Next scheduled run: ' . date('Y-m-d H:i:s', wp_next_scheduled('sure_consent_check_scheduled_scans')));
+    }
 }
 
 // Initialize the AJAX class to register AJAX handlers
 if (class_exists('Sure_Consent_Ajax')) {
     Sure_Consent_Ajax::init();
 }
+
+// Add cron job handler for checking scheduled scans
+add_action('sure_consent_check_scheduled_scans', array('Sure_Consent_Storage', 'check_scheduled_scans'));
+
+// Check for scheduled scan redirect on admin pages
+add_action('admin_init', 'sure_consent_check_scheduled_scan_redirect');
+
+function sure_consent_check_scheduled_scan_redirect() {
+    // Removed scheduled scan redirect functionality
+}
+
+function sure_consent_handle_scheduled_scan($schedule_id) {
+    // Removed scheduled scan handling functionality
+}
+
+// Add action to handle scheduled scan events
+add_action('sure_consent_run_scheduled_scan', 'sure_consent_handle_scheduled_scan');
+
+// Add admin notification for completed scans
+add_action('admin_notices', 'sure_consent_scan_completed_notice');
+
+function sure_consent_scan_completed_notice() {
+    // Only show on SureConsent admin pages
+    $screen = get_current_screen();
+    if (strpos($screen->id, 'sureconsent') === false) {
+        return;
+    }
+    
+    $notification = get_option('sure_consent_last_scan_notification', false);
+    
+    if ($notification && isset($notification['cookies_found'])) {
+        // Check if notification is still valid (within 1 hour)
+        $scan_time = strtotime($notification['scan_date']);
+        $current_time = current_time('timestamp');
+        
+        if (($current_time - $scan_time) < 3600) { // 1 hour
+            $cookies_found = $notification['cookies_found'];
+            $scan_id = $notification['scan_id'];
+            
+            echo '<div class="notice notice-success is-dismissible">';
+            echo '<p><strong>SureConsent:</strong> Automatic cookie scan completed! Found ' . $cookies_found . ' cookies. ';
+            echo '<a href="admin.php?page=sureconsent&tab=cookie-manager&subtab=scan">View Scanned Cookies</a> | ';
+            echo '<a href="admin.php?page=sureconsent&tab=cookie-manager&subtab=history">View Scan History</a></p>';
+            echo '</div>';
+            
+            // Clear the notification after displaying it
+            delete_option('sure_consent_last_scan_notification');
+        } else {
+            // Clear expired notification
+            delete_option('sure_consent_last_scan_notification');
+        }
+    }
+}
+
+// Add custom cron schedule
 
 /**
  * Add React root div to footer for public cookie banner.

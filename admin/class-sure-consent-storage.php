@@ -232,6 +232,7 @@ class Sure_Consent_Storage {
         $table_name = $wpdb->prefix . self::TABLE_NAME;
         $scanned_cookies_table = $wpdb->prefix . 'sure_consent_scanned_cookies';
         $scan_history_table = $wpdb->prefix . 'sure_consent_scan_history';
+        $scheduled_scans_table = $wpdb->prefix . 'sure_consent_scheduled_scans';
 
         $charset_collate = $wpdb->get_charset_collate();
 
@@ -282,10 +283,26 @@ class Sure_Consent_Storage {
             KEY scan_type (scan_type)
         ) $charset_collate;";
 
+        // Create table for scheduled scans
+        /*$sql = "CREATE TABLE $scheduled_scans_table_name (
+            id int(11) NOT NULL AUTO_INCREMENT,
+            frequency varchar(20) NOT NULL,
+            start_date date NOT NULL,
+            start_time time NOT NULL,
+            end_date date DEFAULT NULL,
+            last_run datetime DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id)
+        ) $charset_collate;";
+
+        dbDelta($sql);*/
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
         dbDelta($scanned_cookies_sql);
         dbDelta($scan_history_sql);
+        dbDelta($scheduled_scans_sql);
         
         // Update existing records to add country information
         self::update_existing_records();
@@ -767,20 +784,24 @@ class Sure_Consent_Storage {
     /**
      * Save scan history record
      */
-    public static function save_scan_history($total_cookies, $scan_type = 'current_page', $pages_scanned = 1, $scan_data = array()) {
+    public static function save_scan_history($total_cookies, $scan_type, $pages_scanned, $scan_data = array()) {
         global $wpdb;
         $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        error_log('SureConsent - Saving scan history - Total cookies: ' . $total_cookies . ', Scan type: ' . $scan_type . ', Pages scanned: ' . $pages_scanned);
         
         // Insert scan history record
         $result = $wpdb->insert(
             $table_name,
             array(
+                'scan_date' => current_time('mysql'),
                 'total_cookies' => $total_cookies,
                 'scan_type' => $scan_type,
                 'pages_scanned' => $pages_scanned,
-                'scan_data' => json_encode($scan_data)
+                'scan_data' => !empty($scan_data) ? json_encode($scan_data) : null
             ),
             array(
+                '%s', // scan_date
                 '%d', // total_cookies
                 '%s', // scan_type
                 '%d', // pages_scanned
@@ -788,7 +809,13 @@ class Sure_Consent_Storage {
             )
         );
         
-        return $result !== false ? $wpdb->insert_id : false;
+        if ($result !== false) {
+            error_log('SureConsent - Scan history saved successfully with ID: ' . $wpdb->insert_id);
+            return $wpdb->insert_id;
+        } else {
+            error_log('SureConsent - Failed to save scan history');
+            return false;
+        }
     }
     
     /**
@@ -874,6 +901,60 @@ class Sure_Consent_Storage {
         
         // Get total count
         return $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+    }
+    
+    /**
+     * Save a scheduled scan
+     */
+    public static function save_scheduled_scan($data) {
+        // Removed scheduled scan functionality
+        return false;
+    }
+    
+    /**
+     * Get all scheduled scans
+     */
+    public static function get_scheduled_scans() {
+        // Removed scheduled scan functionality
+        return array();
+    }
+    
+    /**
+     * Delete a scheduled scan
+     */
+    public static function delete_scheduled_scan($id) {
+        // Removed scheduled scan functionality
+        return false;
+    }
+    
+    /**
+     * Check for scheduled scans that are due and trigger redirect
+     */
+    public static function check_scheduled_scans() {
+        // Removed scheduled scan functionality
+        return false;
+    }
+    
+    /**
+     * Set transient for scheduled scan
+     */
+    public static function set_scheduled_scan_transient($schedule_id, $data) {
+        // Removed scheduled scan functionality
+    }
+    
+    /**
+     * Check for scheduled scan redirect flag
+     */
+    public static function check_scheduled_scan_redirect() {
+        // Removed scheduled scan functionality
+        return false;
+    }
+    
+    /**
+     * Clear scheduled scan redirect flag
+     */
+    public static function clear_scheduled_scan_redirect() {
+        // Removed scheduled scan functionality
     }
 }
 

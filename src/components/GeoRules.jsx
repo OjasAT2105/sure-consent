@@ -456,7 +456,7 @@ const GeoRules = () => {
             </div>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-start">
             <button
               type="button"
               onClick={handleSave}

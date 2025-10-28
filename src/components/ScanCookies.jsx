@@ -13,7 +13,8 @@ import {
 
 const ScanCookies = () => {
   const { getCurrentValue } = useSettings();
-  const [isScanning, setIsScanning] = useState(false);
+  const [isScanningCurrentPage, setIsScanningCurrentPage] = useState(false);
+  const [isScanningAllPages, setIsScanningAllPages] = useState(false);
   const [scannedCookies, setScannedCookies] = useState([]);
   const [groupedCookies, setGroupedCookies] = useState({});
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -57,7 +58,12 @@ const ScanCookies = () => {
 
   // Scan cookies
   const scanCookies = async (scanAllPages = false) => {
-    setIsScanning(true);
+    // Set the appropriate loading state
+    if (scanAllPages) {
+      setIsScanningAllPages(true);
+    } else {
+      setIsScanningCurrentPage(true);
+    }
 
     try {
       // Client-side cookie scanning
@@ -99,13 +105,32 @@ const ScanCookies = () => {
       if (data.success) {
         // Refresh the cookie list
         await fetchScannedCookies();
+
+        // Set scan completion flag
+        sessionStorage.setItem("scanCompleted", "true");
+
+        // Dispatch a custom event to notify other components
+        window.dispatchEvent(
+          new CustomEvent("scanCompleted", {
+            detail: {
+              cookieCount: data.data?.count || 0,
+              clientCookies: data.data?.client_cookies || 0,
+              serverCookies: data.data?.server_cookies || 0,
+            },
+          })
+        );
       } else {
         console.error("Failed to save scanned cookies:", data.data?.message);
       }
     } catch (error) {
       console.error("Failed to scan cookies:", error);
     } finally {
-      setIsScanning(false);
+      // Reset the appropriate loading state
+      if (scanAllPages) {
+        setIsScanningAllPages(false);
+      } else {
+        setIsScanningCurrentPage(false);
+      }
     }
   };
 
@@ -161,7 +186,30 @@ const ScanCookies = () => {
 
   // Load scanned cookies on component mount
   useEffect(() => {
+    console.log("SureConsent - ScanCookies component mounted");
     fetchScannedCookies();
+
+    // Check if auto_scan parameter is present
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoScan = urlParams.get("auto_scan");
+
+    console.log("SureConsent - Auto scan parameter:", autoScan);
+
+    if (autoScan === "1") {
+      console.log(
+        "SureConsent - AUTO SCAN TRIGGERED - Starting scan all pages"
+      );
+      // Automatically start scanning all pages
+      scanCookies(true);
+
+      // Remove the auto_scan parameter from URL
+      const newUrl =
+        window.location.pathname +
+        window.location.search.replace(/[?&]auto_scan=1/, "");
+      window.history.replaceState({}, document.title, newUrl);
+    } else {
+      console.log("SureConsent - No auto scan parameter found");
+    }
   }, []);
 
   return (
@@ -194,36 +242,70 @@ const ScanCookies = () => {
               variant="secondary"
               size="sm"
               icon={
-                isScanning ? (
+                isScanningCurrentPage ? (
                   <Loader className="animate-spin" />
                 ) : (
                   <Play size={16} />
                 )
               }
               onClick={() => scanCookies(false)}
-              disabled={isScanning}
+              disabled={isScanningCurrentPage || isScanningAllPages}
             >
-              {isScanning ? "Scanning..." : "Scan Current Page"}
+              {isScanningCurrentPage ? "Scanning..." : "Scan Current Page"}
             </Button>
             <Button
               variant="primary"
               size="sm"
               icon={
-                isScanning ? (
+                isScanningAllPages ? (
                   <Loader className="animate-spin" />
                 ) : (
                   <Play size={16} />
                 )
               }
               onClick={() => scanCookies(true)}
-              disabled={isScanning}
+              disabled={isScanningCurrentPage || isScanningAllPages}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
-              {isScanning ? "Scanning..." : "Scan All Pages"}
+              {isScanningAllPages ? "Scanning..." : "Scan All Pages"}
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Success message after scanning */}
+      {!isScanningCurrentPage &&
+        !isScanningAllPages &&
+        Object.keys(groupedCookies).length > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <svg
+                className="h-5 w-5 text-green-400"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-green-800">
+                  Scan Completed Successfully!
+                </h3>
+                <div className="mt-2 text-sm text-green-700">
+                  <p>
+                    Found {scannedCookies.length} cookies on your website. You
+                    can now preview the cookie banner to see how it will appear
+                    to your visitors.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Scanned Cookies Accordion */}
       {Object.keys(groupedCookies).length > 0 ? (
@@ -345,33 +427,33 @@ const ScanCookies = () => {
               variant="secondary"
               size="sm"
               icon={
-                isScanning ? (
+                isScanningCurrentPage ? (
                   <Loader className="animate-spin" />
                 ) : (
                   <Play size={16} />
                 )
               }
               onClick={() => scanCookies(false)}
-              disabled={isScanning}
+              disabled={isScanningCurrentPage}
               className="px-6"
             >
-              {isScanning ? "Scanning..." : "Scan Current Page"}
+              {isScanningCurrentPage ? "Scanning..." : "Scan Current Page"}
             </Button>
             <Button
               variant="primary"
               size="sm"
               icon={
-                isScanning ? (
+                isScanningAllPages ? (
                   <Loader className="animate-spin" />
                 ) : (
                   <Play size={16} />
                 )
               }
               onClick={() => scanCookies(true)}
-              disabled={isScanning}
+              disabled={isScanningCurrentPage || isScanningAllPages}
               className="bg-purple-600 hover:bg-purple-700 text-white px-6"
             >
-              {isScanning ? "Scanning..." : "Scan All Pages"}
+              {isScanningAllPages ? "Scanning..." : "Scan All Pages"}
             </Button>
           </div>
         </div>
