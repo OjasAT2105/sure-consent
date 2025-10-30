@@ -44,6 +44,107 @@ class Sure_Consent_Ajax {
         add_action('wp_ajax_sure_consent_save_scheduled_scan', array(__CLASS__, 'save_scheduled_scan'));
         add_action('wp_ajax_sure_consent_get_scheduled_scans', array(__CLASS__, 'get_scheduled_scans'));
         add_action('wp_ajax_sure_consent_delete_scheduled_scan', array(__CLASS__, 'delete_scheduled_scan'));
+        // Add new action for getting conflicting plugins
+        add_action('wp_ajax_sure_consent_get_conflicting_plugins', array(__CLASS__, 'get_conflicting_plugins'));
+        // Add new action for deactivating plugin
+        add_action('wp_ajax_sure_consent_deactivate_plugin', array(__CLASS__, 'deactivate_plugin'));
+    }
+
+    /**
+     * Get conflicting plugins
+     */
+    public static function get_conflicting_plugins() {
+        if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // List of keywords to search for in plugin names/descriptions
+        $keywords = array(
+            'cookie', 'cookies', 'consent', 'gdpr', 'ccpa', 'privacy', 'eu-law', 'compliance', 
+            'cookie-law', 'data-protection', 'policy', 'trustarc', 'iubenda', 'onetrust', 
+            'banner', 'cookiebot', 'cookieyes', 'sureconsent', 'cookie-notice', 'cookie-manager', 
+            'cookie-control', 'cookiehub', 'webtoffee', 'wpgdpr', 'moove-gdpr', 'borlabs', 
+            'real-cookie-banner', 'complianz', 'optanon'
+        );
+
+        // Get all active plugins
+        $all_plugins = get_plugins();
+        $active_plugins = get_option('active_plugins', array());
+        
+        $conflicting_plugins = array();
+        
+        foreach ($all_plugins as $plugin_path => $plugin_data) {
+            // Check if plugin is active
+            if (in_array($plugin_path, $active_plugins)) {
+                // Skip SureConsent itself
+                if (strpos($plugin_path, 'sure-consent') !== false) {
+                    continue;
+                }
+                
+                // Check if plugin name or description contains any of our keywords
+                $plugin_name = strtolower($plugin_data['Name']);
+                $plugin_description = strtolower($plugin_data['Description']);
+                
+                foreach ($keywords as $keyword) {
+                    if (strpos($plugin_name, $keyword) !== false || strpos($plugin_description, $keyword) !== false) {
+                        $conflicting_plugins[] = array(
+                            'name' => $plugin_data['Name'],
+                            'path' => $plugin_path,
+                            'version' => $plugin_data['Version'],
+                            'description' => $plugin_data['Description']
+                        );
+                        break; // Found a match, no need to check other keywords
+                    }
+                }
+            }
+        }
+        
+        wp_send_json_success(array(
+            'plugins' => $conflicting_plugins,
+            'count' => count($conflicting_plugins)
+        ));
+    }
+
+    /**
+     * Deactivate a plugin
+     */
+    public static function deactivate_plugin() {
+        if (!wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        $plugin_path = isset($_POST['plugin_path']) ? sanitize_text_field($_POST['plugin_path']) : '';
+        
+        if (empty($plugin_path)) {
+            wp_send_json_error(array('message' => 'Invalid plugin path'));
+            return;
+        }
+
+        // Check if plugin exists
+        $all_plugins = get_plugins();
+        if (!isset($all_plugins[$plugin_path])) {
+            wp_send_json_error(array('message' => 'Plugin not found'));
+            return;
+        }
+
+        // Deactivate the plugin
+        deactivate_plugins($plugin_path);
+        
+        // Check if deactivation was successful
+        $active_plugins = get_option('active_plugins', array());
+        if (in_array($plugin_path, $active_plugins)) {
+            wp_send_json_error(array('message' => 'Failed to deactivate plugin'));
+        } else {
+            wp_send_json_success(array('message' => 'Plugin deactivated successfully'));
+        }
     }
 
     /**

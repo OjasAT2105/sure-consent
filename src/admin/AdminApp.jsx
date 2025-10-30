@@ -31,6 +31,7 @@ import {
   CheckCircle,
   Bell,
   FilePenLine,
+  AlertTriangle,
 } from "lucide-react";
 import Dashboard from "../components/Dashboard";
 import QuickCookieBanner from "../components/QuickCookieBanner";
@@ -90,6 +91,182 @@ const LawSticker = () => {
       <div className="flex items-center bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
         <Shield className="text-blue-500 mr-1.5" size={16} />
         <span className="text-xs font-medium text-blue-700">{lawName}</span>
+      </div>
+    </Topbar.Item>
+  );
+};
+
+// New component to display conflicting plugins
+const ConflictingPluginsSticker = () => {
+  const [conflictingPlugins, setConflictingPlugins] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deactivatingPlugin, setDeactivatingPlugin] = useState(null);
+
+  useEffect(() => {
+    const fetchConflictingPlugins = async () => {
+      try {
+        const response = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_conflicting_plugins",
+              nonce: window.sureConsentAjax?.nonce || "",
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.success) {
+          setConflictingPlugins(data.data.plugins);
+        }
+      } catch (error) {
+        console.error("Error fetching conflicting plugins:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConflictingPlugins();
+  }, []);
+
+  const handleDeactivatePlugin = async (pluginPath) => {
+    setDeactivatingPlugin(pluginPath);
+    try {
+      const response = await fetch(
+        window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            action: "sure_consent_deactivate_plugin",
+            nonce: window.sureConsentAjax?.nonce || "",
+            plugin_path: pluginPath,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (data.success) {
+        // Remove the deactivated plugin from the list
+        setConflictingPlugins((prev) =>
+          prev.filter((plugin) => plugin.path !== pluginPath)
+        );
+        // Close the dialog automatically after successful deactivation
+        setDialogOpen(false);
+        // Reload the page after a short delay to show changes
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        // Keep dialog open and show error by resetting the deactivating state
+        setDeactivatingPlugin(null);
+      }
+    } catch (error) {
+      console.error("Error deactivating plugin:", error);
+      // Keep dialog open and show error by resetting the deactivating state
+      setDeactivatingPlugin(null);
+    }
+  };
+
+  if (loading) {
+    return null;
+  }
+
+  // Show green "No Conflicting Plugins" message when there are no conflicts
+  if (conflictingPlugins.length === 0) {
+    return (
+      <Topbar.Item>
+        <div className="flex items-center bg-green-50 border border-green-200 rounded-full px-3 py-1">
+          <CheckCircle className="text-green-500 mr-1.5" size={16} />
+          <span className="text-xs font-medium text-green-700">
+            No Conflicting Plugins
+          </span>
+        </div>
+      </Topbar.Item>
+    );
+  }
+
+  return (
+    <Topbar.Item>
+      <div className="relative">
+        <Button
+          variant="ghost"
+          size="xs"
+          icon={<AlertTriangle className="text-yellow-500" />}
+          onClick={() => setDialogOpen(true)}
+          className="relative bg-yellow-50 hover:bg-yellow-100 border border-yellow-200"
+        >
+          <span className="hidden sm:inline text-yellow-700 text-xs font-medium">
+            {conflictingPlugins.length} Conflicting Plugin
+            {conflictingPlugins.length !== 1 ? "s" : ""}
+          </span>
+        </Button>
+
+        <Dialog
+          design="simple"
+          exitOnEsc
+          scrollLock
+          open={dialogOpen}
+          setOpen={setDialogOpen}
+        >
+          <Dialog.Backdrop />
+          <Dialog.Panel>
+            <Dialog.Header>
+              <div className="flex items-center justify-between">
+                <Dialog.Title>Conflicting Plugins Detected</Dialog.Title>
+                <Dialog.CloseButton />
+              </div>
+              <Dialog.Description>
+                The following plugins may conflict with SureConsent. It's
+                recommended to deactivate them to avoid issues.
+              </Dialog.Description>
+            </Dialog.Header>
+            <Dialog.Body>
+              <div className="space-y-3">
+                {conflictingPlugins.map((plugin) => (
+                  <div
+                    key={plugin.path}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                  >
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        {plugin.name}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        {plugin.description}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Version: {plugin.version}
+                      </div>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeactivatePlugin(plugin.path)}
+                      disabled={deactivatingPlugin === plugin.path}
+                    >
+                      {deactivatingPlugin === plugin.path
+                        ? "Deactivating..."
+                        : "Deactivate"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                Close
+              </Button>
+            </Dialog.Footer>
+          </Dialog.Panel>
+        </Dialog>
       </div>
     </Topbar.Item>
   );
@@ -514,6 +691,7 @@ const AdminApp = () => {
             <Topbar.Right className="p-5">
               {/* Show preview button on all tabs */}
               <LawSticker />
+              <ConflictingPluginsSticker />
               <PreviewButton />
 
               {/* Scan completion sticker */}
