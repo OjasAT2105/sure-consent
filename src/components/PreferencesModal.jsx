@@ -240,7 +240,19 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
           (cookie) => cookie.category === category.id
         );
         if (categoryCookies.length > 0) {
-          console.log(`📁 ${category.name}:`, categoryCookies);
+          console.log(
+            `📁 ${category.name} (${categoryCookies.length} cookies):`
+          );
+          categoryCookies.forEach((cookie, index) => {
+            console.log(`   ${index + 1}. Cookie Name: "${cookie.name}"`, {
+              name: cookie.name,
+              category: category.name,
+              categoryId: category.id,
+              domain: cookie.domain || "N/A",
+              expires: cookie.expires || "Session",
+              description: cookie.description || "N/A",
+            });
+          });
         }
       }
     });

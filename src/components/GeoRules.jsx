@@ -49,6 +49,12 @@ const GeoRules = () => {
   const handleRuleTypeChange = (value) => {
     setGeoRuleType(value);
     updateSetting("geo_rule_type", value);
+
+    // Clear selected countries when switching to worldwide or eu_only modes
+    if (value === "worldwide" || value === "eu_only") {
+      setSelectedCountries([]);
+      updateSetting("geo_selected_countries", []);
+    }
   };
 
   // Handle country selection

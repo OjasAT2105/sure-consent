@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
+import countriesData from "../data/countries.json";
 import { useEffect, useState } from "react";
 
 const quickLinks = [
@@ -206,6 +207,15 @@ const PieChart = ({
   tooltipIndicator,
   onHover,
 }) => {
+  const [isAnimated, setIsAnimated] = useState(false);
+  const [activeSegment, setActiveSegment] = useState(null);
+
+  useEffect(() => {
+    // Trigger animation on mount
+    const timer = setTimeout(() => setIsAnimated(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Calculate total
   const total = data.reduce((sum, item) => sum + item[dataKey], 0);
 
@@ -226,25 +236,35 @@ const PieChart = ({
     };
   });
 
+  const handleMouseEnter = (item, index) => {
+    setActiveSegment(index);
+    onHover && onHover(item);
+  };
+
+  const handleMouseLeave = () => {
+    setActiveSegment(null);
+    onHover && onHover(null);
+  };
+
   return (
     <div className="flex items-center justify-center">
-      <div className="relative w-40 h-40">
+      <div className="relative w-48 h-48">
         <svg
-          width="160"
-          height="160"
+          width="192"
+          height="192"
           viewBox="0 0 42 42"
           className="transform -rotate-90"
         >
-          {/* Background circle */}
+          {/* Background circle with subtle shadow */}
           <circle
             cx="21"
             cy="21"
             r="15.915"
             fill="transparent"
             stroke="#e5e7eb"
-            strokeWidth="3"
+            strokeWidth="3.5"
           />
-          {/* Data slices */}
+          {/* Data slices with animation */}
           {chartData.map((item, index) => (
             <circle
               key={index}
@@ -253,19 +273,45 @@ const PieChart = ({
               r="15.915"
               fill="transparent"
               stroke={item.fill}
-              strokeWidth="3"
-              strokeDasharray={item.strokeDasharray}
+              strokeWidth={activeSegment === index ? "4.5" : "3.5"}
+              strokeDasharray={isAnimated ? item.strokeDasharray : "0 100"}
               strokeDashoffset={item.strokeDashoffset}
-              className="transition-all duration-300"
-              onMouseEnter={() => onHover && onHover(item)}
-              onMouseLeave={() => onHover && onHover(null)}
+              className="transition-all duration-700 ease-out cursor-pointer"
+              style={{
+                filter:
+                  activeSegment === index
+                    ? "drop-shadow(0 0 6px rgba(0,0,0,0.3))"
+                    : "none",
+                opacity:
+                  activeSegment === null || activeSegment === index ? 1 : 0.5,
+              }}
+              onMouseEnter={() => handleMouseEnter(item, index)}
+              onMouseLeave={handleMouseLeave}
             />
           ))}
         </svg>
-        {/* Center label */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold">{total}</span>
-          <span className="text-xs text-gray-500">Total Consents</span>
+        {/* Center label with animation */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {activeSegment !== null ? (
+            <>
+              <span className="text-3xl font-bold text-gray-800 animate-pulse">
+                {chartData[activeSegment][dataKey]}
+              </span>
+              <span className="text-xs text-gray-600 font-medium mt-1">
+                {chartData[activeSegment].name}
+              </span>
+              <span className="text-sm font-bold text-indigo-600 mt-1">
+                {Math.round(chartData[activeSegment].percentage)}%
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-3xl font-bold text-gray-800">{total}</span>
+              <span className="text-xs text-gray-500 font-medium mt-1">
+                Total Consents
+              </span>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -289,6 +335,139 @@ const Dashboard = () => {
   const [scanLoading, setScanLoading] = useState(true);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [consentLoggingEnabled, setConsentLoggingEnabled] = useState(true);
+  const [geoTargetingMode, setGeoTargetingMode] = useState("selected"); // "worldwide", "eu_only", "selected"
+  const [selectedCountries, setSelectedCountries] = useState([]);
+  const [cookieCategories, setCookieCategories] = useState([]); // For category name mapping
+
+  // Helper function to get category name from ID
+  const getCategoryName = (categoryId) => {
+    if (!categoryId) return "Uncategorized";
+    const category = cookieCategories.find((cat) => cat.id === categoryId);
+    return category ? category.name : categoryId;
+  };
+
+  // Country code to name mapping
+  const getCountryName = (code) => {
+    const country = countriesData.countries.find(
+      (country) => country.code === code
+    );
+    return country ? country.name : code;
+  };
+
+  // EU Countries list
+  const euCountries = [
+    "Austria",
+    "Belgium",
+    "Bulgaria",
+    "Croatia",
+    "Cyprus",
+    "Czech Republic",
+    "Denmark",
+    "Estonia",
+    "Finland",
+    "France",
+    "Germany",
+    "Greece",
+    "Hungary",
+    "Ireland",
+    "Italy",
+    "Latvia",
+    "Lithuania",
+    "Luxembourg",
+    "Malta",
+    "Netherlands",
+    "Poland",
+    "Portugal",
+    "Romania",
+    "Slovakia",
+    "Slovenia",
+    "Spain",
+    "Sweden",
+  ];
+
+  // Country code to flag emoji mapping
+  const getCountryFlag = (code) => {
+    const flagMap = {
+      US: "🇺🇸",
+      GB: "🇬🇧",
+      CA: "🇨🇦",
+      AU: "🇦🇺",
+      DE: "🇩🇪",
+      FR: "🇫🇷",
+      IT: "🇮🇹",
+      ES: "🇪🇸",
+      NL: "🇳🇱",
+      BE: "🇧🇪",
+      AT: "🇦🇹",
+      PT: "🇵🇹",
+      SE: "🇸🇪",
+      DK: "🇩🇰",
+      FI: "🇫🇮",
+      IE: "🇮🇪",
+      PL: "🇵🇱",
+      CZ: "🇨🇿",
+      GR: "🇬🇷",
+      HU: "🇭🇺",
+      RO: "🇷🇴",
+      BG: "🇧🇬",
+      HR: "🇭🇷",
+      SK: "🇸🇰",
+      SI: "🇸🇮",
+      LT: "🇱🇹",
+      LV: "🇱🇻",
+      EE: "🇪🇪",
+      CY: "🇨🇾",
+      MT: "🇲🇹",
+      LU: "🇱🇺",
+      IN: "🇮🇳",
+      JP: "🇯🇵",
+      CN: "🇨🇳",
+      BR: "🇧🇷",
+      MX: "🇲🇽",
+      RU: "🇷🇺",
+      ZA: "🇿🇦",
+      KR: "🇰🇷",
+      SG: "🇸🇬",
+      NZ: "🇳🇿",
+      CH: "🇨🇭",
+      NO: "🇳🇴",
+    };
+    return flagMap[code] || "🏳️";
+  };
+
+  // Get EU country flags
+  const getEUCountryFlag = (countryName) => {
+    const euFlagMap = {
+      Austria: "🇦🇹",
+      Belgium: "🇧🇪",
+      Bulgaria: "🇧🇬",
+      Croatia: "🇭🇷",
+      Cyprus: "🇨🇾",
+      "Czech Republic": "🇨🇿",
+      Denmark: "🇩🇰",
+      Estonia: "🇪🇪",
+      Finland: "🇫🇮",
+      France: "🇫🇷",
+      Germany: "🇩🇪",
+      Greece: "🇬🇷",
+      Hungary: "🇭🇺",
+      Ireland: "🇮🇪",
+      Italy: "🇮🇹",
+      Latvia: "🇱🇻",
+      Lithuania: "🇱🇹",
+      Luxembourg: "🇱🇺",
+      Malta: "🇲🇹",
+      Netherlands: "🇳🇱",
+      Poland: "🇵🇱",
+      Portugal: "🇵🇹",
+      Romania: "🇷🇴",
+      Slovakia: "🇸🇰",
+      Slovenia: "🇸🇮",
+      Spain: "🇪🇸",
+      Sweden: "🇸🇪",
+    };
+    return euFlagMap[countryName] || "🇪🇺";
+  };
 
   const toggleBanner = async () => {
     const newValue = !bannerEnabled;
@@ -405,6 +584,14 @@ const Dashboard = () => {
               ? data.data.consent_logging_enabled
               : true;
           setConsentLoggingEnabled(isEnabled);
+
+          // Set geo-targeting mode from settings (use correct field name)
+          const geoMode = data.data.geo_rule_type || "selected";
+          setGeoTargetingMode(geoMode);
+
+          // Set selected countries from settings (use correct field name and convert codes to names)
+          const countryCodes = data.data.geo_selected_countries || [];
+          setSelectedCountries(countryCodes);
         }
       } catch (error) {
         console.error("Error checking consent logging status:", error);
@@ -499,6 +686,11 @@ const Dashboard = () => {
         if (historyData.success && historyData.data.history.length > 0) {
           setScanHistory(historyData.data.history[0]);
         }
+
+        // Fetch cookie categories for name mapping
+        if (historyData.success && historyData.data.cookie_categories) {
+          setCookieCategories(historyData.data.cookie_categories);
+        }
       } catch (error) {
         console.error("Error fetching scan data:", error);
       } finally {
@@ -591,11 +783,12 @@ const Dashboard = () => {
   const getCookiesByCategory = () => {
     const categories = {};
     scannedCookies.forEach((cookie) => {
-      const category = cookie.category || "Uncategorized";
-      if (!categories[category]) {
-        categories[category] = [];
+      const categoryId = cookie.category || "uncategorized";
+      const categoryName = getCategoryName(categoryId);
+      if (!categories[categoryName]) {
+        categories[categoryName] = [];
       }
-      categories[category].push(cookie);
+      categories[categoryName].push(cookie);
     });
     return categories;
   };
@@ -723,9 +916,89 @@ const Dashboard = () => {
             </Container.Item>
           </Container>
 
-          {/* Consent Analytics */}
+          {/* Geo-Location Banner Activation - Simplified Display */}
           <Container
-            className={`w-full h-fit bg-background-primary border-0.5 border-solid rounded-xl border-border-subtle p-4 shadow-sm relative ${
+            className="w-full h-fit bg-gradient-to-r from-purple-50 to-indigo-50 border-0.5 border-solid rounded-xl border-purple-200 p-6 shadow-lg"
+            containerType="flex"
+            direction="column"
+            gap="md"
+          >
+            <Container.Item>
+              <Container align="center" justify="between">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Shield className="text-purple-600" />
+                  Geo-Location Banner Activation
+                </Label>
+              </Container>
+            </Container.Item>
+
+            <Container.Item className="mt-4">
+              {/* Conditional Display Based on Targeting Mode */}
+
+              {/* Worldwide Mode */}
+              {geoTargetingMode === "worldwide" && (
+                <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+                  <Label className="font-medium text-blue-800">
+                    Banner is shown in all countries
+                  </Label>
+                </div>
+              )}
+
+              {/* EU Countries Only Mode */}
+              {geoTargetingMode === "eu_only" && (
+                <div className="bg-green-50 rounded-lg border border-green-200 p-4">
+                  <Label className="font-medium text-green-800 mb-2">
+                    Banner is shown in EU countries only:
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {euCountries.map((country, index) => (
+                      <span
+                        key={index}
+                        className="text-sm bg-white border border-gray-200 rounded px-2 py-1 flex items-center gap-1"
+                      >
+                        <span className="text-base">
+                          {getEUCountryFlag(country)}
+                        </span>
+                        {country}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Countries Mode */}
+              {geoTargetingMode === "selected" && (
+                <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
+                  <Label className="font-medium text-purple-800 mb-2">
+                    Banner is shown in the following countries:
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCountries.length > 0 ? (
+                      selectedCountries.map((countryCode, index) => (
+                        <span
+                          key={index}
+                          className="text-sm bg-white border border-gray-200 rounded px-2 py-1 flex items-center gap-1"
+                        >
+                          <span className="text-base">
+                            {getCountryFlag(countryCode)}
+                          </span>
+                          {getCountryName(countryCode)}
+                        </span>
+                      ))
+                    ) : (
+                      <Label className="text-sm text-text-secondary">
+                        No countries selected
+                      </Label>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Container.Item>
+          </Container>
+
+          {/* Consent Analytics - Enhanced UI */}
+          <Container
+            className={`w-full h-fit bg-gradient-to-br from-blue-50 to-indigo-50 border-0.5 border-solid rounded-xl border-blue-200 p-6 shadow-lg relative ${
               !consentLoggingEnabled ? "opacity-50 filter blur-sm" : ""
             }`}
             containerType="flex"
@@ -733,9 +1006,18 @@ const Dashboard = () => {
             gap="md"
           >
             <Container.Item>
-              <Label className="text-lg font-semibold text-text-primary">
-                Consent Analytics
-              </Label>
+              <Container align="center" justify="between">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <BarChart3 className="text-indigo-600" />
+                  Consent Analytics
+                </Label>
+                <Badge
+                  label={`${totalConsents} Total`}
+                  size="md"
+                  variant="primary"
+                  className="font-semibold"
+                />
+              </Container>
             </Container.Item>
             <Container.Item>
               {loading ? (
@@ -745,47 +1027,71 @@ const Dashboard = () => {
                     <div className="h-4 bg-gray-200 rounded w-32"></div>
                   </div>
                 </div>
+              ) : totalConsents === 0 ? (
+                <div className="text-center py-12 text-text-secondary bg-white rounded-xl border border-dashed border-gray-300">
+                  <BarChart3 className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                  <p className="font-medium text-lg mb-1">
+                    No consent data yet
+                  </p>
+                  <p className="text-sm">
+                    Consent analytics will appear here once users start
+                    accepting or declining cookies
+                  </p>
+                </div>
               ) : (
                 <Container className="gap-6" align="center">
                   <Container.Item className="w-1/2">
-                    <PieChart
-                      data={consentData}
-                      dataKey="visitors"
-                      showTooltip
-                      tooltipIndicator="dot"
-                      onHover={setHoveredItem}
-                    />
+                    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                      <PieChart
+                        data={consentData}
+                        dataKey="visitors"
+                        showTooltip
+                        tooltipIndicator="dot"
+                        onHover={setHoveredItem}
+                      />
+                    </div>
                   </Container.Item>
                   <Container.Item className="w-1/2">
-                    <Container direction="column" className="gap-4">
+                    <Container direction="column" className="gap-3">
                       {consentData.map((item, index) => (
                         <Container.Item key={index}>
                           <Container
                             align="center"
-                            className={`gap-3 p-3 rounded-lg transition-all duration-200 ${
+                            className={`gap-3 p-4 rounded-xl transition-all duration-200 cursor-pointer ${
                               hoveredItem && hoveredItem.name === item.name
-                                ? "bg-blue-50 border border-blue-200 scale-105"
-                                : "bg-gray-50"
+                                ? "bg-white border-2 border-indigo-300 shadow-md scale-105"
+                                : "bg-white border border-gray-200 shadow-sm hover:shadow-md"
                             }`}
                             onMouseEnter={() => setHoveredItem(item)}
                             onMouseLeave={() => setHoveredItem(null)}
                           >
                             <div
-                              className="w-4 h-4 rounded-full"
+                              className="w-5 h-5 rounded-full shadow-sm"
                               style={{ backgroundColor: item.fill }}
                             />
-                            <Label className="text-sm font-medium flex-1">
-                              {item.name}
-                            </Label>
-                            <Label className="text-sm font-semibold">
-                              {item.visitors} (
-                              {totalConsents > 0
-                                ? Math.round(
-                                    (item.visitors / totalConsents) * 100
-                                  )
-                                : 0}
-                              %)
-                            </Label>
+                            <Container direction="column" className="flex-1">
+                              <Label className="text-sm font-semibold text-gray-800">
+                                {item.name}
+                              </Label>
+                              <Label className="text-xs text-gray-500">
+                                {item.visitors} consents
+                              </Label>
+                            </Container>
+                            <Badge
+                              label={`${
+                                totalConsents > 0
+                                  ? Math.round(
+                                      (item.visitors / totalConsents) * 100
+                                    )
+                                  : 0
+                              }%`}
+                              size="sm"
+                              className="font-bold"
+                              style={{
+                                backgroundColor: item.fill,
+                                color: "white",
+                              }}
+                            />
                           </Container>
                         </Container.Item>
                       ))}
@@ -796,9 +1102,9 @@ const Dashboard = () => {
             </Container.Item>
           </Container>
 
-          {/* Recent Consent Logs */}
+          {/* Recent Consent Logs - Enhanced UI */}
           <Container
-            className={`w-full h-fit bg-background-primary border-0.5 border-solid rounded-xl border-border-subtle p-4 shadow-sm relative ${
+            className={`w-full h-fit bg-gradient-to-br from-green-50 to-emerald-50 border-0.5 border-solid rounded-xl border-green-200 p-6 shadow-lg relative ${
               !consentLoggingEnabled ? "opacity-50 filter blur-sm" : ""
             }`}
             containerType="flex"
@@ -807,7 +1113,8 @@ const Dashboard = () => {
           >
             <Container.Item>
               <Container align="center" justify="between">
-                <Label className="text-lg font-semibold text-text-primary">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Palette className="text-emerald-600" />
                   Recent Consent Logs
                 </Label>
                 <Button
@@ -817,7 +1124,7 @@ const Dashboard = () => {
                     (window.location.href =
                       "admin.php?page=sureconsent&tab=analytics#settings")
                   }
-                  className="font-medium"
+                  className="font-medium bg-white hover:bg-gray-50 border-green-300"
                 >
                   View All Logs
                 </Button>
@@ -834,45 +1141,69 @@ const Dashboard = () => {
                   </div>
                 </div>
               ) : consentLogs.length === 0 ? (
-                <div className="text-center py-6 text-text-secondary">
-                  No consent logs found
+                <div className="text-center py-12 text-text-secondary bg-white rounded-xl border border-dashed border-gray-300">
+                  <Palette className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                  <p className="font-medium text-lg mb-1">
+                    No consent logs yet
+                  </p>
+                  <p className="text-sm">
+                    Recent consent logs will appear here once users interact
+                    with the banner
+                  </p>
                 </div>
               ) : (
-                <Container direction="column" className="gap-3">
-                  <Container className="grid grid-cols-12 gap-4 px-4 py-2 bg-gray-50 rounded-lg font-semibold text-sm">
-                    <div className="col-span-3">Date & Time</div>
-                    <div className="col-span-3">IP Address</div>
-                    <div className="col-span-3">Country</div>
-                    <div className="col-span-3">Status</div>
-                  </Container>
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  {/* Header */}
+                  <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gradient-to-r from-emerald-100 to-green-100 border-b border-emerald-200">
+                    <div className="col-span-3 font-bold text-sm text-emerald-900">
+                      Date & Time
+                    </div>
+                    <div className="col-span-3 font-bold text-sm text-emerald-900">
+                      IP Address
+                    </div>
+                    <div className="col-span-3 font-bold text-sm text-emerald-900">
+                      Country
+                    </div>
+                    <div className="col-span-3 font-bold text-sm text-emerald-900">
+                      Status
+                    </div>
+                  </div>
 
-                  {consentLogs.map((log, index) => (
-                    <Container
-                      key={index}
-                      className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
-                      align="center"
-                    >
-                      <div className="col-span-3 text-sm">
-                        {formatDateTime(log.timestamp)}
+                  {/* Rows */}
+                  <div className="divide-y divide-gray-100">
+                    {consentLogs.map((log, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-emerald-50 transition-colors duration-150 cursor-pointer"
+                      >
+                        <div className="col-span-3 text-sm text-gray-700 flex items-center">
+                          <span className="font-medium">
+                            {formatDateTime(log.timestamp)}
+                          </span>
+                        </div>
+                        <div className="col-span-3 text-sm font-mono text-gray-600 flex items-center">
+                          <span className="bg-gray-100 px-2 py-1 rounded border border-gray-200">
+                            {log.ip_address || "N/A"}
+                          </span>
+                        </div>
+                        <div className="col-span-3 text-sm text-gray-700 flex items-center">
+                          <span className="font-medium">
+                            {log.country || "Localhost"}
+                          </span>
+                        </div>
+                        <div className="col-span-3 flex items-center">
+                          <span
+                            className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm ${getStatusColor(
+                              log.status
+                            )}`}
+                          >
+                            {getStatusDisplay(log.status)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="col-span-3 text-sm font-mono">
-                        {log.ip_address || "N/A"}
-                      </div>
-                      <div className="col-span-3 text-sm">
-                        {log.country || "Localhost"}
-                      </div>
-                      <div className="col-span-3">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
-                            log.status
-                          )}`}
-                        >
-                          {getStatusDisplay(log.status)}
-                        </span>
-                      </div>
-                    </Container>
-                  ))}
-                </Container>
+                    ))}
+                  </div>
+                </div>
               )}
             </Container.Item>
           </Container>

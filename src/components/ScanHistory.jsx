@@ -25,6 +25,14 @@ const ScanHistory = () => {
   });
   const [selectedRecords, setSelectedRecords] = useState([]); // For bulk selection
   const [isDeletingSelected, setIsDeletingSelected] = useState(false); // For bulk delete loading state
+  const [cookieCategories, setCookieCategories] = useState([]); // Cookie categories for name mapping
+
+  // Helper function to get category name from ID
+  const getCategoryName = (categoryId) => {
+    if (!categoryId) return "Uncategorized";
+    const category = cookieCategories.find((cat) => cat.id === categoryId);
+    return category ? category.name : categoryId;
+  };
 
   // Fetch scan history
   const fetchScanHistory = async (page = 1) => {
@@ -59,6 +67,11 @@ const ScanHistory = () => {
           totalPages: data.data.total_pages || 1,
           total: data.data.total || 0,
         });
+
+        // Fetch cookie categories for name mapping
+        if (data.data.cookie_categories) {
+          setCookieCategories(data.data.cookie_categories);
+        }
       } else {
         console.error("ScanHistory - Failed to fetch scan history:", data);
         setScanHistory([]);
@@ -529,7 +542,7 @@ const ScanHistory = () => {
                                   <span className="mr-1">
                                     {getCategoryIcon(category)}
                                   </span>
-                                  {category} ({count})
+                                  {getCategoryName(category)} ({count})
                                 </span>
                               )
                             )}
@@ -620,7 +633,7 @@ const ScanHistory = () => {
                                         {getCategoryIcon(category)}
                                       </span>
                                       <span className="font-medium">
-                                        {category}
+                                        {getCategoryName(category)}
                                       </span>
                                       <span className="ml-1 text-gray-500">
                                         ({count})
@@ -684,7 +697,9 @@ const ScanHistory = () => {
                                                       cookie.category
                                                     )}
                                                     <span className="ml-1">
-                                                      {cookie.category}
+                                                      {getCategoryName(
+                                                        cookie.category
+                                                      )}
                                                     </span>
                                                   </span>
                                                 </td>

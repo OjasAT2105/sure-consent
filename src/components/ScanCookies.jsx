@@ -14,15 +14,26 @@ const ScanCookies = () => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+  // Get cookie categories for mapping IDs to names
+  const cookieCategories = getCurrentValue("cookie_categories") || [];
+
+  // Helper function to get category name from ID
+  const getCategoryName = (categoryId) => {
+    const category = cookieCategories.find((cat) => cat.id === categoryId);
+    return category ? category.name : categoryId;
+  };
+
   // Group cookies by category
   const groupCookiesByCategory = (cookies) => {
     const grouped = {};
     cookies.forEach((cookie) => {
-      const category = cookie.category || "Uncategorized";
-      if (!grouped[category]) {
-        grouped[category] = [];
+      // Convert category ID to name
+      const categoryId = cookie.category || "Uncategorized";
+      const categoryName = getCategoryName(categoryId);
+      if (!grouped[categoryName]) {
+        grouped[categoryName] = [];
       }
-      grouped[category].push(cookie);
+      grouped[categoryName].push(cookie);
     });
     return grouped;
   };
