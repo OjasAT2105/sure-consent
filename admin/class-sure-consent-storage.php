@@ -1,11 +1,13 @@
 <?php
+
 /**
- * Consent Storage Handler
- * Stores user consent decisions with IP tracking
+ * Storage handler for SureConsent plugin
  *
  * @package    Sure_Consent
  * @subpackage Sure_Consent/admin
  */
+
+// Added Uncategorized category support - 2025-10-26
 
 class Sure_Consent_Storage {
 
@@ -35,6 +37,191 @@ class Sure_Consent_Storage {
         
         // Create table on init if it doesn't exist
         add_action('init', array(__CLASS__, 'create_table'));
+        
+        // Check and add default categories if missing
+        add_action('init', array(__CLASS__, 'check_default_categories'));
+    }
+    
+    /**
+     * Check if default categories exist and add them if missing
+     */
+    public static function check_default_categories() {
+        // Only run for admin users
+        if (!is_admin() || !current_user_can('manage_options')) {
+            return;
+        }
+        
+        // Get current cookie categories
+        $cookie_categories_raw = get_option('sure_consent_cookie_categories', '[]');
+        $cookie_categories = json_decode($cookie_categories_raw, true);
+        
+        // If no categories exist, don't add the default categories as it will be handled by frontend
+        if (empty($cookie_categories) || !is_array($cookie_categories)) {
+            return;
+        }
+        
+        // Check if default categories exist and fix their properties if needed
+        $default_categories = array('essential', 'functional', 'analytics', 'marketing', 'uncategorized');
+        $updated_categories = array();
+        $needs_update = false;
+        
+        foreach ($cookie_categories as $category) {
+            if (isset($category['id']) && in_array($category['id'], $default_categories)) {
+                // Ensure all default categories have required=true
+                if (!isset($category['required']) || $category['required'] !== true) {
+                    $category['required'] = true;
+                    $needs_update = true;
+                }
+                
+                // Set specific properties for each category
+                switch ($category['id']) {
+                    case 'essential':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Essential Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These cookies are necessary for the website to function and cannot be switched off. They are usually only set in response to actions made by you such as setting your privacy preferences, logging in or filling in forms.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'Shield';
+                            $needs_update = true;
+                        }
+                        break;
+                        
+                    case 'functional':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Functional Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third party providers whose services we have added to our pages.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'Settings';
+                            $needs_update = true;
+                        }
+                        break;
+                        
+                    case 'analytics':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Analytics Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'BarChart3';
+                            $needs_update = true;
+                        }
+                        break;
+                        
+                    case 'marketing':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Marketing Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'Target';
+                            $needs_update = true;
+                        }
+                        break;
+                        
+                    case 'uncategorized':
+                        if (!isset($category['name']) || empty($category['name'])) {
+                            $category['name'] = 'Uncategorized Cookies';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['description']) || empty($category['description'])) {
+                            $category['description'] = 'These are cookies that do not fit into any of the other categories. They may be used for various purposes that are not specifically defined.';
+                            $needs_update = true;
+                        }
+                        if (!isset($category['icon']) || empty($category['icon'])) {
+                            $category['icon'] = 'FolderOpen';
+                            $needs_update = true;
+                        }
+                        break;
+                }
+            }
+            $updated_categories[] = $category;
+        }
+        
+        // Add missing default categories
+        $existing_ids = array_column($updated_categories, 'id');
+        foreach ($default_categories as $default_id) {
+            if (!in_array($default_id, $existing_ids)) {
+                $default_category = null;
+                switch ($default_id) {
+                    case 'essential':
+                        $default_category = array(
+                            'id' => 'essential',
+                            'name' => 'Essential Cookies',
+                            'description' => 'These cookies are necessary for the website to function and cannot be switched off. They are usually only set in response to actions made by you such as setting your privacy preferences, logging in or filling in forms.',
+                            'icon' => 'Shield',
+                            'required' => true
+                        );
+                        break;
+                        
+                    case 'functional':
+                        $default_category = array(
+                            'id' => 'functional',
+                            'name' => 'Functional Cookies',
+                            'description' => 'These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third party providers whose services we have added to our pages.',
+                            'icon' => 'Settings',
+                            'required' => true
+                        );
+                        break;
+                        
+                    case 'analytics':
+                        $default_category = array(
+                            'id' => 'analytics',
+                            'name' => 'Analytics Cookies',
+                            'description' => 'These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.',
+                            'icon' => 'BarChart3',
+                            'required' => true
+                        );
+                        break;
+                        
+                    case 'marketing':
+                        $default_category = array(
+                            'id' => 'marketing',
+                            'name' => 'Marketing Cookies',
+                            'description' => 'These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.',
+                            'icon' => 'Target',
+                            'required' => true
+                        );
+                        break;
+                        
+                    case 'uncategorized':
+                        $default_category = array(
+                            'id' => 'uncategorized',
+                            'name' => 'Uncategorized Cookies',
+                            'description' => 'These are cookies that do not fit into any of the other categories. They may be used for various purposes that are not specifically defined.',
+                            'icon' => 'FolderOpen',
+                            'required' => true
+                        );
+                        break;
+                }
+                
+                if ($default_category) {
+                    $updated_categories[] = $default_category;
+                    $needs_update = true;
+                }
+            }
+        }
+        
+        // Update the categories if needed
+        if ($needs_update) {
+            update_option('sure_consent_cookie_categories', json_encode($updated_categories));
+        }
     }
 
     /**
@@ -43,6 +230,9 @@ class Sure_Consent_Storage {
     public static function create_table() {
         global $wpdb;
         $table_name = $wpdb->prefix . self::TABLE_NAME;
+        $scanned_cookies_table = $wpdb->prefix . 'sure_consent_scanned_cookies';
+        $scan_history_table = $wpdb->prefix . 'sure_consent_scan_history';
+        $scheduled_scans_table = $wpdb->prefix . 'sure_consent_scheduled_scans';
 
         $charset_collate = $wpdb->get_charset_collate();
 
@@ -63,8 +253,61 @@ class Sure_Consent_Storage {
             KEY country (country)
         ) $charset_collate;";
 
+        // Create table for scanned cookies
+        $scanned_cookies_sql = "CREATE TABLE $scanned_cookies_table (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            cookie_name varchar(255) NOT NULL,
+            cookie_value text,
+            domain varchar(255),
+            path varchar(255),
+            expires datetime DEFAULT NULL,
+            category varchar(50) DEFAULT 'Uncategorized',
+            note text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY cookie_name (cookie_name),
+            KEY domain (domain),
+            KEY category (category)
+        ) $charset_collate;";
+
+        // Create table for scan history
+        $scan_history_sql = "CREATE TABLE $scan_history_table (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            scan_date datetime DEFAULT CURRENT_TIMESTAMP,
+            total_cookies int(11) DEFAULT 0,
+            scan_type varchar(20) DEFAULT 'current_page',
+            pages_scanned int(11) DEFAULT 1,
+            scan_data longtext,
+            PRIMARY KEY (id),
+            KEY scan_date (scan_date),
+            KEY scan_type (scan_type)
+        ) $charset_collate;";
+
+        // Create table for scheduled scans
+        $scheduled_scans_sql = "CREATE TABLE $scheduled_scans_table (
+            id int(11) NOT NULL AUTO_INCREMENT,
+            frequency varchar(20) NOT NULL,
+            start_date date NOT NULL,
+            start_time time NOT NULL,
+            end_date date DEFAULT NULL,
+            last_run datetime DEFAULT NULL,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id)
+        ) $charset_collate;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql);
+        error_log('SureConsent - Creating tables...');
+        $result1 = dbDelta($sql);
+        error_log('SureConsent - Consent logs table result: ' . print_r($result1, true));
+        $result2 = dbDelta($scanned_cookies_sql);
+        error_log('SureConsent - Scanned cookies table result: ' . print_r($result2, true));
+        $result3 = dbDelta($scan_history_sql);
+        error_log('SureConsent - Scan history table result: ' . print_r($result3, true));
+        $result4 = dbDelta($scheduled_scans_sql);
+        error_log('SureConsent - Scheduled scans table result: ' . print_r($result4, true));
+        
+        error_log('SureConsent - Finished creating tables');
         
         // Update existing records to add country information
         self::update_existing_records();
@@ -143,9 +386,11 @@ class Sure_Consent_Storage {
         $preferences = isset($_POST['preferences']) ? stripslashes($_POST['preferences']) : '';
         $action_type = isset($_POST['action_type']) ? sanitize_text_field($_POST['action_type']) : 'unknown';
         
-        // Normalize action types - accept_all and accepted should both be treated as accepted
-        if ($action_type === 'accept_all' || $action_type === 'accepted') {
+        // Normalize action types
+        if ($action_type === 'accept_all') {
             $action_type = 'accepted';
+        } else if ($action_type === 'decline_all') {
+            $action_type = 'declined';
         }
         
         // Get user agent
@@ -340,6 +585,8 @@ class Sure_Consent_Storage {
             $normalized_action = $log->action;
             if ($log->action === 'accept_all') {
                 $normalized_action = 'accepted';
+            } else if ($log->action === 'decline_all') {
+                $normalized_action = 'declined';
             }
             
             $processed_log = array(
@@ -541,6 +788,207 @@ class Sure_Consent_Storage {
         $result = $wpdb->query("DELETE FROM $table_name");
 
         return $result !== false;
+    }
+    
+    /**
+     * Save scan history record
+     */
+    public static function save_scan_history($total_cookies, $scan_type, $pages_scanned, $scan_data = array()) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        error_log('SureConsent - Saving scan history - Total cookies: ' . $total_cookies . ', Scan type: ' . $scan_type . ', Pages scanned: ' . $pages_scanned);
+        
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+        if (!$table_exists) {
+            error_log('SureConsent - Scan history table does not exist: ' . $table_name);
+            return false;
+        }
+        
+        // Insert scan history record
+        $result = $wpdb->insert(
+            $table_name,
+            array(
+                'scan_date' => current_time('mysql'),
+                'total_cookies' => $total_cookies,
+                'scan_type' => $scan_type,
+                'pages_scanned' => $pages_scanned,
+                'scan_data' => !empty($scan_data) ? json_encode($scan_data) : null
+            ),
+            array(
+                '%s', // scan_date
+                '%d', // total_cookies
+                '%s', // scan_type
+                '%d', // pages_scanned
+                '%s'  // scan_data
+            )
+        );
+        
+        if ($result !== false) {
+            error_log('SureConsent - Scan history saved successfully with ID: ' . $wpdb->insert_id);
+            return $wpdb->insert_id;
+        } else {
+            error_log('SureConsent - Failed to save scan history. Error: ' . $wpdb->last_error);
+            return false;
+        }
+    }
+    
+    /**
+     * Get scan history records
+     */
+    public static function get_scan_history($limit = 50, $offset = 0) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+        if (!$table_exists) {
+            error_log('SureConsent - Scan history table does not exist: ' . $table_name);
+            return array();
+        }
+        
+        // Get scan history records
+        $results = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table_name ORDER BY scan_date DESC LIMIT %d OFFSET %d",
+            $limit,
+            $offset
+        ));
+        
+        error_log('SureConsent - Retrieved ' . count($results) . ' scan history records');
+        
+        // Process results
+        $processed_results = array();
+        foreach ($results as $result) {
+            $processed_results[] = array(
+                'id' => $result->id,
+                'scan_date' => $result->scan_date,
+                'total_cookies' => $result->total_cookies,
+                'scan_type' => $result->scan_type,
+                'pages_scanned' => $result->pages_scanned,
+                'scan_data' => json_decode($result->scan_data, true)
+            );
+        }
+        
+        return $processed_results;
+    }
+    
+    /**
+     * Get scan history by ID
+     */
+    public static function get_scan_history_by_id($id) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        // Get scan history record by ID
+        $result = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table_name WHERE id = %d",
+            $id
+        ));
+        
+        if ($result) {
+            return array(
+                'id' => $result->id,
+                'scan_date' => $result->scan_date,
+                'total_cookies' => $result->total_cookies,
+                'scan_type' => $result->scan_type,
+                'pages_scanned' => $result->pages_scanned,
+                'scan_data' => json_decode($result->scan_data, true)
+            );
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Delete scan history record
+     */
+    public static function delete_scan_history($id) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        // Delete scan history record
+        $result = $wpdb->delete(
+            $table_name,
+            array('id' => $id),
+            array('%d')
+        );
+        
+        return $result !== false;
+    }
+    
+    /**
+     * Get total count of scan history records
+     */
+    public static function get_scan_history_count() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scan_history';
+        
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'");
+        if (!$table_exists) {
+            error_log('SureConsent - Scan history table does not exist: ' . $table_name);
+            return 0;
+        }
+        
+        // Get total count
+        $count = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+        error_log('SureConsent - Scan history count: ' . $count);
+        return $count;
+    }
+    
+    /**
+     * Save a scheduled scan
+     */
+    public static function save_scheduled_scan($data) {
+        // Removed scheduled scan functionality
+        return false;
+    }
+    
+    /**
+     * Get all scheduled scans
+     */
+    public static function get_scheduled_scans() {
+        // Removed scheduled scan functionality
+        return array();
+    }
+    
+    /**
+     * Delete a scheduled scan
+     */
+    public static function delete_scheduled_scan($id) {
+        // Removed scheduled scan functionality
+        return false;
+    }
+    
+    /**
+     * Check for scheduled scans that are due and trigger redirect
+     */
+    public static function check_scheduled_scans() {
+        // Removed scheduled scan functionality
+        return false;
+    }
+    
+    /**
+     * Set transient for scheduled scan
+     */
+    public static function set_scheduled_scan_transient($schedule_id, $data) {
+        // Removed scheduled scan functionality
+    }
+    
+    /**
+     * Check for scheduled scan redirect flag
+     */
+    public static function check_scheduled_scan_redirect() {
+        // Removed scheduled scan functionality
+        return false;
+    }
+    
+    /**
+     * Clear scheduled scan redirect flag
+     */
+    public static function clear_scheduled_scan_redirect() {
+        // Removed scheduled scan functionality
     }
 }
 

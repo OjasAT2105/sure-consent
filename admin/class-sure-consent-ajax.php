@@ -29,6 +29,21 @@ class Sure_Consent_Ajax {
         // Add new actions for deleting consent logs
         add_action('wp_ajax_sure_consent_delete_consent_log', array(__CLASS__, 'delete_consent_log'));
         add_action('wp_ajax_sure_consent_delete_all_consent_logs', array(__CLASS__, 'delete_all_consent_logs'));
+        // Add new actions for cookie scanning
+        add_action('wp_ajax_sure_consent_scan_cookies', array(__CLASS__, 'scan_cookies'));
+        add_action('wp_ajax_sure_consent_get_scanned_cookies', array(__CLASS__, 'get_scanned_cookies'));
+        add_action('wp_ajax_sure_consent_update_scanned_cookie', array(__CLASS__, 'update_scanned_cookie'));
+        add_action('wp_ajax_sure_consent_delete_scanned_cookie', array(__CLASS__, 'delete_scanned_cookie'));
+        // Add new actions for scan history
+        add_action('wp_ajax_sure_consent_get_scan_history', array(__CLASS__, 'get_scan_history'));
+        add_action('wp_ajax_sure_consent_get_scan_history_record', array(__CLASS__, 'get_scan_history_record'));
+        add_action('wp_ajax_sure_consent_delete_scan_history_record', array(__CLASS__, 'delete_scan_history_record'));
+        add_action('wp_ajax_sure_consent_export_scan_history_csv', array(__CLASS__, 'export_scan_history_csv'));
+        add_action('wp_ajax_sure_consent_export_scan_history_json', array(__CLASS__, 'export_scan_history_json'));
+        // Add new actions for scheduled scans
+        add_action('wp_ajax_sure_consent_save_scheduled_scan', array(__CLASS__, 'save_scheduled_scan'));
+        add_action('wp_ajax_sure_consent_get_scheduled_scans', array(__CLASS__, 'get_scheduled_scans'));
+        add_action('wp_ajax_sure_consent_delete_scheduled_scan', array(__CLASS__, 'delete_scheduled_scan'));
     }
 
     /**
@@ -82,6 +97,13 @@ class Sure_Consent_Ajax {
                 error_log('SureConsent - Saving geo_selected_countries as JSON: ' . $json_value);
                 $updated[$key] = $value;
             }
+            // Handle compliance_law as JSON (special case)
+            else if ($key === 'compliance_law' && is_array($value)) {
+                $json_value = json_encode($value);
+                update_option($option_name, $json_value);
+                error_log('SureConsent - Saving compliance_law as JSON: ' . $json_value);
+                $updated[$key] = $value;
+            }
             // Handle preview_enabled as boolean
             else if ($key === 'preview_enabled') {
                 update_option($option_name, (bool) $value);
@@ -102,7 +124,7 @@ class Sure_Consent_Ajax {
                 $updated[$key] = $value;
                 
                 // Also update through settings class if it exists (except for special cases)
-                if (class_exists('Sure_Consent_Settings') && $key !== 'cookie_categories' && $key !== 'custom_cookies' && $key !== 'geo_selected_countries') {
+                if (class_exists('Sure_Consent_Settings') && $key !== 'cookie_categories' && $key !== 'custom_cookies' && $key !== 'geo_selected_countries' && $key !== 'compliance_law') {
                     Sure_Consent_Settings::update_setting($key, $value);
                 }
             }
@@ -202,6 +224,28 @@ class Sure_Consent_Ajax {
             $processed_geo_selected_countries = $geo_selected_countries_decoded;
         }
         
+        // Get compliance law setting
+        $compliance_law_raw = get_option('sure_consent_compliance_law', array('id' => '1', 'name' => 'GDPR'));
+        error_log('SureConsent - compliance_law RAW from DB: ' . print_r($compliance_law_raw, true));
+        
+        // Handle potential JSON decoding errors for compliance law
+        $compliance_law = array('id' => '1', 'name' => 'GDPR');
+        if (!empty($compliance_law_raw)) {
+            if (is_string($compliance_law_raw)) {
+                $decoded = json_decode($compliance_law_raw, true);
+                if ($decoded !== null && is_array($decoded)) {
+                    $compliance_law = $decoded;
+                } else {
+                    // If it's a simple string, treat it as the name
+                    $compliance_law = array('id' => '1', 'name' => $compliance_law_raw);
+                }
+            } else if (is_array($compliance_law_raw)) {
+                $compliance_law = $compliance_law_raw;
+            }
+        }
+        
+        error_log('SureConsent - compliance_law PROCESSED: ' . print_r($compliance_law, true));
+        
         $settings = array(
             'message_heading' => (string) get_option('sure_consent_message_heading', ''),
             'message_description' => (string) get_option('sure_consent_message_description', 'We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.'),
@@ -236,13 +280,15 @@ class Sure_Consent_Ajax {
             'custom_cookies' => $processed_custom_cookies,
             'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365),  // Add consent duration setting
             'geo_rule_type' => (string) get_option('sure_consent_geo_rule_type', 'worldwide'),  // Geo rule type
-            'geo_selected_countries' => $processed_geo_selected_countries  // Selected countries for geo-targeting
+            'geo_selected_countries' => $processed_geo_selected_countries,  // Selected countries for geo-targeting
+            'compliance_law' => $compliance_law  // Add compliance law setting
         );
         
         error_log('SureConsent - Final settings array: ' . print_r($settings, true));
         error_log('SureConsent - cookie_categories from DB: ' . get_option('sure_consent_cookie_categories', '[]'));
         error_log('SureConsent - custom_cookies from DB: ' . get_option('sure_consent_custom_cookies', '[]'));
         error_log('SureConsent - geo_selected_countries from DB: ' . get_option('sure_consent_geo_selected_countries', '[]'));
+        error_log('SureConsent - compliance_law from DB: ' . get_option('sure_consent_compliance_law', 'GDPR'));
         error_log('SureConsent - Sending settings response: ' . print_r($settings, true));
         wp_send_json_success($settings);
     }
@@ -379,6 +425,28 @@ class Sure_Consent_Ajax {
         if (is_array($geo_selected_countries_decoded)) {
             $processed_geo_selected_countries = $geo_selected_countries_decoded;
         }
+        
+        // Get compliance law setting
+        $compliance_law_raw = get_option('sure_consent_compliance_law', array('id' => '1', 'name' => 'GDPR'));
+        error_log('SureConsent - public compliance_law RAW from DB: ' . print_r($compliance_law_raw, true));
+        
+        // Handle potential JSON decoding errors for compliance law
+        $compliance_law = array('id' => '1', 'name' => 'GDPR');
+        if (!empty($compliance_law_raw)) {
+            if (is_string($compliance_law_raw)) {
+                $decoded = json_decode($compliance_law_raw, true);
+                if ($decoded !== null && is_array($decoded)) {
+                    $compliance_law = $decoded;
+                } else {
+                    // If it's a simple string, treat it as the name
+                    $compliance_law = array('id' => '1', 'name' => $compliance_law_raw);
+                }
+            } else if (is_array($compliance_law_raw)) {
+                $compliance_law = $compliance_law_raw;
+            }
+        }
+        
+        error_log('SureConsent - public compliance_law PROCESSED: ' . print_r($compliance_law, true));
 
         $settings = array(
             'message_heading' => (string) get_option('sure_consent_message_heading', ''),
@@ -438,7 +506,8 @@ class Sure_Consent_Ajax {
             'custom_cookies' => $processed_custom_cookies,
             'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365),  // Add consent duration setting
             'geo_rule_type' => (string) $geo_rule_type,  // Geo rule type
-            'geo_selected_countries' => $processed_geo_selected_countries  // Selected countries for geo-targeting
+            'geo_selected_countries' => $processed_geo_selected_countries,  // Selected countries for geo-targeting
+            'compliance_law' => $compliance_law  // Add compliance law setting
         );
         
         wp_send_json_success($settings);
@@ -566,7 +635,805 @@ class Sure_Consent_Ajax {
             wp_send_json_error(array('message' => 'Storage class not found'));
         }
     }
+
+    /**
+     * Get all published pages and posts URLs from WordPress
+     */
+    public static function get_all_site_urls() {
+        // Get all published posts
+        $posts = get_posts(array(
+            'post_type' => 'post',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'fields' => 'ids'
+        ));
+        
+        // Get all published pages
+        $pages = get_posts(array(
+            'post_type' => 'page',
+            'post_status' => 'publish',
+            'numberposts' => -1,
+            'fields' => 'ids'
+        ));
+        
+        // Get all public post types
+        $post_types = get_post_types(array('public' => true));
+        $all_posts = array();
+        
+        foreach ($post_types as $post_type) {
+            if ($post_type !== 'post' && $post_type !== 'page' && $post_type !== 'attachment') {
+                $custom_posts = get_posts(array(
+                    'post_type' => $post_type,
+                    'post_status' => 'publish',
+                    'numberposts' => -1,
+                    'fields' => 'ids'
+                ));
+                $all_posts = array_merge($all_posts, $custom_posts);
+            }
+        }
+        
+        // Combine all posts
+        $all_content_ids = array_merge($posts, $pages, $all_posts);
+        
+        // Get URLs
+        $urls = array();
+        foreach ($all_content_ids as $post_id) {
+            $urls[] = get_permalink($post_id);
+        }
+        
+        // Add homepage
+        $urls[] = home_url();
+        
+        // Remove duplicates and invalid URLs
+        $urls = array_filter(array_unique($urls), function($url) {
+            return filter_var($url, FILTER_VALIDATE_URL) !== false;
+        });
+        
+        return array_values($urls);
+    }
+
+    /**
+     * Scan cookies using Puppeteer for comprehensive detection including third-party cookies
+     */
+    public static function scan_cookies_with_puppeteer($url) {
+        // Path to the Node.js script
+        $script_path = plugin_dir_path(__FILE__) . '../puppeteer-scan.js';
+        $results_path = plugin_dir_path(__FILE__) . '../puppeteer-results.json';
+        
+        // Remove previous results if they exist
+        if (file_exists($results_path)) {
+            unlink($results_path);
+        }
+        
+        // Execute the Node.js script
+        $command = 'node ' . escapeshellarg($script_path) . ' ' . escapeshellarg($url) . ' 2>&1';
+        $output = shell_exec($command);
+        
+        // Check if results file was created
+        if (file_exists($results_path)) {
+            $results = file_get_contents($results_path);
+            $cookies = json_decode($results, true);
+            
+            // Remove the results file
+            unlink($results_path);
+            
+            if (is_array($cookies)) {
+                return $cookies;
+            }
+        }
+        
+        // Return empty array if no results
+        return array();
+    }
+
+    /**
+     * Scan cookies using Puppeteer for multiple URLs
+     */
+    public static function scan_cookies_with_puppeteer_multiple($urls) {
+        // Path to the Node.js script
+        $script_path = plugin_dir_path(__FILE__) . '../puppeteer-scan.js';
+        $results_path = plugin_dir_path(__FILE__) . '../puppeteer-results.json';
+        
+        // Remove previous results if they exist
+        if (file_exists($results_path)) {
+            unlink($results_path);
+        }
+        
+        // Prepare URLs for command line (limit to 50 URLs to prevent command line overflow)
+        $urls = array_slice($urls, 0, 50);
+        $url_args = array_map('escapeshellarg', $urls);
+        $urls_string = implode(' ', $url_args);
+        
+        // Execute the Node.js script with multiple URLs
+        $command = 'node ' . escapeshellarg($script_path) . ' ' . $urls_string . ' 2>&1';
+        $output = shell_exec($command);
+        
+        // Check if results file was created
+        if (file_exists($results_path)) {
+            $results = file_get_contents($results_path);
+            $cookies = json_decode($results, true);
+            
+            // Remove the results file
+            unlink($results_path);
+            
+            if (is_array($cookies)) {
+                return $cookies;
+            }
+        }
+        
+        // Return empty array if no results
+        return array();
+    }
+
+    /**
+     * Scan cookies and save to database
+     */
+    public static function scan_cookies() {
+        error_log('SureConsent - scan_cookies function called');
+        
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            error_log('SureConsent - Security check failed in scan_cookies');
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            error_log('SureConsent - Insufficient permissions in scan_cookies');
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get scanned cookies data
+        $scanned_cookies = isset($_POST['cookies']) ? json_decode(stripslashes($_POST['cookies']), true) : array();
+        $scan_all_pages = isset($_POST['scan_all']) ? (bool) $_POST['scan_all'] : false;
+        
+        error_log('SureConsent - Scan all pages: ' . ($scan_all_pages ? 'true' : 'false'));
+        
+        if (!is_array($scanned_cookies)) {
+            error_log('SureConsent - Invalid cookie data in scan_cookies');
+            wp_send_json_error(array('message' => 'Invalid cookie data'));
+            return;
+        }
+
+        // If scanning all pages, get all URLs and perform comprehensive scan
+        if ($scan_all_pages) {
+            error_log('SureConsent - Getting all site URLs for scan');
+            $all_urls = self::get_all_site_urls();
+            error_log('SureConsent - Found ' . count($all_urls) . ' URLs to scan');
+            error_log('SureConsent - URLs: ' . print_r($all_urls, true));
+            
+            error_log('SureConsent - Starting Puppeteer scan for all pages');
+            $puppeteer_cookies = self::scan_cookies_with_puppeteer_multiple($all_urls);
+            error_log('SureConsent - Puppeteer scan completed, found ' . count($puppeteer_cookies) . ' cookies');
+        } else {
+            // Single page scan as before
+            error_log('SureConsent - Starting single page scan');
+            $website_url = isset($_POST['url']) ? sanitize_text_field($_POST['url']) : home_url();
+            $puppeteer_cookies = self::scan_cookies_with_puppeteer($website_url);
+            error_log('SureConsent - Single page scan completed, found ' . count($puppeteer_cookies) . ' cookies');
+        }
+        
+        // Merge client and server cookies
+        $all_cookies = array_merge($scanned_cookies, $puppeteer_cookies);
+        error_log('SureConsent - Total cookies found before adding custom cookies: ' . count($all_cookies));
+
+        // Get custom cookies from settings and add them to the scan results
+        $custom_cookies_raw = get_option('sure_consent_custom_cookies', '[]');
+        $custom_cookies = json_decode($custom_cookies_raw, true);
+        
+        // If json_decode fails, initialize as empty array
+        if ($custom_cookies === null) {
+            $custom_cookies = array();
+        }
+        
+        error_log('SureConsent - Found ' . count($custom_cookies) . ' custom cookies to include in scan');
+        
+        // Convert custom cookies to the same format as scanned cookies
+        $formatted_custom_cookies = array();
+        foreach ($custom_cookies as $custom_cookie) {
+            $formatted_custom_cookies[] = array(
+                'name' => isset($custom_cookie['name']) ? sanitize_text_field($custom_cookie['name']) : '',
+                'value' => '', // Custom cookies don't have actual values in scanning
+                'domain' => isset($custom_cookie['domain']) ? sanitize_text_field($custom_cookie['domain']) : window.location.hostname,
+                'path' => '/',
+                'expires' => isset($custom_cookie['expires']) ? sanitize_text_field($custom_cookie['expires']) : null,
+                'category' => isset($custom_cookie['category']) ? sanitize_text_field($custom_cookie['category']) : 'Uncategorized',
+                'note' => isset($custom_cookie['description']) ? 'Custom cookie: ' . sanitize_text_field($custom_cookie['description']) : 'Custom cookie'
+            );
+        }
+        
+        // Merge custom cookies with scanned cookies
+        $all_cookies = array_merge($all_cookies, $formatted_custom_cookies);
+        error_log('SureConsent - Total cookies after adding custom cookies: ' . count($all_cookies));
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scanned_cookies';
+
+        // First, delete all existing scanned cookies
+        error_log('SureConsent - Clearing existing scanned cookies');
+        $wpdb->query("TRUNCATE TABLE $table_name");
+
+        // Insert new scanned cookies
+        error_log('SureConsent - Inserting ' . count($all_cookies) . ' cookies into database');
+        foreach ($all_cookies as $cookie) {
+            $wpdb->insert(
+                $table_name,
+                array(
+                    'cookie_name' => sanitize_text_field($cookie['name']),
+                    'cookie_value' => sanitize_text_field($cookie['value']),
+                    'domain' => sanitize_text_field($cookie['domain']),
+                    'path' => sanitize_text_field($cookie['path']),
+                    'expires' => !empty($cookie['expires']) ? date('Y-m-d H:i:s', strtotime($cookie['expires'])) : null,
+                    'category' => sanitize_text_field($cookie['category']),
+                    'note' => isset($cookie['note']) ? sanitize_text_field($cookie['note']) : ''
+                ),
+                array(
+                    '%s', // cookie_name
+                    '%s', // cookie_value
+                    '%s', // domain
+                    '%s', // path
+                    '%s', // expires
+                    '%s', // category
+                    '%s'  // note
+                )
+            );
+        }
+        
+        // Save scan history
+        $scan_type = $scan_all_pages ? 'all_pages' : 'current_page';
+        $pages_scanned = $scan_all_pages ? count(self::get_all_site_urls()) : 1;
+        $total_cookies = count($all_cookies);
+        
+        error_log('SureConsent - About to save scan history');
+        error_log('SureConsent - Total cookies: ' . $total_cookies);
+        error_log('SureConsent - Scan type: ' . $scan_type);
+        error_log('SureConsent - Pages scanned: ' . $pages_scanned);
+        error_log('SureConsent - Scan data sample: ' . print_r(array_slice($all_cookies, 0, 3), true));
+        
+        // Save to scan history table
+        $history_id = Sure_Consent_Storage::save_scan_history($total_cookies, $scan_type, $pages_scanned, $all_cookies);
+        error_log('SureConsent - Scan history save result: ' . ($history_id ? 'SUCCESS (ID: ' . $history_id . ')' : 'FAILED'));
+        
+        if (!$history_id) {
+            error_log('SureConsent - Failed to save scan history. Last DB error: ' . $wpdb->last_error);
+        }
+
+        wp_send_json_success(array(
+            'message' => 'Cookies scanned and saved successfully',
+            'count' => count($all_cookies),
+            'client_cookies' => count($scanned_cookies),
+            'server_cookies' => count($puppeteer_cookies),
+            'custom_cookies' => count($formatted_custom_cookies),
+            'scanned_pages' => $scan_all_pages ? count(self::get_all_site_urls()) : 1
+        ));
+    }
+
+    /**
+     * Get scanned cookies from database
+     */
+    public static function get_scanned_cookies() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scanned_cookies';
+
+        // Get all scanned cookies
+        $cookies = $wpdb->get_results("SELECT * FROM $table_name ORDER BY category, cookie_name");
+
+        wp_send_json_success(array(
+            'cookies' => $cookies
+        ));
+    }
+
+    /**
+     * Update a scanned cookie
+     */
+    public static function update_scanned_cookie() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get cookie data
+        $cookie_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '';
+        $note = isset($_POST['note']) ? sanitize_text_field($_POST['note']) : '';
+
+        if (empty($cookie_id)) {
+            wp_send_json_error(array('message' => 'Invalid cookie ID'));
+            return;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scanned_cookies';
+
+        // Update cookie
+        $result = $wpdb->update(
+            $table_name,
+            array(
+                'category' => $category,
+                'note' => $note
+            ),
+            array('id' => $cookie_id),
+            array(
+                '%s', // category
+                '%s'  // note
+            ),
+            array('%d') // id
+        );
+
+        if ($result !== false) {
+            wp_send_json_success(array('message' => 'Cookie updated successfully'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to update cookie'));
+        }
+    }
+
+    /**
+     * Delete a scanned cookie
+     */
+    public static function delete_scanned_cookie() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get cookie ID
+        $cookie_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+
+        if (empty($cookie_id)) {
+            wp_send_json_error(array('message' => 'Invalid cookie ID'));
+            return;
+        }
+
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sure_consent_scanned_cookies';
+
+        // Delete cookie
+        $result = $wpdb->delete(
+            $table_name,
+            array('id' => $cookie_id),
+            array('%d') // id
+        );
+
+        if ($result !== false) {
+            wp_send_json_success(array('message' => 'Cookie deleted successfully'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to delete cookie'));
+        }
+    }
+    
+    /**
+     * Get scan history records
+     */
+    public static function get_scan_history() {
+        error_log('SureConsent - get_scan_history called');
+        
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            error_log('SureConsent - Security check failed in get_scan_history');
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            error_log('SureConsent - Insufficient permissions in get_scan_history');
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get pagination parameters
+        $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+        $per_page = isset($_POST['per_page']) ? intval($_POST['per_page']) : 10;
+        $offset = ($page - 1) * $per_page;
+        
+        error_log('SureConsent - Page: ' . $page . ', Per page: ' . $per_page . ', Offset: ' . $offset);
+        
+        // Get filter parameters
+        $date_from = isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
+        $date_to = isset($_POST['date_to']) ? sanitize_text_field($_POST['date_to']) : '';
+        $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : '';
+
+        // Get scan history records
+        $scan_history = Sure_Consent_Storage::get_scan_history($per_page, $offset);
+        error_log('SureConsent - Retrieved scan history: ' . print_r($scan_history, true));
+        
+        // Get total count
+        $total_records = Sure_Consent_Storage::get_scan_history_count();
+        error_log('SureConsent - Total records: ' . $total_records);
+        $total_pages = ceil($total_records / $per_page);
+        error_log('SureConsent - Total pages: ' . $total_pages);
+        
+        // Process scan history records to add cookie counts per category
+        $processed_history = array();
+        foreach ($scan_history as $record) {
+            // Get cookie data and count by category
+            $cookie_data = $record['scan_data'] ? $record['scan_data'] : array();
+            $category_counts = array();
+            
+            // Count cookies by category
+            foreach ($cookie_data as $cookie) {
+                $cookie_category = isset($cookie['category']) ? $cookie['category'] : 'Uncategorized';
+                error_log('SureConsent - Processing cookie with category: ' . $cookie_category);
+                if (!isset($category_counts[$cookie_category])) {
+                    $category_counts[$cookie_category] = 0;
+                }
+                $category_counts[$cookie_category]++;
+            }
+            
+            // Add processed record
+            $processed_history[] = array(
+                'id' => $record['id'],
+                'scan_date' => $record['scan_date'],
+                'total_cookies' => $record['total_cookies'],
+                'scan_type' => $record['scan_type'],
+                'pages_scanned' => $record['pages_scanned'],
+                'category_counts' => $category_counts,
+                'scan_data' => $cookie_data
+            );
+        }
+        
+        error_log('SureConsent - Processed history: ' . print_r($processed_history, true));
+        
+        wp_send_json_success(array(
+            'history' => $processed_history,
+            'total' => $total_records,
+            'page' => $page,
+            'per_page' => $per_page,
+            'total_pages' => $total_pages
+        ));
+    }
+    
+    /**
+     * Get scan history record by ID
+     */
+    public static function get_scan_history_record() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get record ID
+        $record_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        
+        if (empty($record_id)) {
+            wp_send_json_error(array('message' => 'Invalid record ID'));
+            return;
+        }
+        
+        // Get scan history record
+        $record = Sure_Consent_Storage::get_scan_history_by_id($record_id);
+        
+        if ($record) {
+            wp_send_json_success(array('record' => $record));
+        } else {
+            wp_send_json_error(array('message' => 'Record not found'));
+        }
+    }
+    
+    /**
+     * Delete scan history record
+     */
+    public static function delete_scan_history_record() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(array('message' => 'Insufficient permissions'));
+            return;
+        }
+
+        // Get record ID
+        $record_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        
+        if (empty($record_id)) {
+            wp_send_json_error(array('message' => 'Invalid record ID'));
+            return;
+        }
+        
+        // Delete scan history record
+        $result = Sure_Consent_Storage::delete_scan_history($record_id);
+        
+        if ($result) {
+            wp_send_json_success(array('message' => 'Record deleted successfully'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to delete record'));
+        }
+    }
+    
+    /**
+     * Export scan history record as CSV
+     */
+    public static function export_scan_history_csv() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Get record ID
+        $record_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        
+        if (empty($record_id)) {
+            wp_die('Invalid record ID');
+        }
+        
+        // Get scan history record
+        $record = Sure_Consent_Storage::get_scan_history_by_id($record_id);
+        
+        if (!$record) {
+            wp_die('Record not found');
+        }
+        
+        // Set headers for CSV download
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="scan-history-' . $record_id . '.csv"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        // Create CSV output
+        $output = fopen('php://output', 'w');
+        
+        // Add CSV headers
+        fputcsv($output, array('Cookie Name', 'Cookie Value', 'Domain', 'Path', 'Expires', 'Category', 'Note'));
+        
+        // Add cookie data
+        $cookie_data = $record['scan_data'] ? $record['scan_data'] : array();
+        foreach ($cookie_data as $cookie) {
+            fputcsv($output, array(
+                isset($cookie['name']) ? $cookie['name'] : '',
+                isset($cookie['value']) ? $cookie['value'] : '',
+                isset($cookie['domain']) ? $cookie['domain'] : '',
+                isset($cookie['path']) ? $cookie['path'] : '',
+                isset($cookie['expires']) ? $cookie['expires'] : '',
+                isset($cookie['category']) ? $cookie['category'] : '',
+                isset($cookie['note']) ? $cookie['note'] : ''
+            ));
+        }
+        
+        fclose($output);
+        exit;
+    }
+    
+    /**
+     * Export scan history record as JSON
+     */
+    public static function export_scan_history_json() {
+        // Verify nonce for security
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_die('Security check failed');
+        }
+
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+
+        // Get record ID
+        $record_id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        
+        if (empty($record_id)) {
+            wp_die('Invalid record ID');
+        }
+        
+        // Get scan history record
+        $record = Sure_Consent_Storage::get_scan_history_by_id($record_id);
+        
+        if (!$record) {
+            wp_die('Record not found');
+        }
+        
+        // Set headers for JSON download
+        header('Content-Type: application/json');
+        header('Content-Disposition: attachment; filename="scan-history-' . $record_id . '.json"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        // Output JSON data
+        echo json_encode($record['scan_data'], JSON_PRETTY_PRINT);
+        exit;
+    }
+    
+    /**
+     * Save a scheduled scan
+     */
+    public static function save_scheduled_scan() {
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Get data
+        $data = array(
+            'frequency' => isset($_POST['frequency']) ? sanitize_text_field($_POST['frequency']) : '',
+            'start_date' => isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : '',
+            'start_time' => isset($_POST['start_time']) ? sanitize_text_field($_POST['start_time']) : '',
+            'end_date' => isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : null
+        );
+        
+        // Add ID if present (for updates)
+        if (isset($_POST['id']) && !empty($_POST['id'])) {
+            $data['id'] = intval($_POST['id']);
+        }
+        
+        // Save scheduled scan
+        $result = Sure_Consent_Storage::save_scheduled_scan($data);
+        
+        if ($result) {
+            if (isset($data['id'])) {
+                wp_send_json_success(array('message' => 'Scheduled scan updated successfully', 'id' => $result));
+            } else {
+                wp_send_json_success(array('message' => 'Scheduled scan created successfully', 'id' => $result));
+            }
+        } else {
+            wp_send_json_error(array('message' => 'Failed to save scheduled scan'));
+        }
+    }
+    
+    /**
+     * Get all scheduled scans
+     */
+    public static function get_scheduled_scans() {
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Get scheduled scans
+        $scans = Sure_Consent_Storage::get_scheduled_scans();
+        
+        wp_send_json_success(array('scans' => $scans));
+    }
+    
+    /**
+     * Delete a scheduled scan
+     */
+    public static function delete_scheduled_scan() {
+        // Check permissions
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Get ID
+        $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+        
+        if (!$id) {
+            wp_send_json_error(array('message' => 'Invalid schedule ID'));
+            return;
+        }
+        
+        // Delete scheduled scan
+        $result = Sure_Consent_Storage::delete_scheduled_scan($id);
+        
+        if ($result) {
+            wp_send_json_success(array('message' => 'Scheduled scan deleted successfully'));
+        } else {
+            wp_send_json_error(array('message' => 'Failed to delete scheduled scan'));
+        }
+    }
+    
+    /**
+     * Check for scan completion notifications
+     */
+    public static function check_scan_notification() {
+        // Check user capabilities
+        if (!current_user_can('manage_options')) {
+            wp_die('Insufficient permissions');
+        }
+        
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'sure_consent_nonce')) {
+            wp_send_json_error(array('message' => 'Security check failed'));
+            return;
+        }
+        
+        // Check for scan notification
+        $notification = get_option('sure_consent_last_scan_notification', false);
+        
+        if ($notification && isset($notification['cookies_found'])) {
+            // Check if notification is still valid (within 1 hour)
+            $scan_time = strtotime($notification['scan_date']);
+            $current_time = current_time('timestamp');
+            
+            if (($current_time - $scan_time) < 3600) { // 1 hour
+                wp_send_json_success(array(
+                    'has_notification' => true,
+                    'cookies_found' => $notification['cookies_found'],
+                    'scan_id' => $notification['scan_id']
+                ));
+                
+                // Clear the notification after sending it
+                delete_option('sure_consent_last_scan_notification');
+                return;
+            } else {
+                // Clear expired notification
+                delete_option('sure_consent_last_scan_notification');
+            }
+        }
+        
+        wp_send_json_success(array(
+            'has_notification' => false
+        ));
+    }
+    
+    /**
+     * Handle automatic scan completion
+     */
+    public static function handle_automatic_scan_completion($schedule, $total_cookies, $cookies, $scan_history_id) {
+        // This function can be used to send notifications or perform other actions
+        // when an automatic scan completes
+        error_log('SureConsent - Handling automatic scan completion for schedule ID: ' . $schedule->id);
+        
+        // For now, we just log the completion
+        // In the future, this could send email notifications, update dashboards, etc.
+    }
 }
+
+// Add action to handle automatic scan completion
+add_action('sure_consent_automatic_scan_completed', array('Sure_Consent_Ajax', 'handle_automatic_scan_completion'), 10, 4);
+
+// Add new action for checking scan notifications
+add_action('wp_ajax_sure_consent_check_scan_notification', array(__CLASS__, 'check_scan_notification'));
 
 // Initialize AJAX handlers
 Sure_Consent_Ajax::init();

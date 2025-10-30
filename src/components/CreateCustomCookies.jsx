@@ -45,7 +45,7 @@ const CreateCustomCookies = () => {
     ) {
       setNewCookie((prev) => ({
         ...prev,
-        category: savedCategories[0].name,
+        category: savedCategories[0].id, // Use category ID instead of name
       }));
     }
   }, [getCurrentValue]);
@@ -57,7 +57,7 @@ const CreateCustomCookies = () => {
     setNewCookie({
       name: "",
       description: "",
-      category: categories.length > 0 ? categories[0].name : "",
+      category: categories.length > 0 ? categories[0].id : "", // Use category ID instead of name
       duration: "",
       provider: "",
       purpose: "",
@@ -111,7 +111,7 @@ const CreateCustomCookies = () => {
     setNewCookie({
       name: "",
       description: "",
-      category: categories.length > 0 ? categories[0].name : "",
+      category: categories.length > 0 ? categories[0].id : "", // Use category ID instead of name
       duration: "",
       provider: "",
       purpose: "",
@@ -260,7 +260,7 @@ const CreateCustomCookies = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {categories.map((category) => (
-                    <option key={category.id} value={category.name}>
+                    <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
                   ))}
@@ -448,7 +448,12 @@ const CreateCustomCookies = () => {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-200">
-                            {cookie.category}
+                            {(() => {
+                              const category = categories.find(
+                                (cat) => cat.id === cookie.category
+                              );
+                              return category ? category.name : cookie.category;
+                            })()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-r border-gray-200">
                             {cookie.provider || "-"}

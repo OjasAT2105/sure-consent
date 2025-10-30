@@ -28,6 +28,9 @@ import {
   Workflow,
   Logs,
   Globe,
+  CheckCircle,
+  Bell,
+  FilePenLine,
 } from "lucide-react";
 import Dashboard from "../components/Dashboard";
 import QuickCookieBanner from "../components/QuickCookieBanner";
@@ -38,7 +41,6 @@ import CustomCSS from "../components/CustomCSS";
 import BannerDesignSelector from "../components/BannerDesignSelector";
 import CreateCustomCookies from "../components/CreateCustomCookies";
 import ScanCookies from "../components/ScanCookies";
-import ScheduleScan from "../components/ScheduleScan";
 import ScanHistory from "../components/ScanHistory";
 import CookieCategories from "../components/CookieCategories";
 
@@ -78,12 +80,66 @@ const PreviewButton = () => {
   );
 };
 
+// New component to display the current active law
+const LawSticker = () => {
+  // Since this plugin only supports GDPR, always display GDPR
+  const lawName = "GDPR";
+
+  return (
+    <Topbar.Item>
+      <div className="flex items-center bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+        <Shield className="text-blue-500 mr-1.5" size={16} />
+        <span className="text-xs font-medium text-blue-700">{lawName}</span>
+      </div>
+    </Topbar.Item>
+  );
+};
+
 const AdminApp = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [activePath, setActivePath] = useState("/dashboard");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showScanComplete, setShowScanComplete] = useState(false); // New state for scan completion
 
   console.log("AdminApp - activeSection:", activeSection);
+
+  // Check for scan completion on component mount
+  useEffect(() => {
+    // Check if there's a scan completion notification
+    const checkScanCompletion = () => {
+      // This would be called after a scan completes
+      // For now, we'll just set it to false, but in a real implementation
+      // this would check for a notification from the scan process
+      const scanCompleted = sessionStorage.getItem("scanCompleted");
+      if (scanCompleted) {
+        setShowScanComplete(true);
+        // Remove the flag after 10 seconds
+        setTimeout(() => {
+          setShowScanComplete(false);
+          sessionStorage.removeItem("scanCompleted");
+        }, 10000);
+      }
+    };
+
+    checkScanCompletion();
+
+    // Listen for scan completion events
+    const handleScanComplete = (event) => {
+      setShowScanComplete(true);
+      // Remove the sticker after 10 seconds
+      setTimeout(() => {
+        setShowScanComplete(false);
+        sessionStorage.removeItem("scanCompleted");
+      }, 10000);
+    };
+
+    window.addEventListener("scanCompleted", handleScanComplete);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener("scanCompleted", handleScanComplete);
+    };
+  }, []);
 
   // Navigation configuration similar to SureRank
   const navLinks = [
@@ -141,7 +197,7 @@ const AdminApp = () => {
         {
           label: "Customize",
           path: "/banner/customize",
-          icon: Palette,
+          icon: FilePenLine,
         },
         {
           label: "Custom CSS",
@@ -158,11 +214,6 @@ const AdminApp = () => {
           label: "Create Custom Cookies",
           path: "/cookie-manager/create",
           icon: Pen,
-        },
-        {
-          label: "Schedule Scan",
-          path: "/cookie-manager/schedule",
-          icon: CalendarCheck,
         },
         {
           label: "Scan Cookies",
@@ -185,11 +236,6 @@ const AdminApp = () => {
           label: "Consent Logs",
           path: "/analytics/logs",
           icon: Logs,
-        },
-        {
-          label: "Reports",
-          path: "/analytics/reports",
-          icon: BarChart3,
         },
       ],
     },
@@ -466,9 +512,38 @@ const AdminApp = () => {
             </Topbar.Middle>
 
             <Topbar.Right className="p-5">
-              {(activeSection === "banner" ||
-                activeSection === "settings" ||
-                activeSection === "cookie-manager") && <PreviewButton />}
+              {/* Show preview button on all tabs */}
+              <LawSticker />
+              <PreviewButton />
+
+              {/* Scan completion sticker */}
+              {showScanComplete && (
+                <Topbar.Item>
+                  <div className="relative">
+                    <div className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      icon={<CheckCircle className="text-green-500" />}
+                      onClick={() => {
+                        // Navigate to scan cookies page
+                        handlePathChange("/cookie-manager/scan");
+                        setShowScanComplete(false);
+                        sessionStorage.removeItem("scanCompleted");
+                      }}
+                      className="relative bg-green-50 hover:bg-green-100 border border-green-200"
+                    >
+                      <span className="hidden sm:inline text-green-700 text-xs font-medium">
+                        Scan Complete!
+                      </span>
+                    </Button>
+                  </div>
+                </Topbar.Item>
+              )}
+
               <Topbar.Item>
                 <Badge label="V 1.0.0" size="xs" variant="neutral" />
               </Topbar.Item>
@@ -583,9 +658,8 @@ const AdminApp = () => {
             </div>
           )}
         </div>
-        {(activeSection === "banner" ||
-          activeSection === "settings" ||
-          activeSection === "cookie-manager") && <PreviewBanner />}
+        {/* Show PreviewBanner on all tabs, not just specific ones */}
+        <PreviewBanner />
       </Fragment>
     </SettingsProvider>
   );

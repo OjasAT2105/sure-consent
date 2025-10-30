@@ -533,11 +533,11 @@ const PublicApp = () => {
     if (saved) {
       try {
         preferences = JSON.parse(saved);
-        // Ensure required cookies stay enabled
+        // Ensure required cookies stay enabled using IDs for consistency
         if (cookieCategories && cookieCategories.length > 0) {
           cookieCategories.forEach((cat) => {
-            if (cat.required) {
-              preferences[cat.name] = true;
+            if (cat.required || cat.id === "essential") {
+              preferences[cat.id] = true;
             }
           });
         }
@@ -552,14 +552,16 @@ const PublicApp = () => {
     if (Object.keys(preferences).length === 0) {
       if (cookieCategories && cookieCategories.length > 0) {
         cookieCategories.forEach((cat) => {
-          preferences[cat.name] = cat.required || false;
+          // Use IDs for consistency
+          preferences[cat.id] = cat.id === "essential" ? true : false;
         });
       } else {
-        // Fallback to default categories
-        preferences["Essential Cookies"] = true;
-        preferences["Functional Cookies"] = false;
-        preferences["Analytics Cookies"] = false;
-        preferences["Marketing Cookies"] = false;
+        // Fallback to default categories using IDs
+        preferences["essential"] = true;
+        preferences["functional"] = false;
+        preferences["analytics"] = false;
+        preferences["marketing"] = false;
+        preferences["uncategorized"] = false;
       }
     }
 
@@ -581,16 +583,9 @@ const PublicApp = () => {
     const allCategoriesEnabled = Object.values(preferences).every(
       (val) => val === true
     );
-    const onlyEssentialEnabled = Object.values(preferences).every(
-      (val, index) => {
-        const key = Object.keys(preferences)[index];
-        // If it's an essential cookie, it should be true
-        // If it's not an essential cookie, it should be false
-        return key.toLowerCase().includes("essential")
-          ? val === true
-          : val === false;
-      }
-    );
+    const onlyEssentialEnabled =
+      Object.keys(preferences).length === 1 &&
+      preferences["essential"] === true;
 
     if (allCategoriesEnabled) {
       actionType = "accepted";
@@ -614,17 +609,18 @@ const PublicApp = () => {
     // Save consent - Accept ALL categories
     const preferences = {};
 
-    // Enable ALL cookie categories
+    // Enable ALL cookie categories using IDs for consistency
     if (cookieCategories && cookieCategories.length > 0) {
       cookieCategories.forEach((cat) => {
-        preferences[cat.name] = true; // Accept everything
+        preferences[cat.id] = true; // Accept everything using ID
       });
     } else {
       // Fallback to default categories - all true
-      preferences["Essential Cookies"] = true;
-      preferences["Functional Cookies"] = true;
-      preferences["Analytics Cookies"] = true;
-      preferences["Marketing Cookies"] = true;
+      preferences["essential"] = true;
+      preferences["functional"] = true;
+      preferences["analytics"] = true;
+      preferences["marketing"] = true;
+      preferences["uncategorized"] = true;
     }
 
     // Save preferences to localStorage so PreferencesModal will show them as enabled
@@ -653,14 +649,21 @@ const PublicApp = () => {
     const preferences = {};
     if (cookieCategories && cookieCategories.length > 0) {
       cookieCategories.forEach((cat) => {
-        preferences[cat.name] = cat.required || false;
+        // For decline action, we only accept essential cookies
+        // and explicitly set non-essential cookies to false
+        if (cat.id === "essential") {
+          preferences[cat.id] = true;
+        } else {
+          preferences[cat.id] = false;
+        }
       });
     } else {
       // Fallback to default categories
-      preferences["Essential Cookies"] = true;
-      preferences["Functional Cookies"] = false;
-      preferences["Analytics Cookies"] = false;
-      preferences["Marketing Cookies"] = false;
+      preferences["essential"] = true;
+      preferences["functional"] = false;
+      preferences["analytics"] = false;
+      preferences["marketing"] = false;
+      preferences["uncategorized"] = false;
     }
 
     // Save preferences to localStorage so PreferencesModal will show the correct state
@@ -703,12 +706,24 @@ const PublicApp = () => {
   const logCustomCookiesForCategories = (preferences) => {
     console.log("🍪 Custom Cookies by Category:");
     cookieCategories.forEach((category) => {
-      if (preferences[category.name]) {
+      if (preferences[category.id]) {
         const categoryCookies = customCookies.filter(
-          (cookie) => cookie.category === category.name
+          (cookie) => cookie.category === category.id
         );
         if (categoryCookies.length > 0) {
-          console.log(`📁 ${category.name}:`, categoryCookies);
+          console.log(
+            `📁 ${category.name} (${categoryCookies.length} cookies):`
+          );
+          categoryCookies.forEach((cookie, index) => {
+            console.log(`   ${index + 1}. Cookie Name: "${cookie.name}"`, {
+              name: cookie.name,
+              category: category.name,
+              categoryId: category.id,
+              domain: cookie.domain || "N/A",
+              expires: cookie.expires || "Session",
+              description: cookie.description || "N/A",
+            });
+          });
         }
       }
     });

@@ -8,6 +8,7 @@ import {
   Settings,
   ChevronDown,
   ChevronUp,
+  FolderOpen,
 } from "lucide-react";
 
 const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
@@ -17,7 +18,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
   const [expandedCategory, setExpandedCategory] = useState(null); // For accordion functionality
 
   useEffect(() => {
-    // Default categories if none are defined
+    // Default categories - should match CookieCategories.jsx
     const defaultCategories = [
       {
         id: "essential",
@@ -33,7 +34,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
         description:
           "These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third party providers whose services we have added to our pages.",
         icon: "Settings",
-        required: false,
+        required: true,
       },
       {
         id: "analytics",
@@ -41,7 +42,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
         description:
           "These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.",
         icon: "BarChart3",
-        required: false,
+        required: true,
       },
       {
         id: "marketing",
@@ -49,7 +50,15 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
         description:
           "These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.",
         icon: "Target",
-        required: false,
+        required: true,
+      },
+      {
+        id: "uncategorized",
+        name: "Uncategorized Cookies",
+        description:
+          "These are cookies that do not fit into any of the other categories. They may be used for various purposes that are not specifically defined.",
+        icon: "FolderOpen",
+        required: true,
       },
     ];
 
@@ -65,10 +74,11 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     const loadedCustomCookies = settings.custom_cookies || [];
     setCustomCookies(loadedCustomCookies);
 
-    // Initialize preferences based on categories using NAMES instead of IDs
+    // Initialize preferences based on categories using IDs for consistency
     const initialPreferences = {};
     loadedCategories.forEach((cat) => {
-      initialPreferences[cat.name] = cat.required || false;
+      // Only Essential category is always active by default
+      initialPreferences[cat.id] = cat.id === "essential" ? true : false;
     });
 
     // Load saved preferences if available
@@ -76,12 +86,12 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     if (saved) {
       try {
         const savedPrefs = JSON.parse(saved);
-        // Merge with initial preferences, ensuring required cookies stay enabled
+        // Merge with initial preferences, ensuring essential cookies stay enabled
         loadedCategories.forEach((cat) => {
-          if (cat.required) {
-            initialPreferences[cat.name] = true;
-          } else if (savedPrefs[cat.name] !== undefined) {
-            initialPreferences[cat.name] = savedPrefs[cat.name];
+          if (cat.id === "essential") {
+            initialPreferences[cat.id] = true;
+          } else if (savedPrefs[cat.id] !== undefined) {
+            initialPreferences[cat.id] = savedPrefs[cat.id];
           }
         });
         setPreferences(initialPreferences);
@@ -94,6 +104,13 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     }
   }, [settings.cookie_categories, settings.custom_cookies]);
 
+  // Reset expanded category when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setExpandedCategory(null);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   // Helper function to get icon component from string name
@@ -103,26 +120,25 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
       Settings: Settings,
       BarChart3: BarChart3,
       Target: Target,
+      FolderOpen: FolderOpen,
     };
     return icons[iconName] || Settings;
   };
 
-  const handleToggle = (categoryName) => {
-    // Find if this category is required
-    const category = categories.find((cat) => cat.name === categoryName);
-    if (category && category.required) return; // Cannot disable required cookies
+  const handleToggle = (categoryId) => {
+    // Find if this category is essential (always required)
+    const category = categories.find((cat) => cat.id === categoryId);
+    if (category && category.id === "essential") return; // Cannot disable essential cookies
 
     setPreferences((prev) => ({
       ...prev,
-      [categoryName]: !prev[categoryName],
+      [categoryId]: !prev[categoryId],
     }));
   };
 
   // Handle accordion toggle for cookie tables
-  const toggleCategoryCookies = (categoryName) => {
-    setExpandedCategory(
-      expandedCategory === categoryName ? null : categoryName
-    );
+  const toggleCategoryCookies = (categoryId) => {
+    setExpandedCategory(expandedCategory === categoryId ? null : categoryId);
   };
 
   // Function to check if a cookie is expired
@@ -137,7 +153,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     console.log("🟢 PreferencesModal - Accept All clicked");
     const allAccepted = {};
     categories.forEach((cat) => {
-      allAccepted[cat.name] = true;
+      allAccepted[cat.id] = true;
     });
     setPreferences(allAccepted);
     localStorage.setItem(
@@ -162,8 +178,13 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     console.log("🔴 PreferencesModal - Reject All clicked");
     const essentialOnly = {};
     categories.forEach((cat) => {
-      // Only enable required cookies
-      essentialOnly[cat.name] = cat.required || false;
+      // Only enable essential cookies (those marked as required)
+      // and explicitly set non-essential cookies to false
+      if (cat.id === "essential") {
+        essentialOnly[cat.id] = true;
+      } else {
+        essentialOnly[cat.id] = false;
+      }
     });
     setPreferences(essentialOnly);
     localStorage.setItem(
@@ -214,12 +235,24 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
   const logCustomCookiesForCategories = (preferences) => {
     console.log("🍪 Custom Cookies by Category:");
     categories.forEach((category) => {
-      if (preferences[category.name]) {
+      if (preferences[category.id]) {
         const categoryCookies = customCookies.filter(
-          (cookie) => cookie.category === category.name
+          (cookie) => cookie.category === category.id
         );
         if (categoryCookies.length > 0) {
-          console.log(`📁 ${category.name}:`, categoryCookies);
+          console.log(
+            `📁 ${category.name} (${categoryCookies.length} cookies):`
+          );
+          categoryCookies.forEach((cookie, index) => {
+            console.log(`   ${index + 1}. Cookie Name: "${cookie.name}"`, {
+              name: cookie.name,
+              category: category.name,
+              categoryId: category.id,
+              domain: cookie.domain || "N/A",
+              expires: cookie.expires || "Session",
+              description: cookie.description || "N/A",
+            });
+          });
         }
       }
     });
@@ -235,8 +268,8 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
   const declineBtnBorderColor = settings.decline_btn_border_color || "#6b7280";
 
   // Group custom cookies by category
-  const getCookiesByCategory = (categoryName) => {
-    return customCookies.filter((cookie) => cookie.category === categoryName);
+  const getCookiesByCategory = (categoryId) => {
+    return customCookies.filter((cookie) => cookie.category === categoryId);
   };
 
   return (
@@ -344,9 +377,9 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
             >
               {categories.map((category) => {
                 const Icon = getIconComponent(category.icon);
-                const isEnabled = preferences[category.name];
-                const categoryCookies = getCookiesByCategory(category.name);
-                const isExpanded = expandedCategory === category.name;
+                const isEnabled = preferences[category.id];
+                const categoryCookies = getCookiesByCategory(category.id);
+                const isExpanded = expandedCategory === category.id;
 
                 return (
                   <div
@@ -390,20 +423,23 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
 
                       {/* Toggle Switch */}
                       <button
-                        onClick={() => handleToggle(category.name)}
-                        disabled={category.required}
+                        onClick={() => handleToggle(category.id)}
+                        disabled={category.id === "essential"}
                         style={{
                           width: "48px",
                           height: "24px",
                           borderRadius: "12px",
                           border: "none",
-                          cursor: category.required ? "not-allowed" : "pointer",
+                          cursor:
+                            category.id === "essential"
+                              ? "not-allowed"
+                              : "pointer",
                           backgroundColor: isEnabled
                             ? acceptBtnColor
                             : `${modalTextColor}30`,
                           position: "relative",
                           transition: "background-color 0.2s",
-                          opacity: category.required ? 0.6 : 1,
+                          opacity: category.id === "essential" ? 0.6 : 1,
                           marginRight: "8px",
                         }}
                       >
@@ -434,7 +470,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                       {/* Accordion Toggle for Cookies */}
                       {categoryCookies.length > 0 && (
                         <button
-                          onClick={() => toggleCategoryCookies(category.name)}
+                          onClick={() => toggleCategoryCookies(category.id)}
                           style={{
                             background: "none",
                             border: "none",
@@ -640,7 +676,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
                       </div>
                     )}
 
-                    {category.required && (
+                    {category.id === "essential" && (
                       <span
                         style={{
                           display: "inline-block",

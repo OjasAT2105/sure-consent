@@ -9,8 +9,12 @@ import {
   BarChart3,
   Settings,
   Palette,
+  ArrowUpRight,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
+import countriesData from "../data/countries.json";
+import { useEffect, useState } from "react";
+import PreviewBanner from "./PreviewBanner";
 
 const quickLinks = [
   {
@@ -103,7 +107,7 @@ const SureMailIcon = (props) => (
       fill="#0D7EE8"
     />
     <path
-      d="M6.40292 11.6635C6.61165 11.8145 6.90801 11.7649 7.04455 11.5618C7.19552 11.3531 7.14591 11.0567 6.94285 10.9202L4.93281 9.48016C4.86137 9.42507 4.8676 9.35611 4.87071 9.32164C4.87386 9.28718 4.90015 9.22703 4.98662 9.19317L18.3609 5.78333C18.4386 5.76953 18.4844 5.80148 18.5157 5.83906C18.547 5.87667 18.5784 5.91424 18.5433 5.99446L13.476 18.8162C13.4409 18.8964 13.3776 18.9045 13.3488 18.9158C13.3143 18.9127 13.2454 18.9065 13.2028 18.8401L11.6711 16.0326C11.6228 15.9518 11.5833 15.8509 11.535 15.7701C10.9355 14.4093 10.7842 13.4051 11.9093 12.416L14.806 9.73531C15.0027 9.55853 15.0221 9.26839 14.8509 9.08611C14.6742 8.88942 14.384 8.87007 14.2017 9.04118L11.1593 11.6635C9.62635 13.0119 9.88161 14.6891 10.8516 16.4865L12.3833 19.294C12.5789 19.6661 12.9769 19.8759 13.4023 19.8589C13.5145 19.8482 13.6354 19.8175 13.7363 19.778C14.0101 19.6707 14.2244 19.4538 14.3471 19.1731L19.4144 6.35138C19.5666 5.97597 19.495 5.53861 19.2242 5.22916C18.9534 4.91967 18.5405 4.79884 18.1432 4.88794L4.7545 8.30341C4.34849 8.41257 4.04151 8.73226 3.95519 9.14836C3.86882 9.56446 4.04691 9.97673 4.39289 10.2235L6.40292 11.6635Z"
+      d="M6.40292 11.6635C6.61165 11.8145 6.90801 11.7649 7.04455 11.5618C7.19552 11.3531 7.14591 11.0567 6.94285 10.9202L4.93281 9.48016C4.86137 9.42507 4.8676 9.35611 4.87071 9.32164C4.87386 9.28718 4.90015 9.22703 4.98662 9.19317L18.3609 5.78333C18.4386 5.76953 18.4844 5.80148 18.5157 5.83906C18.547 5.87667 18.5784 5.91424 18.5433 5.99446L13.476 18.8162C13.4409 18.8964 13.3776 13.9045 13.3488 18.9158C13.3143 18.9127 13.2454 18.9065 13.2028 18.8401L11.6711 16.0326C11.6228 15.9518 11.5833 15.8509 11.535 15.7701C10.9355 14.4093 10.7842 13.4051 11.9093 12.416L14.806 9.73531C15.0027 9.55853 15.0221 9.26839 14.8509 9.08611C14.6742 8.88942 14.384 8.87007 14.2017 9.04118L11.1593 11.6635C9.62635 13.0119 9.88161 14.6891 10.8516 16.4865L12.3833 19.294C12.5789 19.6661 12.9769 19.8759 13.4023 19.8589C13.5145 19.8482 13.6354 19.8175 13.7363 19.778C14.0101 19.6707 14.2244 19.4538 14.3471 19.1731L19.4144 6.35138C19.5666 5.97597 19.495 5.53861 19.2242 5.22916C18.9534 4.91967 18.5405 4.79884 18.1432 4.88794L4.7545 8.30341C4.34849 8.41257 4.04151 8.73226 3.95519 9.14836C3.86882 9.56446 4.04691 9.97673 4.39289 10.2235L6.40292 11.6635Z"
       fill="white"
     />
   </svg>
@@ -197,48 +201,120 @@ const PluginCard = ({ item }) => (
   </Container.Item>
 );
 
-const PieChart = ({ data }) => {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+const PieChart = ({
+  data,
+  dataKey,
+  showTooltip,
+  tooltipIndicator,
+  onHover,
+}) => {
+  const [isAnimated, setIsAnimated] = useState(false);
+  const [activeSegment, setActiveSegment] = useState(null);
+
+  useEffect(() => {
+    // Trigger animation on mount
+    const timer = setTimeout(() => setIsAnimated(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Calculate total
+  const total = data.reduce((sum, item) => sum + item[dataKey], 0);
+
+  // Calculate percentages and positions for pie slices
   let cumulativePercentage = 0;
+
+  const chartData = data.map((item, index) => {
+    const percentage = (item[dataKey] / total) * 100;
+    const strokeDasharray = `${percentage} ${100 - percentage}`;
+    const strokeDashoffset = -cumulativePercentage;
+    cumulativePercentage += percentage;
+
+    return {
+      ...item,
+      percentage,
+      strokeDasharray,
+      strokeDashoffset,
+    };
+  });
+
+  const handleMouseEnter = (item, index) => {
+    setActiveSegment(index);
+    onHover && onHover(item);
+  };
+
+  const handleMouseLeave = () => {
+    setActiveSegment(null);
+    onHover && onHover(null);
+  };
 
   return (
     <div className="flex items-center justify-center">
-      <svg
-        width="120"
-        height="120"
-        viewBox="0 0 42 42"
-        className="transform -rotate-90"
-      >
-        <circle
-          cx="21"
-          cy="21"
-          r="15.915"
-          fill="transparent"
-          stroke="#e5e7eb"
-          strokeWidth="3"
-        />
-        {data.map((item, index) => {
-          const percentage = (item.value / total) * 100;
-          const strokeDasharray = `${percentage} ${100 - percentage}`;
-          const strokeDashoffset = -cumulativePercentage;
-          cumulativePercentage += percentage;
-
-          return (
+      <div className="relative w-48 h-48">
+        <svg
+          width="192"
+          height="192"
+          viewBox="0 0 42 42"
+          className="transform -rotate-90"
+        >
+          {/* Background circle with subtle shadow */}
+          <circle
+            cx="21"
+            cy="21"
+            r="15.915"
+            fill="transparent"
+            stroke="#e5e7eb"
+            strokeWidth="3.5"
+          />
+          {/* Data slices with animation */}
+          {chartData.map((item, index) => (
             <circle
               key={index}
               cx="21"
               cy="21"
               r="15.915"
               fill="transparent"
-              stroke={item.color}
-              strokeWidth="3"
-              strokeDasharray={strokeDasharray}
-              strokeDashoffset={strokeDashoffset}
-              className="transition-all duration-300"
+              stroke={item.fill}
+              strokeWidth={activeSegment === index ? "4.5" : "3.5"}
+              strokeDasharray={isAnimated ? item.strokeDasharray : "0 100"}
+              strokeDashoffset={item.strokeDashoffset}
+              className="transition-all duration-700 ease-out cursor-pointer"
+              style={{
+                filter:
+                  activeSegment === index
+                    ? "drop-shadow(0 0 6px rgba(0,0,0,0.3))"
+                    : "none",
+                opacity:
+                  activeSegment === null || activeSegment === index ? 1 : 0.5,
+              }}
+              onMouseEnter={() => handleMouseEnter(item, index)}
+              onMouseLeave={handleMouseLeave}
             />
-          );
-        })}
-      </svg>
+          ))}
+        </svg>
+        {/* Center label with animation */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          {activeSegment !== null ? (
+            <>
+              <span className="text-3xl font-bold text-gray-800 animate-pulse">
+                {chartData[activeSegment][dataKey]}
+              </span>
+              <span className="text-xs text-gray-600 font-medium mt-1">
+                {chartData[activeSegment].name}
+              </span>
+              <span className="text-sm font-bold text-indigo-600 mt-1">
+                {Math.round(chartData[activeSegment].percentage)}%
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-3xl font-bold text-gray-800">{total}</span>
+              <span className="text-xs text-gray-500 font-medium mt-1">
+                Total Consents
+              </span>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -249,6 +325,151 @@ const Dashboard = () => {
     getCurrentValue("banner_enabled") ||
     getCurrentValue("enable_banner") ||
     false;
+
+  const [consentData, setConsentData] = useState([]);
+  const [consentLogs, setConsentLogs] = useState([]);
+  const [scannedCookies, setScannedCookies] = useState([]);
+  const [scanHistory, setScanHistory] = useState(null);
+  const [totalConsents, setTotalConsents] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [logsLoading, setLogsLoading] = useState(true);
+  const [scanLoading, setScanLoading] = useState(true);
+  const [isScanning, setIsScanning] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState(null);
+  const [consentLoggingEnabled, setConsentLoggingEnabled] = useState(true);
+  const [geoTargetingMode, setGeoTargetingMode] = useState("selected"); // "worldwide", "eu_only", "selected"
+  const [selectedCountries, setSelectedCountries] = useState([]);
+  const [cookieCategories, setCookieCategories] = useState([]); // For category name mapping
+
+  // Helper function to get category name from ID
+  const getCategoryName = (categoryId) => {
+    if (!categoryId) return "Uncategorized";
+    const category = cookieCategories.find((cat) => cat.id === categoryId);
+    return category ? category.name : categoryId;
+  };
+
+  // Country code to name mapping
+  const getCountryName = (code) => {
+    const country = countriesData.countries.find(
+      (country) => country.code === code
+    );
+    return country ? country.name : code;
+  };
+
+  // EU Countries list
+  const euCountries = [
+    "Austria",
+    "Belgium",
+    "Bulgaria",
+    "Croatia",
+    "Cyprus",
+    "Czech Republic",
+    "Denmark",
+    "Estonia",
+    "Finland",
+    "France",
+    "Germany",
+    "Greece",
+    "Hungary",
+    "Ireland",
+    "Italy",
+    "Latvia",
+    "Lithuania",
+    "Luxembourg",
+    "Malta",
+    "Netherlands",
+    "Poland",
+    "Portugal",
+    "Romania",
+    "Slovakia",
+    "Slovenia",
+    "Spain",
+    "Sweden",
+  ];
+
+  // Country code to flag emoji mapping
+  const getCountryFlag = (code) => {
+    const flagMap = {
+      US: "🇺🇸",
+      GB: "🇬🇧",
+      CA: "🇨🇦",
+      AU: "🇦🇺",
+      DE: "🇩🇪",
+      FR: "🇫🇷",
+      IT: "🇮🇹",
+      ES: "🇪🇸",
+      NL: "🇳🇱",
+      BE: "🇧🇪",
+      AT: "🇦🇹",
+      PT: "🇵🇹",
+      SE: "🇸🇪",
+      DK: "🇩🇰",
+      FI: "🇫🇮",
+      IE: "🇮🇪",
+      PL: "🇵🇱",
+      CZ: "🇨🇿",
+      GR: "🇬🇷",
+      HU: "🇭🇺",
+      RO: "🇷🇴",
+      BG: "🇧🇬",
+      HR: "🇭🇷",
+      SK: "🇸🇰",
+      SI: "🇸🇮",
+      LT: "🇱🇹",
+      LV: "🇱🇻",
+      EE: "🇪🇪",
+      CY: "🇨🇾",
+      MT: "🇲🇹",
+      LU: "🇱🇺",
+      IN: "🇮🇳",
+      JP: "🇯🇵",
+      CN: "🇨🇳",
+      BR: "🇧🇷",
+      MX: "🇲🇽",
+      RU: "🇷🇺",
+      ZA: "🇿🇦",
+      KR: "🇰🇷",
+      SG: "🇸🇬",
+      NZ: "🇳🇿",
+      CH: "🇨🇭",
+      NO: "🇳🇴",
+    };
+    return flagMap[code] || "🏳️";
+  };
+
+  // Get EU country flags
+  const getEUCountryFlag = (countryName) => {
+    const euFlagMap = {
+      Austria: "🇦🇹",
+      Belgium: "🇧🇪",
+      Bulgaria: "🇧🇬",
+      Croatia: "🇭🇷",
+      Cyprus: "🇨🇾",
+      "Czech Republic": "🇨🇿",
+      Denmark: "🇩🇰",
+      Estonia: "🇪🇪",
+      Finland: "🇫🇮",
+      France: "🇫🇷",
+      Germany: "🇩🇪",
+      Greece: "🇬🇷",
+      Hungary: "🇭🇺",
+      Ireland: "🇮🇪",
+      Italy: "🇮🇹",
+      Latvia: "🇱🇻",
+      Lithuania: "🇱🇹",
+      Luxembourg: "🇱🇺",
+      Malta: "🇲🇹",
+      Netherlands: "🇳🇱",
+      Poland: "🇵🇱",
+      Portugal: "🇵🇹",
+      Romania: "🇷🇴",
+      Slovakia: "🇸🇰",
+      Slovenia: "🇸🇮",
+      Spain: "🇪🇸",
+      Sweden: "🇸🇪",
+    };
+    return euFlagMap[countryName] || "🇪🇺";
+  };
 
   const toggleBanner = async () => {
     const newValue = !bannerEnabled;
@@ -261,131 +482,1059 @@ const Dashboard = () => {
     }
   };
 
-  const consentData = [
-    { label: "Accepted", value: 65, color: "#10b981" },
-    { label: "Rejected", value: 25, color: "#ef4444" },
-    { label: "Partially Accepted", value: 10, color: "#f59e0b" },
-  ];
+  // Fetch consent logs data for the pie chart
+  useEffect(() => {
+    const fetchConsentData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_consent_logs",
+              nonce: window.sureConsentAjax?.nonce || "",
+              page: 1,
+              per_page: 1000, // Get all logs for accurate data
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.success) {
+          // Process the data to get counts for each status
+          const statusCounts = {
+            accepted: 0,
+            declined: 0,
+            partially_accepted: 0,
+          };
+
+          data.data.logs.forEach((log) => {
+            // Normalize status values
+            let status = log.status;
+            if (status === "accept_all") {
+              status = "accepted";
+            } else if (status === "decline_all") {
+              status = "declined";
+            }
+
+            if (status in statusCounts) {
+              statusCounts[status]++;
+            } else {
+              // Handle any other status values
+              statusCounts[status] = (statusCounts[status] || 0) + 1;
+            }
+          });
+
+          const chartData = [
+            {
+              fill: "#10b981",
+              name: "Accepted",
+              visitors: statusCounts.accepted,
+            },
+            {
+              fill: "#ef4444",
+              name: "Declined",
+              visitors: statusCounts.declined,
+            },
+            {
+              fill: "#f59e0b",
+              name: "Partially Accepted",
+              visitors: statusCounts.partially_accepted,
+            },
+          ];
+
+          setConsentData(chartData);
+          setTotalConsents(data.data.total);
+        }
+      } catch (error) {
+        console.error("Error fetching consent data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConsentData();
+  }, []);
+
+  // Check if consent logging is enabled
+  useEffect(() => {
+    const checkConsentLoggingStatus = async () => {
+      try {
+        const response = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_settings",
+              nonce: window.sureConsentAjax?.nonce || "",
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.success && data.data) {
+          // Check if consent_logging_enabled is set, default to true if not found
+          const isEnabled =
+            data.data.consent_logging_enabled !== undefined
+              ? data.data.consent_logging_enabled
+              : true;
+          setConsentLoggingEnabled(isEnabled);
+
+          // Set geo-targeting mode from settings (use correct field name)
+          const geoMode = data.data.geo_rule_type || "selected";
+          setGeoTargetingMode(geoMode);
+
+          // Set selected countries from settings (use correct field name and convert codes to names)
+          const countryCodes = data.data.geo_selected_countries || [];
+          setSelectedCountries(countryCodes);
+        }
+      } catch (error) {
+        console.error("Error checking consent logging status:", error);
+        // Default to true if there's an error
+        setConsentLoggingEnabled(true);
+      }
+    };
+
+    checkConsentLoggingStatus();
+  }, []);
+
+  // Listen for scan completion events
+  useEffect(() => {
+    const handleScanComplete = () => {
+      setIsScanning(false);
+      // Refresh scan data
+      const fetchScanData = async () => {
+        setScanLoading(true);
+        try {
+          // Fetch scanned cookies
+          const cookiesResponse = await fetch(
+            window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                action: "sure_consent_get_scanned_cookies",
+                nonce: window.sureConsentAjax?.nonce || "",
+                page: 1,
+                per_page: 1000, // Get all cookies
+              }),
+            }
+          );
+
+          const cookiesData = await cookiesResponse.json();
+          if (cookiesData.success) {
+            setScannedCookies(cookiesData.data.cookies);
+          }
+
+          // Fetch latest scan history
+          const historyResponse = await fetch(
+            window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                action: "sure_consent_get_scan_history",
+                nonce: window.sureConsentAjax?.nonce || "",
+                page: 1,
+                per_page: 1, // Get only the latest scan
+              }),
+            }
+          );
+
+          const historyData = await historyResponse.json();
+          if (historyData.success && historyData.data.history.length > 0) {
+            setScanHistory(historyData.data.history[0]);
+          }
+        } catch (error) {
+          console.error("Error fetching scan data:", error);
+        } finally {
+          setScanLoading(false);
+        }
+      };
+
+      fetchScanData();
+    };
+
+    window.addEventListener("scanCompleted", handleScanComplete);
+
+    // Check if a scan was just completed
+    if (sessionStorage.getItem("scanCompleted") === "true") {
+      sessionStorage.removeItem("scanCompleted");
+      handleScanComplete();
+    }
+
+    return () => {
+      window.removeEventListener("scanCompleted", handleScanComplete);
+    };
+  }, []);
+
+  // Fetch recent consent logs
+  useEffect(() => {
+    const fetchConsentLogs = async () => {
+      setLogsLoading(true);
+      try {
+        const response = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_consent_logs",
+              nonce: window.sureConsentAjax?.nonce || "",
+              page: 1,
+              per_page: 5, // Get only 5 recent logs
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.success) {
+          setConsentLogs(data.data.logs);
+        }
+      } catch (error) {
+        console.error("Error fetching consent logs:", error);
+      } finally {
+        setLogsLoading(false);
+      }
+    };
+
+    fetchConsentLogs();
+  }, []);
+
+  // Fetch scanned cookies and scan history
+  useEffect(() => {
+    const fetchScanData = async () => {
+      setScanLoading(true);
+      try {
+        // Fetch scanned cookies
+        const cookiesResponse = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_scanned_cookies",
+              nonce: window.sureConsentAjax?.nonce || "",
+              page: 1,
+              per_page: 1000, // Get all cookies
+            }),
+          }
+        );
+
+        const cookiesData = await cookiesResponse.json();
+        if (cookiesData.success) {
+          setScannedCookies(cookiesData.data.cookies);
+        }
+
+        // Fetch latest scan history
+        const historyResponse = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_scan_history",
+              nonce: window.sureConsentAjax?.nonce || "",
+              page: 1,
+              per_page: 1, // Get only the latest scan
+            }),
+          }
+        );
+
+        const historyData = await historyResponse.json();
+        if (historyData.success && historyData.data.history.length > 0) {
+          setScanHistory(historyData.data.history[0]);
+        }
+
+        // Fetch cookie categories for name mapping
+        if (historyData.success && historyData.data.cookie_categories) {
+          setCookieCategories(historyData.data.cookie_categories);
+        }
+      } catch (error) {
+        console.error("Error fetching scan data:", error);
+      } finally {
+        setScanLoading(false);
+      }
+    };
+
+    fetchScanData();
+  }, []);
+
+  // Function to get status display text (same as in ConsentLogs)
+  const getStatusDisplay = (status) => {
+    // Convert status to proper display format
+    // Normalize accept_all and accepted to "Accepted"
+    if (status === "accept_all" || status === "accepted") {
+      return "Accepted";
+    }
+
+    switch (status) {
+      case "decline_all":
+        return "Decline All";
+      case "partially_accepted":
+        return "Partially Accepted";
+      case "declined":
+        return "Declined";
+      default:
+        return status;
+    }
+  };
+
+  // Function to get status color classes (same as in ConsentLogs)
+  const getStatusColor = (status) => {
+    // Return proper color classes based on status
+    // Normalize accept_all and accepted to same color
+    if (status === "accept_all" || status === "accepted") {
+      return "bg-green-100 text-green-800";
+    }
+
+    switch (status) {
+      case "decline_all":
+      case "declined":
+        return "bg-red-100 text-red-800";
+      case "partially_accepted":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  // Function to format date exactly like in consent logs - DD/MM/YYYY, HH:MM:SS
+  const formatDateTime = (dateString) => {
+    // Handle different date formats that might come from the API
+    let date;
+    if (dateString instanceof Date) {
+      date = dateString;
+    } else if (typeof dateString === "string") {
+      // Try to parse the date string
+      date = new Date(dateString);
+      // If invalid, try parsing as timestamp
+      if (isNaN(date.getTime())) {
+        const timestamp = Date.parse(dateString);
+        if (!isNaN(timestamp)) {
+          date = new Date(timestamp);
+        } else {
+          return "Invalid Date";
+        }
+      }
+    } else {
+      return "Invalid Date";
+    }
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "Invalid Date";
+    }
+
+    // Format as DD/MM/YYYY, HH:MM:SS using the same approach as ConsentLogs
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
+  };
+
+  // Function to trigger cookie scan
+  const triggerCookieScan = async () => {
+    setIsScanning(true);
+    try {
+      // Redirect to the scan page with auto_scan parameter
+      window.location.href =
+        "admin.php?page=sureconsent&tab=cookie-manager&subtab=scan&auto_scan=1#settings";
+    } catch (error) {
+      console.error("Error triggering scan:", error);
+      setIsScanning(false);
+    }
+  };
+
+  // Group cookies by category
+  const getCookiesByCategory = () => {
+    const categories = {};
+    scannedCookies.forEach((cookie) => {
+      const categoryId = cookie.category || "uncategorized";
+      const categoryName = getCategoryName(categoryId);
+      if (!categories[categoryName]) {
+        categories[categoryName] = [];
+      }
+      categories[categoryName].push(cookie);
+    });
+    return categories;
+  };
+
+  // Format date for scan history
+  const formatScanDate = (dateString) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "Invalid Date";
+    }
+    return date
+      .toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+      .replace(/\//g, "/");
+  };
 
   return (
     <Container
-      className="h-full p-5 pb-8 xl:p-8 max-[1920px]:max-w-full mx-auto box-content bg-background-secondary gap-6"
+      className="h-full p-5 pb-8 xl:p-8 max-[1920px]:max-w-full mx-auto box-content bg-background-secondary gap-6 overflow-y-auto max-h-screen"
       cols={12}
       containerType="grid"
       gap="2xl"
     >
+      <PreviewBanner />
       <Container.Item className="col-span-8">
         <Container direction="column" className="gap-8 relative">
-          {/* Consent Analytics */}
+          {/* Banner Status - Enhanced UI (Moved to top) */}
           <Container
-            className="w-full h-fit bg-background-primary border-0.5 border-solid rounded-xl border-border-subtle p-4 shadow-sm"
-            containerType="flex"
-            direction="column"
-            gap="md"
-          >
-            <Container.Item>
-              <Label className="text-lg font-semibold text-text-primary">
-                Consent Analytics
-              </Label>
-            </Container.Item>
-            <Container.Item>
-              <Container className="gap-6" align="center">
-                <Container.Item>
-                  <PieChart data={consentData} />
-                </Container.Item>
-                <Container.Item className="flex-1">
-                  <Container direction="column" className="gap-3">
-                    {consentData.map((item, index) => (
-                      <Container.Item key={index}>
-                        <Container align="center" className="gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <Label className="text-sm">{item.label}</Label>
-                          <Label className="text-sm font-semibold ml-auto">
-                            {item.value}%
-                          </Label>
-                        </Container>
-                      </Container.Item>
-                    ))}
-                  </Container>
-                </Container.Item>
-              </Container>
-            </Container.Item>
-          </Container>
-
-          {/* Banner Status */}
-          <Container
-            className="w-full h-fit bg-background-primary border-0.5 border-solid rounded-xl border-border-subtle p-4 shadow-sm"
+            className={`w-full h-fit rounded-xl p-6 shadow-lg ${
+              bannerEnabled
+                ? "bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200"
+                : "bg-gradient-to-r from-red-50 to-rose-50 border border-red-200"
+            }`}
             containerType="flex"
             direction="column"
             gap="md"
           >
             <Container.Item>
               <Container align="center" justify="between">
-                <Label className="text-lg font-semibold text-text-primary">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Cookie className="text-indigo-600" />
                   Cookie Banner Status
                 </Label>
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={bannerEnabled}
-                    onChange={toggleBanner}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`relative w-11 h-6 rounded-full transition-colors ${
-                      bannerEnabled ? "bg-green-600" : "bg-gray-300"
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                        bannerEnabled ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    ></div>
-                  </div>
-                  <span className="ml-3 text-sm font-medium text-gray-700">
-                    {bannerEnabled ? "Enabled" : "Disabled"}
-                  </span>
-                </label>
+                <Badge
+                  label={bannerEnabled ? "ACTIVE" : "INACTIVE"}
+                  size="md"
+                  variant={bannerEnabled ? "success" : "destructive"}
+                  className="font-bold px-3 py-1 rounded-full"
+                />
               </Container>
             </Container.Item>
-            <Container.Item>
-              <Container className="gap-4">
+
+            <Container.Item className="mt-4">
+              <Container className="gap-6">
                 <Container.Item className="flex-1">
-                  <Container direction="column" className="gap-2">
-                    <Label className="text-sm text-text-secondary">
+                  <Container direction="column" className="gap-3">
+                    <Label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
                       Frontend Status
                     </Label>
-                    <Container align="center" className="gap-2">
-                      <Badge
-                        label={bannerEnabled ? "Active" : "Inactive"}
-                        size="sm"
-                        variant={bannerEnabled ? "success" : "neutral"}
-                      />
-                      <Label className="text-sm">
+                    <Container align="center" className="gap-3">
+                      <div
+                        className={`w-3 h-3 rounded-full ${
+                          bannerEnabled ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      ></div>
+                      <Label
+                        className={`text-lg font-bold ${
+                          bannerEnabled ? "text-green-700" : "text-red-700"
+                        }`}
+                      >
                         {bannerEnabled
                           ? "Banner is running on your website"
-                          : "Banner is disabled"}
+                          : "Banner is not running on your site"}
                       </Label>
                     </Container>
                   </Container>
                 </Container.Item>
+
                 <Container.Item className="flex-1">
-                  <Container direction="column" className="gap-2">
-                    <Label className="text-sm text-text-secondary">
+                  <Container direction="column" className="gap-3">
+                    <Label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
                       Compliance
                     </Label>
-                    <Container align="center" className="gap-2">
-                      <Badge label="GDPR" size="sm" variant="neutral" />
-                      <Label className="text-sm">EU compliance enabled</Label>
+                    <Container align="center" className="gap-3">
+                      <Shield className="text-blue-500" />
+                      <Label className="text-lg font-bold text-blue-700">
+                        GDPR Compliant
+                      </Label>
                     </Container>
                   </Container>
                 </Container.Item>
               </Container>
             </Container.Item>
+
+            <Container.Item className="mt-4 pt-4 border-t border-gray-200">
+              <Container align="center" justify="between">
+                <Label className="text-sm text-text-secondary">
+                  {bannerEnabled
+                    ? "Your website is compliant with cookie consent regulations"
+                    : "Enable the cookie banner in settings to make your website compliant"}
+                </Label>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      // Toggle preview mode
+                      const newValue = !getCurrentValue("preview_enabled");
+                      updateSetting("preview_enabled", newValue);
+                      // Save immediately
+                      const result = await saveSettings();
+                      if (result.success) {
+                        console.log("Preview mode updated:", newValue);
+                      }
+                    }}
+                    className="font-medium"
+                  >
+                    {getCurrentValue("preview_enabled")
+                      ? "Hide Preview"
+                      : "Show Preview"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={bannerEnabled ? "outline" : "primary"}
+                    onClick={() => {
+                      if (bannerEnabled) {
+                        window.location.href =
+                          "admin.php?page=sureconsent&tab=banner#settings";
+                      } else {
+                        window.location.href =
+                          "admin.php?page=sureconsent&tab=settings#settings";
+                      }
+                    }}
+                    className="font-medium"
+                  >
+                    {bannerEnabled ? "Configure Banner" : "Enable Banner"}
+                  </Button>
+                </div>
+              </Container>
+            </Container.Item>
           </Container>
+
+          {/* Geo-Location Banner Activation - Simplified Display */}
+          <Container
+            className="w-full h-fit bg-gradient-to-r from-purple-50 to-indigo-50 border-0.5 border-solid rounded-xl border-purple-200 p-6 shadow-lg"
+            containerType="flex"
+            direction="column"
+            gap="md"
+          >
+            <Container.Item>
+              <Container align="center" justify="between">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Shield className="text-purple-600" />
+                  Geo-Location Banner Activation
+                </Label>
+              </Container>
+            </Container.Item>
+
+            <Container.Item className="mt-4">
+              {/* Conditional Display Based on Targeting Mode */}
+
+              {/* Worldwide Mode */}
+              {geoTargetingMode === "worldwide" && (
+                <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+                  <Label className="font-medium text-blue-800">
+                    Banner is shown in all countries
+                  </Label>
+                </div>
+              )}
+
+              {/* EU Countries Only Mode */}
+              {geoTargetingMode === "eu_only" && (
+                <div className="bg-green-50 rounded-lg border border-green-200 p-4">
+                  <Label className="font-medium text-green-800 mb-2">
+                    Banner is shown in EU countries only:
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {euCountries.map((country, index) => (
+                      <span
+                        key={index}
+                        className="text-sm bg-white border border-gray-200 rounded px-2 py-1 flex items-center gap-1"
+                      >
+                        <span className="text-base">
+                          {getEUCountryFlag(country)}
+                        </span>
+                        {country}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Countries Mode */}
+              {geoTargetingMode === "selected" && (
+                <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
+                  <Label className="font-medium text-purple-800 mb-2">
+                    Banner is shown in the following countries:
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCountries.length > 0 ? (
+                      selectedCountries.map((countryCode, index) => (
+                        <span
+                          key={index}
+                          className="text-sm bg-white border border-gray-200 rounded px-2 py-1 flex items-center gap-1"
+                        >
+                          <span className="text-base">
+                            {getCountryFlag(countryCode)}
+                          </span>
+                          {getCountryName(countryCode)}
+                        </span>
+                      ))
+                    ) : (
+                      <Label className="text-sm text-text-secondary">
+                        No countries selected
+                      </Label>
+                    )}
+                  </div>
+                </div>
+              )}
+            </Container.Item>
+
+            <Container.Item className="mt-4 pt-4 border-t border-gray-200">
+              <Container align="center" justify="between">
+                <Label className="text-sm text-text-secondary">
+                  Configure geographic targeting rules for your cookie banner
+                </Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    (window.location.href =
+                      "admin.php?page=sureconsent&tab=advanced&subtab=geo-rules#settings")
+                  }
+                  className="font-medium"
+                >
+                  Configure Location
+                </Button>
+              </Container>
+            </Container.Item>
+          </Container>
+
+          {/* Consent Analytics - Enhanced UI */}
+          <Container
+            className={`w-full h-fit bg-gradient-to-br from-blue-50 to-indigo-50 border-0.5 border-solid rounded-xl border-blue-200 p-6 shadow-lg relative ${
+              !consentLoggingEnabled ? "opacity-50 filter blur-sm" : ""
+            }`}
+            containerType="flex"
+            direction="column"
+            gap="md"
+          >
+            <Container.Item>
+              <Container align="center" justify="between">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <BarChart3 className="text-indigo-600" />
+                  Consent Analytics
+                </Label>
+                <Badge
+                  label={`${totalConsents} Total`}
+                  size="md"
+                  variant="primary"
+                  className="font-semibold"
+                />
+              </Container>
+            </Container.Item>
+            <Container.Item>
+              {loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="rounded-full bg-gray-200 h-40 w-40 mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                  </div>
+                </div>
+              ) : totalConsents === 0 ? (
+                <div className="text-center py-12 text-text-secondary bg-white rounded-xl border border-dashed border-gray-300">
+                  <BarChart3 className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                  <p className="font-medium text-lg mb-1">
+                    No consent data yet
+                  </p>
+                  <p className="text-sm">
+                    Consent analytics will appear here once users start
+                    accepting or declining cookies
+                  </p>
+                </div>
+              ) : (
+                <Container className="gap-6" align="center">
+                  <Container.Item className="w-1/2">
+                    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                      <PieChart
+                        data={consentData}
+                        dataKey="visitors"
+                        showTooltip
+                        tooltipIndicator="dot"
+                        onHover={setHoveredItem}
+                      />
+                    </div>
+                  </Container.Item>
+                  <Container.Item className="w-1/2">
+                    <Container direction="column" className="gap-3">
+                      {consentData.map((item, index) => (
+                        <Container.Item key={index}>
+                          <Container
+                            align="center"
+                            className={`gap-3 p-4 rounded-xl transition-all duration-200 cursor-pointer ${
+                              hoveredItem && hoveredItem.name === item.name
+                                ? "bg-white border-2 border-indigo-300 shadow-md scale-105"
+                                : "bg-white border border-gray-200 shadow-sm hover:shadow-md"
+                            }`}
+                            onMouseEnter={() => setHoveredItem(item)}
+                            onMouseLeave={() => setHoveredItem(null)}
+                          >
+                            <div
+                              className="w-5 h-5 rounded-full shadow-sm"
+                              style={{ backgroundColor: item.fill }}
+                            />
+                            <Container direction="column" className="flex-1">
+                              <Label className="text-sm font-semibold text-gray-800">
+                                {item.name}
+                              </Label>
+                              <Label className="text-xs text-gray-500">
+                                {item.visitors} consents
+                              </Label>
+                            </Container>
+                            <Badge
+                              label={`${
+                                totalConsents > 0
+                                  ? Math.round(
+                                      (item.visitors / totalConsents) * 100
+                                    )
+                                  : 0
+                              }%`}
+                              size="sm"
+                              className="font-bold"
+                              style={{
+                                backgroundColor: item.fill,
+                                color: "white",
+                              }}
+                            />
+                          </Container>
+                        </Container.Item>
+                      ))}
+                    </Container>
+                  </Container.Item>
+                </Container>
+              )}
+            </Container.Item>
+          </Container>
+
+          {/* Recent Consent Logs - Enhanced UI */}
+          <Container
+            className={`w-full h-fit bg-gradient-to-br from-green-50 to-emerald-50 border-0.5 border-solid rounded-xl border-green-200 p-6 shadow-lg relative ${
+              !consentLoggingEnabled ? "opacity-50 filter blur-sm" : ""
+            }`}
+            containerType="flex"
+            direction="column"
+            gap="md"
+          >
+            <Container.Item>
+              <Container align="center" justify="between">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Palette className="text-emerald-600" />
+                  Recent Consent Logs
+                </Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    (window.location.href =
+                      "admin.php?page=sureconsent&tab=analytics#settings")
+                  }
+                  className="font-medium bg-white hover:bg-gray-50 border-green-300"
+                >
+                  View All Logs
+                </Button>
+              </Container>
+            </Container.Item>
+
+            <Container.Item>
+              {logsLoading ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  </div>
+                </div>
+              ) : consentLogs.length === 0 ? (
+                <div className="text-center py-12 text-text-secondary bg-white rounded-xl border border-dashed border-gray-300">
+                  <Palette className="w-12 h-12 mx-auto text-gray-400 mb-3" />
+                  <p className="font-medium text-lg mb-1">
+                    No consent logs yet
+                  </p>
+                  <p className="text-sm">
+                    Recent consent logs will appear here once users interact
+                    with the banner
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  {/* Header */}
+                  <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gradient-to-r from-emerald-100 to-green-100 border-b border-emerald-200">
+                    <div className="col-span-3 font-bold text-sm text-emerald-900">
+                      Date & Time
+                    </div>
+                    <div className="col-span-3 font-bold text-sm text-emerald-900">
+                      IP Address
+                    </div>
+                    <div className="col-span-3 font-bold text-sm text-emerald-900">
+                      Country
+                    </div>
+                    <div className="col-span-3 font-bold text-sm text-emerald-900">
+                      Status
+                    </div>
+                  </div>
+
+                  {/* Rows */}
+                  <div className="divide-y divide-gray-100">
+                    {consentLogs.map((log, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-emerald-50 transition-colors duration-150 cursor-pointer"
+                      >
+                        <div className="col-span-3 text-sm text-gray-700 flex items-center">
+                          <span className="font-medium">
+                            {formatDateTime(log.timestamp)}
+                          </span>
+                        </div>
+                        <div className="col-span-3 text-sm font-mono text-gray-600 flex items-center">
+                          <span className="bg-gray-100 px-2 py-1 rounded border border-gray-200">
+                            {log.ip_address || "N/A"}
+                          </span>
+                        </div>
+                        <div className="col-span-3 text-sm text-gray-700 flex items-center">
+                          <span className="font-medium">
+                            {log.country || "Localhost"}
+                          </span>
+                        </div>
+                        <div className="col-span-3 flex items-center">
+                          <span
+                            className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full shadow-sm ${getStatusColor(
+                              log.status
+                            )}`}
+                          >
+                            {getStatusDisplay(log.status)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Container.Item>
+          </Container>
+
+          {/* Overlay for disabled consent logging */}
+          {!consentLoggingEnabled && (
+            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+              <div className="bg-white p-6 rounded-lg max-w-md text-center shadow-xl pointer-events-auto">
+                <h3 className="text-lg font-semibold mb-2">
+                  Consent Logging Disabled
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Enable consent logging to view analytics data and recent
+                  consent logs.
+                </p>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() =>
+                    (window.location.href =
+                      "admin.php?page=sureconsent&tab=settings#settings")
+                  }
+                >
+                  Enable Consent Logging
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Cookie Scan Overview - Enhanced UI */}
+          <Container
+            className="w-full h-fit bg-gradient-to-r from-blue-50 to-indigo-50 border-0.5 border-solid rounded-xl border-blue-200 p-6 shadow-lg"
+            containerType="flex"
+            direction="column"
+            gap="md"
+          >
+            <Container.Item>
+              <Container align="center" justify="between">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Cookie className="text-indigo-600" />
+                  Cookie Scan Overview
+                </Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    (window.location.href =
+                      "admin.php?page=sureconsent&tab=cookie-manager&subtab=scan#settings")
+                  }
+                  className="font-medium bg-white hover:bg-gray-50 border-blue-300"
+                >
+                  View Scan Details
+                </Button>
+              </Container>
+            </Container.Item>
+
+            <Container.Item>
+              {scanLoading ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  </div>
+                </div>
+              ) : (
+                <Container direction="column" className="gap-6">
+                  {/* Scanned Cookies by Category */}
+                  <Container.Item>
+                    <Label className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">
+                      Scanned Cookies by Category
+                    </Label>
+                    {scannedCookies.length === 0 ? (
+                      <div className="text-center py-6 text-text-secondary bg-white rounded-lg border border-dashed border-gray-300 relative">
+                        {/* Overlay only shown during actual scanning */}
+                        {isScanning && (
+                          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg z-10">
+                            <div className="bg-white p-6 rounded-lg max-w-md text-center">
+                              <div className="flex justify-center mb-4">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                              </div>
+                              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                Scanning Cookies
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                Please wait while we scan your website for
+                                cookies...
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {/* No overlay when not scanning - show normal content */}
+                        <p className="mb-4">No cookies scanned yet</p>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={triggerCookieScan}
+                        >
+                          Run Cookie Scan
+                        </Button>
+                      </div>
+                    ) : (
+                      <Container className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        {Object.entries(getCookiesByCategory()).map(
+                          ([category, cookies]) => (
+                            <Container
+                              key={category}
+                              className="flex justify-between items-center p-4 bg-white rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow"
+                              align="center"
+                            >
+                              <Label className="font-medium text-gray-800">
+                                {category}
+                              </Label>
+                              <Badge
+                                label={cookies.length.toString()}
+                                size="md"
+                                variant="primary"
+                                className="font-bold"
+                              />
+                            </Container>
+                          )
+                        )}
+                      </Container>
+                    )}
+                  </Container.Item>
+
+                  {/* Latest Scan History */}
+                  <Container.Item>
+                    <Label className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">
+                      Latest Scan
+                    </Label>
+                    {scanHistory ? (
+                      <Container
+                        className="p-5 bg-white rounded-xl border border-blue-100 shadow-sm hover:shadow-md transition-shadow"
+                        direction="column"
+                        gap="4"
+                      >
+                        <Container
+                          align="center"
+                          justify="between"
+                          className="pb-3 border-b border-gray-100"
+                        >
+                          <Label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4" />
+                            Scan Date
+                          </Label>
+                          <Label className="text-sm font-semibold text-gray-800">
+                            {formatScanDate(scanHistory.scan_date)}
+                          </Label>
+                        </Container>
+
+                        <Container
+                          align="center"
+                          justify="between"
+                          className="py-3 border-b border-gray-100"
+                        >
+                          <Label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                            <Cookie className="w-4 h-4" />
+                            Total Cookies
+                          </Label>
+                          <Badge
+                            label={scanHistory.total_cookies.toString()}
+                            size="md"
+                            variant="primary"
+                            className="font-bold px-3 py-1"
+                          />
+                        </Container>
+
+                        <Container
+                          align="center"
+                          justify="between"
+                          className="pt-3"
+                        >
+                          <Label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                            <Settings className="w-4 h-4" />
+                            Scan Type
+                          </Label>
+                          <Label className="text-sm font-semibold capitalize bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                            {scanHistory.scan_type}
+                          </Label>
+                        </Container>
+                      </Container>
+                    ) : (
+                      <div className="text-center py-8 text-text-secondary bg-white rounded-xl border border-dashed border-gray-300">
+                        <BarChart3 className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                        <p className="font-medium mb-1">
+                          No scan history available
+                        </p>
+                        <p className="text-sm">
+                          Run a cookie scan to see results here
+                        </p>
+                      </div>
+                    )}
+                  </Container.Item>
+                </Container>
+              )}
+            </Container.Item>
+          </Container>
+
+          {/* Additional spacing after Cookie Scan Overview */}
+          <div className="h-12"></div>
         </Container>
       </Container.Item>
 
