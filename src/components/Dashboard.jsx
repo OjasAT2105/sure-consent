@@ -14,6 +14,7 @@ import {
 import { useSettings } from "../contexts/SettingsContext";
 import countriesData from "../data/countries.json";
 import { useEffect, useState } from "react";
+import PreviewBanner from "./PreviewBanner";
 
 const quickLinks = [
   {
@@ -333,6 +334,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(true);
   const [scanLoading, setScanLoading] = useState(true);
+  const [isScanning, setIsScanning] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [consentLoggingEnabled, setConsentLoggingEnabled] = useState(true);
   const [geoTargetingMode, setGeoTargetingMode] = useState("selected"); // "worldwide", "eu_only", "selected"
@@ -603,6 +605,80 @@ const Dashboard = () => {
     checkConsentLoggingStatus();
   }, []);
 
+  // Listen for scan completion events
+  useEffect(() => {
+    const handleScanComplete = () => {
+      setIsScanning(false);
+      // Refresh scan data
+      const fetchScanData = async () => {
+        setScanLoading(true);
+        try {
+          // Fetch scanned cookies
+          const cookiesResponse = await fetch(
+            window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                action: "sure_consent_get_scanned_cookies",
+                nonce: window.sureConsentAjax?.nonce || "",
+                page: 1,
+                per_page: 1000, // Get all cookies
+              }),
+            }
+          );
+
+          const cookiesData = await cookiesResponse.json();
+          if (cookiesData.success) {
+            setScannedCookies(cookiesData.data.cookies);
+          }
+
+          // Fetch latest scan history
+          const historyResponse = await fetch(
+            window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                action: "sure_consent_get_scan_history",
+                nonce: window.sureConsentAjax?.nonce || "",
+                page: 1,
+                per_page: 1, // Get only the latest scan
+              }),
+            }
+          );
+
+          const historyData = await historyResponse.json();
+          if (historyData.success && historyData.data.history.length > 0) {
+            setScanHistory(historyData.data.history[0]);
+          }
+        } catch (error) {
+          console.error("Error fetching scan data:", error);
+        } finally {
+          setScanLoading(false);
+        }
+      };
+
+      fetchScanData();
+    };
+
+    window.addEventListener("scanCompleted", handleScanComplete);
+
+    // Check if a scan was just completed
+    if (sessionStorage.getItem("scanCompleted") === "true") {
+      sessionStorage.removeItem("scanCompleted");
+      handleScanComplete();
+    }
+
+    return () => {
+      window.removeEventListener("scanCompleted", handleScanComplete);
+    };
+  }, []);
+
   // Fetch recent consent logs
   useEffect(() => {
     const fetchConsentLogs = async () => {
@@ -779,6 +855,19 @@ const Dashboard = () => {
     return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
   };
 
+  // Function to trigger cookie scan
+  const triggerCookieScan = async () => {
+    setIsScanning(true);
+    try {
+      // Redirect to the scan page with auto_scan parameter
+      window.location.href =
+        "admin.php?page=sureconsent&tab=cookie-manager&subtab=scan&auto_scan=1#settings";
+    } catch (error) {
+      console.error("Error triggering scan:", error);
+      setIsScanning(false);
+    }
+  };
+
   // Group cookies by category
   const getCookiesByCategory = () => {
     const categories = {};
@@ -819,6 +908,7 @@ const Dashboard = () => {
       containerType="grid"
       gap="2xl"
     >
+      <PreviewBanner />
       <Container.Item className="col-span-8">
         <Container direction="column" className="gap-8 relative">
           {/* Banner Status - Enhanced UI (Moved to top) */}
@@ -896,22 +986,43 @@ const Dashboard = () => {
                     ? "Your website is compliant with cookie consent regulations"
                     : "Enable the cookie banner in settings to make your website compliant"}
                 </Label>
-                <Button
-                  size="sm"
-                  variant={bannerEnabled ? "outline" : "primary"}
-                  onClick={() => {
-                    if (bannerEnabled) {
-                      window.location.href =
-                        "admin.php?page=sureconsent&tab=banner#settings";
-                    } else {
-                      window.location.href =
-                        "admin.php?page=sureconsent&tab=settings#settings";
-                    }
-                  }}
-                  className="font-medium"
-                >
-                  {bannerEnabled ? "Configure Banner" : "Enable Banner"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      // Toggle preview mode
+                      const newValue = !getCurrentValue("preview_enabled");
+                      updateSetting("preview_enabled", newValue);
+                      // Save immediately
+                      const result = await saveSettings();
+                      if (result.success) {
+                        console.log("Preview mode updated:", newValue);
+                      }
+                    }}
+                    className="font-medium"
+                  >
+                    {getCurrentValue("preview_enabled")
+                      ? "Hide Preview"
+                      : "Show Preview"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={bannerEnabled ? "outline" : "primary"}
+                    onClick={() => {
+                      if (bannerEnabled) {
+                        window.location.href =
+                          "admin.php?page=sureconsent&tab=banner#settings";
+                      } else {
+                        window.location.href =
+                          "admin.php?page=sureconsent&tab=settings#settings";
+                      }
+                    }}
+                    className="font-medium"
+                  >
+                    {bannerEnabled ? "Configure Banner" : "Enable Banner"}
+                  </Button>
+                </div>
               </Container>
             </Container.Item>
           </Container>
@@ -993,6 +1104,25 @@ const Dashboard = () => {
                   </div>
                 </div>
               )}
+            </Container.Item>
+
+            <Container.Item className="mt-4 pt-4 border-t border-gray-200">
+              <Container align="center" justify="between">
+                <Label className="text-sm text-text-secondary">
+                  Configure geographic targeting rules for your cookie banner
+                </Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    (window.location.href =
+                      "admin.php?page=sureconsent&tab=advanced&subtab=geo-rules#settings")
+                  }
+                  className="font-medium"
+                >
+                  Configure Location
+                </Button>
+              </Container>
             </Container.Item>
           </Container>
 
@@ -1277,15 +1407,30 @@ const Dashboard = () => {
                       Scanned Cookies by Category
                     </Label>
                     {scannedCookies.length === 0 ? (
-                      <div className="text-center py-6 text-text-secondary bg-white rounded-lg border border-dashed border-gray-300">
-                        <p className="mb-2">No cookies scanned yet</p>
+                      <div className="text-center py-6 text-text-secondary bg-white rounded-lg border border-dashed border-gray-300 relative">
+                        {/* Overlay only shown during actual scanning */}
+                        {isScanning && (
+                          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg z-10">
+                            <div className="bg-white p-6 rounded-lg max-w-md text-center">
+                              <div className="flex justify-center mb-4">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                              </div>
+                              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                Scanning Cookies
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                Please wait while we scan your website for
+                                cookies...
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {/* No overlay when not scanning - show normal content */}
+                        <p className="mb-4">No cookies scanned yet</p>
                         <Button
                           size="sm"
                           variant="primary"
-                          onClick={() =>
-                            (window.location.href =
-                              "admin.php?page=sureconsent&tab=cookie-manager&subtab=scan#settings")
-                          }
+                          onClick={triggerCookieScan}
                         >
                           Run Cookie Scan
                         </Button>

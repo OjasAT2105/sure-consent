@@ -5,6 +5,15 @@ const ActionCard = () => {
   const { hasChanges, isSaving, saveSettings } = useSettings();
 
   const handleSave = async () => {
+    // Check if GeoRules validation function exists and run it
+    if (typeof window.validateGeoRules === "function") {
+      const isValid = window.validateGeoRules();
+      if (!isValid) {
+        // Validation failed, don't save
+        return;
+      }
+    }
+
     const result = await saveSettings();
     if (result.success) {
       toast.success("Settings saved!", { description: result.message });

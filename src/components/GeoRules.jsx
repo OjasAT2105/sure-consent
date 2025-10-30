@@ -17,6 +17,7 @@ const GeoRules = () => {
     common: true,
     all: false,
   });
+  const [validationError, setValidationError] = useState(""); // Added for validation error
 
   // Group countries by region (imported from JSON)
   const countryGroups = countryData;
@@ -49,6 +50,7 @@ const GeoRules = () => {
   const handleRuleTypeChange = (value) => {
     setGeoRuleType(value);
     updateSetting("geo_rule_type", value);
+    setValidationError(""); // Clear validation error when changing mode
 
     // Clear selected countries when switching to worldwide or eu_only modes
     if (value === "worldwide" || value === "eu_only") {
@@ -75,6 +77,10 @@ const GeoRules = () => {
 
     setSelectedCountries(updatedCountries);
     updateSetting("geo_selected_countries", updatedCountries);
+    // Clear validation error when selecting a country
+    if (updatedCountries.length > 0) {
+      setValidationError("");
+    }
   };
 
   // Handle select all countries
@@ -82,12 +88,17 @@ const GeoRules = () => {
     const allCountryCodes = availableCountries.map((country) => country.code);
     setSelectedCountries(allCountryCodes);
     updateSetting("geo_selected_countries", allCountryCodes);
+    setValidationError(""); // Clear validation error when selecting all
   };
 
   // Handle deselect all countries
   const handleDeselectAll = () => {
     setSelectedCountries([]);
     updateSetting("geo_selected_countries", []);
+    // Set validation error if in selected mode
+    if (geoRuleType === "selected") {
+      setValidationError("Please select at least one country");
+    }
   };
 
   // Toggle group expansion
@@ -122,6 +133,19 @@ const GeoRules = () => {
 
   // Get selected country objects for display
   const selectedCountryObjects = getSelectedCountryObjects();
+
+  // Custom validation function for ActionCard to use
+  const validateSettings = () => {
+    if (geoRuleType === "selected" && selectedCountries.length === 0) {
+      setValidationError("Please select at least one country");
+      return false;
+    }
+    setValidationError("");
+    return true;
+  };
+
+  // Expose validation function to be used by ActionCard
+  window.validateGeoRules = validateSettings;
 
   return (
     <div>
@@ -173,6 +197,8 @@ const GeoRules = () => {
                   </div>
                 </label>
 
+                {/* Removed the "Configure Location" button */}
+
                 <label className="flex items-start space-x-3 cursor-pointer">
                   <input
                     type="radio"
@@ -222,6 +248,13 @@ const GeoRules = () => {
               <p className="text-sm text-gray-500 mb-4">
                 Choose which countries should see the cookie consent banner
               </p>
+
+              {/* Validation error message */}
+              {validationError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-sm text-red-700">{validationError}</p>
+                </div>
+              )}
 
               {/* Search box */}
               <div className="mb-4">

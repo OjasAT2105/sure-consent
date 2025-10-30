@@ -658,9 +658,8 @@ const AdminApp = () => {
             </div>
           )}
         </div>
-        {(activeSection === "banner" ||
-          activeSection === "settings" ||
-          activeSection === "cookie-manager") && <PreviewBanner />}
+        {/* Show PreviewBanner on all tabs, not just specific ones */}
+        <PreviewBanner />
       </Fragment>
     </SettingsProvider>
   );

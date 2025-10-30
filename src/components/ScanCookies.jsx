@@ -13,6 +13,8 @@ const ScanCookies = () => {
   // Add state for toast notification
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  // Add state for scan overlay
+  const [showScanOverlay, setShowScanOverlay] = useState(false);
 
   // Get cookie categories for mapping IDs to names
   const cookieCategories = getCurrentValue("cookie_categories") || [];
@@ -207,6 +209,9 @@ const ScanCookies = () => {
       scanAllPages
     );
 
+    // Show scan overlay
+    setShowScanOverlay(true);
+
     // Set the appropriate loading state
     if (scanAllPages) {
       setIsScanningAllPages(true);
@@ -299,6 +304,8 @@ const ScanCookies = () => {
     } catch (error) {
       console.error("Failed to scan cookies:", error);
     } finally {
+      // Hide scan overlay
+      setShowScanOverlay(false);
       // Reset the appropriate loading state
       if (scanAllPages) {
         setIsScanningAllPages(false);
@@ -528,6 +535,26 @@ const ScanCookies = () => {
         </div>
       </div>
 
+      {/* Scan Overlay */}
+      {showScanOverlay && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg max-w-md text-center shadow-2xl">
+            <div className="flex justify-center mb-6">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600"></div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              Scanning Cookies
+            </h3>
+            <p className="text-gray-600 mb-2">
+              Please wait while we scan your website for cookies...
+            </p>
+            <p className="text-sm text-gray-500 mt-4">
+              This may take a few moments
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Scanned Cookies Accordion */}
       {Object.keys(groupedCookies).length > 0 ? (
         <div className="space-y-4 mb-6">
@@ -634,7 +661,24 @@ const ScanCookies = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center relative">
+          {/* Overlay only shown during actual scanning */}
+          {showScanOverlay && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg z-10">
+              <div className="bg-white p-6 rounded-lg max-w-md text-center">
+                <div className="flex justify-center mb-4">
+                  <Loader className="animate-spin h-8 w-8 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Scanning Cookies
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Please wait while we scan your website for cookies...
+                </p>
+              </div>
+            </div>
+          )}
+          {/* No overlay when not scanning - show normal content */}
           <svg
             className="mx-auto h-12 w-12 text-gray-400"
             fill="none"
@@ -655,6 +699,18 @@ const ScanCookies = () => {
           <p className="mt-1 text-sm text-gray-500">
             Get started by scanning your website for cookies.
           </p>
+          <div className="mt-4">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() =>
+                (window.location.href =
+                  "http://sureconsent.local/wp-admin/admin.php?page=sureconsent&tab=cookie-manager&subtab=scan#settings")
+              }
+            >
+              Start Scanning
+            </Button>
+          </div>
         </div>
       )}
     </div>
