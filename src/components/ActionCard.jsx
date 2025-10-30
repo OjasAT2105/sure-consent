@@ -1,4 +1,4 @@
-import { Button, Toaster, toast } from "@bsf/force-ui";
+import { Toaster, toast } from "@bsf/force-ui";
 import { useSettings } from "../contexts/SettingsContext";
 
 const ActionCard = () => {
@@ -23,13 +23,18 @@ const ActionCard = () => {
         dismissAfter={5000}
       />
       <div className="flex justify-start gap-3 mt-6 mb-4">
-        <Button
+        <button
+          type="button"
           onClick={handleSave}
           disabled={!hasChanges || isSaving}
-          className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border disabled:border-gray-300"
+          className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
+            !hasChanges || isSaving
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+          }`}
         >
           {isSaving ? "Saving..." : "Save Changes"}
-        </Button>
+        </button>
       </div>
     </>
   );

@@ -8,6 +8,7 @@ import {
   Settings,
   ChevronDown,
   ChevronUp,
+  FolderOpen,
 } from "lucide-react";
 
 const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
@@ -17,7 +18,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
   const [expandedCategory, setExpandedCategory] = useState(null); // For accordion functionality
 
   useEffect(() => {
-    // Default categories if none are defined
+    // Default categories - should match CookieCategories.jsx
     const defaultCategories = [
       {
         id: "essential",
@@ -33,7 +34,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
         description:
           "These cookies enable the website to provide enhanced functionality and personalization. They may be set by us or by third party providers whose services we have added to our pages.",
         icon: "Settings",
-        required: false,
+        required: true,
       },
       {
         id: "analytics",
@@ -41,7 +42,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
         description:
           "These cookies allow us to count visits and traffic sources so we can measure and improve the performance of our site. They help us to know which pages are the most and least popular and see how visitors move around the site.",
         icon: "BarChart3",
-        required: false,
+        required: true,
       },
       {
         id: "marketing",
@@ -49,7 +50,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
         description:
           "These cookies may be set through our site by our advertising partners. They may be used by those companies to build a profile of your interests and show you relevant adverts on other sites.",
         icon: "Target",
-        required: false,
+        required: true,
       },
       {
         id: "uncategorized",
@@ -57,7 +58,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
         description:
           "These are cookies that do not fit into any of the other categories. They may be used for various purposes that are not specifically defined.",
         icon: "FolderOpen",
-        required: false,
+        required: true,
       },
     ];
 
@@ -103,6 +104,13 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
     }
   }, [settings.cookie_categories, settings.custom_cookies]);
 
+  // Reset expanded category when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setExpandedCategory(null);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   // Helper function to get icon component from string name
@@ -112,6 +120,7 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
       Settings: Settings,
       BarChart3: BarChart3,
       Target: Target,
+      FolderOpen: FolderOpen,
     };
     return icons[iconName] || Settings;
   };
@@ -128,10 +137,8 @@ const PreferencesModal = ({ isOpen, onClose, onSave, settings = {} }) => {
   };
 
   // Handle accordion toggle for cookie tables
-  const toggleCategoryCookies = (categoryName) => {
-    setExpandedCategory(
-      expandedCategory === categoryName ? null : categoryName
-    );
+  const toggleCategoryCookies = (categoryId) => {
+    setExpandedCategory(expandedCategory === categoryId ? null : categoryId);
   };
 
   // Function to check if a cookie is expired

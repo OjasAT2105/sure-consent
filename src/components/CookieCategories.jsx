@@ -312,9 +312,9 @@ const CookieCategories = () => {
   };
 
   // Function to check if a category has associated custom cookies
-  const getCategoryCookieCount = (categoryName) => {
+  const getCategoryCookieCount = (categoryId) => {
     const customCookies = getCurrentValue("custom_cookies") || [];
-    return customCookies.filter((cookie) => cookie.category === categoryName)
+    return customCookies.filter((cookie) => cookie.category === categoryId)
       .length;
   };
 
@@ -333,7 +333,7 @@ const CookieCategories = () => {
       return;
     }
 
-    const cookieCount = getCategoryCookieCount(category.name);
+    const cookieCount = getCategoryCookieCount(category.id);
 
     setDeleteDialog({
       isOpen: true,
@@ -347,7 +347,7 @@ const CookieCategories = () => {
   const confirmDelete = (forceDelete = false) => {
     if (!deleteDialog.category) return;
 
-    const categoryName = deleteDialog.category.name;
+    const categoryId = deleteDialog.category.id;
 
     // If force delete or no cookies, proceed with deletion
     if (forceDelete || !deleteDialog.hasCookies) {
@@ -362,7 +362,7 @@ const CookieCategories = () => {
       if (forceDelete && deleteDialog.hasCookies) {
         const customCookies = getCurrentValue("custom_cookies") || [];
         const updatedCookies = customCookies.filter(
-          (cookie) => cookie.category !== categoryName
+          (cookie) => cookie.category !== categoryId
         );
         updateSetting("custom_cookies", updatedCookies);
       }
@@ -378,16 +378,16 @@ const CookieCategories = () => {
   };
 
   // Function to change cookies to a different category
-  const handleChangeCookieCategory = (newCategoryName) => {
+  const handleChangeCookieCategory = (newCategoryId) => {
     if (!deleteDialog.category) return;
 
-    const oldCategoryName = deleteDialog.category.name;
+    const oldCategoryId = deleteDialog.category.id;
 
     // Update cookies to new category
     const customCookies = getCurrentValue("custom_cookies") || [];
     const updatedCookies = customCookies.map((cookie) =>
-      cookie.category === oldCategoryName
-        ? { ...cookie, category: newCategoryName }
+      cookie.category === oldCategoryId
+        ? { ...cookie, category: newCategoryId }
         : cookie
     );
 
@@ -438,14 +438,14 @@ const CookieCategories = () => {
   const handleTransferCookies = () => {
     if (!transferDialog.category || !transferDialog.targetCategory) return;
 
-    const oldCategoryName = transferDialog.category.name;
-    const newCategoryName = transferDialog.targetCategory;
+    const oldCategoryId = transferDialog.category.id;
+    const newCategoryId = transferDialog.targetCategory;
 
     // Update cookies to new category
     const customCookies = getCurrentValue("custom_cookies") || [];
     const updatedCookies = customCookies.map((cookie) =>
-      cookie.category === oldCategoryName
-        ? { ...cookie, category: newCategoryName }
+      cookie.category === oldCategoryId
+        ? { ...cookie, category: newCategoryId }
         : cookie
     );
 
@@ -798,7 +798,7 @@ const CookieCategories = () => {
                   {categories
                     .filter((cat) => cat.id !== transferDialog.category?.id)
                     .map((category) => (
-                      <option key={category.id} value={category.name}>
+                      <option key={category.id} value={category.id}>
                         {category.name}
                       </option>
                     ))}

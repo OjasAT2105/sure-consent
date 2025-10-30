@@ -80,6 +80,21 @@ const PreviewButton = () => {
   );
 };
 
+// New component to display the current active law
+const LawSticker = () => {
+  // Since this plugin only supports GDPR, always display GDPR
+  const lawName = "GDPR";
+
+  return (
+    <Topbar.Item>
+      <div className="flex items-center bg-blue-50 border border-blue-200 rounded-full px-3 py-1">
+        <Shield className="text-blue-500 mr-1.5" size={16} />
+        <span className="text-xs font-medium text-blue-700">{lawName}</span>
+      </div>
+    </Topbar.Item>
+  );
+};
+
 const AdminApp = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [activePath, setActivePath] = useState("/dashboard");
@@ -498,6 +513,7 @@ const AdminApp = () => {
 
             <Topbar.Right className="p-5">
               {/* Show preview button on all tabs */}
+              <LawSticker />
               <PreviewButton />
 
               {/* Scan completion sticker */}

@@ -352,6 +352,19 @@ const PreviewBanner = () => {
     setShowBanner(true);
   };
 
+  // Handle modal close
+  const handleModalClose = () => {
+    setShowPreferencesModal(false);
+    setShowSettingsButton(true);
+  };
+
+  // Handle modal save
+  const handleModalSave = (preferences) => {
+    console.log("Preferences saved:", preferences);
+    setShowPreferencesModal(false);
+    setShowSettingsButton(true);
+  };
+
   return (
     <>
       {/* Banner - only show when showBanner is true */}
@@ -547,15 +560,8 @@ const PreviewBanner = () => {
       {/* Preferences Modal */}
       <PreferencesModal
         isOpen={showPreferencesModal}
-        onClose={() => {
-          setShowPreferencesModal(false);
-          setShowSettingsButton(true);
-        }}
-        onSave={(preferences) => {
-          console.log("Preferences saved:", preferences);
-          setShowPreferencesModal(false);
-          setShowSettingsButton(true);
-        }}
+        onClose={handleModalClose}
+        onSave={handleModalSave}
         settings={{
           banner_bg_color: bannerBgColor,
           text_color: textColor,

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useSettings } from "../contexts/SettingsContext";
 import { Globe } from "lucide-react";
 import countryData from "../data/countries.json";
+import ActionCard from "./ActionCard";
 
 const GeoRules = () => {
-  const { getCurrentValue, updateSetting, saveSettings, hasChanges, isSaving } =
-    useSettings();
+  const { getCurrentValue, updateSetting } = useSettings();
 
   const [geoRuleType, setGeoRuleType] = useState("worldwide");
   const [selectedCountries, setSelectedCountries] = useState([]);
@@ -112,20 +112,6 @@ const GeoRules = () => {
         return allCountries.find((country) => country.code === code);
       })
       .filter(Boolean); // Remove any undefined values
-  };
-
-  // Handle save settings
-  const handleSave = async () => {
-    try {
-      const result = await saveSettings();
-      if (result.success) {
-        console.log("Geo rules saved successfully");
-      } else {
-        console.error("Failed to save geo rules:", result.message);
-      }
-    } catch (error) {
-      console.error("Error saving geo rules:", error);
-    }
   };
 
   // Get selected country objects for display
@@ -456,20 +442,7 @@ const GeoRules = () => {
             </div>
           )}
 
-          <div className="flex justify-start">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={!hasChanges || isSaving}
-              className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-                !hasChanges || isSaving
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-              }`}
-            >
-              {isSaving ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
+          <ActionCard />
         </div>
       </div>
     </div>

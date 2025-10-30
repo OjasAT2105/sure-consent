@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Script Blocker Test</title>
+    <script>
+      // Mock SureConsent settings for testing
+      window.sureConsentPublicSettings = {
+        blocked_scripts: [
+          {
+            id: 1,
+            script_name: "Test Marketing Script",
+            script_description: "A test marketing script",
+            script_code: "console.log('Marketing script executed!');",
+            category: "marketing",
+            status: "active",
+          },
+          {
+            id: 2,
+            script_name: "Test Analytics Script",
+            script_description: "A test analytics script",
+            script_code:
+              "<script>console.log('Analytics script executed!');<\/script>",
+            category: "analytics",
+            status: "active",
+          },
+        ],
+      };
+
+      // Mock SureConsent object for testing
+      window.SureConsent = {
+        onConsentChange: function (category) {
+          console.log("Consent changed for category:", category);
+        },
+        acceptCategory: function (category) {
+          console.log("Category accepted:", category);
+        },
+      };
+    </script>
+    <script src="public/scriptBlocker.js"></script>
+  </head>
+  <body>
+    <h1>Script Blocker Test</h1>
+
+    <p>This page tests the script blocker functionality.</p>
+
+    <!-- Test scripts that should be blocked -->
+    <script>
+      console.log(
+        "This script should be blocked if marketing consent is not given"
+      );
+    </script>
+
+    <iframe
+      src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+      width="560"
+      height="315"
+    ></iframe>
+
+    <button onclick="window.SureConsentScriptBlocker.acceptAndRun('marketing')">
+      Accept Marketing Cookies
+    </button>
+
+    <button onclick="window.SureConsentScriptBlocker.acceptAndRun('analytics')">
+      Accept Analytics Cookies
+    </button>
+  </body>
+</html>

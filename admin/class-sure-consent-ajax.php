@@ -97,6 +97,13 @@ class Sure_Consent_Ajax {
                 error_log('SureConsent - Saving geo_selected_countries as JSON: ' . $json_value);
                 $updated[$key] = $value;
             }
+            // Handle compliance_law as JSON (special case)
+            else if ($key === 'compliance_law' && is_array($value)) {
+                $json_value = json_encode($value);
+                update_option($option_name, $json_value);
+                error_log('SureConsent - Saving compliance_law as JSON: ' . $json_value);
+                $updated[$key] = $value;
+            }
             // Handle preview_enabled as boolean
             else if ($key === 'preview_enabled') {
                 update_option($option_name, (bool) $value);
@@ -117,7 +124,7 @@ class Sure_Consent_Ajax {
                 $updated[$key] = $value;
                 
                 // Also update through settings class if it exists (except for special cases)
-                if (class_exists('Sure_Consent_Settings') && $key !== 'cookie_categories' && $key !== 'custom_cookies' && $key !== 'geo_selected_countries') {
+                if (class_exists('Sure_Consent_Settings') && $key !== 'cookie_categories' && $key !== 'custom_cookies' && $key !== 'geo_selected_countries' && $key !== 'compliance_law') {
                     Sure_Consent_Settings::update_setting($key, $value);
                 }
             }
@@ -217,6 +224,28 @@ class Sure_Consent_Ajax {
             $processed_geo_selected_countries = $geo_selected_countries_decoded;
         }
         
+        // Get compliance law setting
+        $compliance_law_raw = get_option('sure_consent_compliance_law', array('id' => '1', 'name' => 'GDPR'));
+        error_log('SureConsent - compliance_law RAW from DB: ' . print_r($compliance_law_raw, true));
+        
+        // Handle potential JSON decoding errors for compliance law
+        $compliance_law = array('id' => '1', 'name' => 'GDPR');
+        if (!empty($compliance_law_raw)) {
+            if (is_string($compliance_law_raw)) {
+                $decoded = json_decode($compliance_law_raw, true);
+                if ($decoded !== null && is_array($decoded)) {
+                    $compliance_law = $decoded;
+                } else {
+                    // If it's a simple string, treat it as the name
+                    $compliance_law = array('id' => '1', 'name' => $compliance_law_raw);
+                }
+            } else if (is_array($compliance_law_raw)) {
+                $compliance_law = $compliance_law_raw;
+            }
+        }
+        
+        error_log('SureConsent - compliance_law PROCESSED: ' . print_r($compliance_law, true));
+        
         $settings = array(
             'message_heading' => (string) get_option('sure_consent_message_heading', ''),
             'message_description' => (string) get_option('sure_consent_message_description', 'We use cookies to ensure you get the best experience on our website. By continuing to browse, you agree to our use of cookies. You can learn more about how we use cookies in our Privacy Policy.'),
@@ -251,13 +280,15 @@ class Sure_Consent_Ajax {
             'custom_cookies' => $processed_custom_cookies,
             'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365),  // Add consent duration setting
             'geo_rule_type' => (string) get_option('sure_consent_geo_rule_type', 'worldwide'),  // Geo rule type
-            'geo_selected_countries' => $processed_geo_selected_countries  // Selected countries for geo-targeting
+            'geo_selected_countries' => $processed_geo_selected_countries,  // Selected countries for geo-targeting
+            'compliance_law' => $compliance_law  // Add compliance law setting
         );
         
         error_log('SureConsent - Final settings array: ' . print_r($settings, true));
         error_log('SureConsent - cookie_categories from DB: ' . get_option('sure_consent_cookie_categories', '[]'));
         error_log('SureConsent - custom_cookies from DB: ' . get_option('sure_consent_custom_cookies', '[]'));
         error_log('SureConsent - geo_selected_countries from DB: ' . get_option('sure_consent_geo_selected_countries', '[]'));
+        error_log('SureConsent - compliance_law from DB: ' . get_option('sure_consent_compliance_law', 'GDPR'));
         error_log('SureConsent - Sending settings response: ' . print_r($settings, true));
         wp_send_json_success($settings);
     }
@@ -394,6 +425,28 @@ class Sure_Consent_Ajax {
         if (is_array($geo_selected_countries_decoded)) {
             $processed_geo_selected_countries = $geo_selected_countries_decoded;
         }
+        
+        // Get compliance law setting
+        $compliance_law_raw = get_option('sure_consent_compliance_law', array('id' => '1', 'name' => 'GDPR'));
+        error_log('SureConsent - public compliance_law RAW from DB: ' . print_r($compliance_law_raw, true));
+        
+        // Handle potential JSON decoding errors for compliance law
+        $compliance_law = array('id' => '1', 'name' => 'GDPR');
+        if (!empty($compliance_law_raw)) {
+            if (is_string($compliance_law_raw)) {
+                $decoded = json_decode($compliance_law_raw, true);
+                if ($decoded !== null && is_array($decoded)) {
+                    $compliance_law = $decoded;
+                } else {
+                    // If it's a simple string, treat it as the name
+                    $compliance_law = array('id' => '1', 'name' => $compliance_law_raw);
+                }
+            } else if (is_array($compliance_law_raw)) {
+                $compliance_law = $compliance_law_raw;
+            }
+        }
+        
+        error_log('SureConsent - public compliance_law PROCESSED: ' . print_r($compliance_law, true));
 
         $settings = array(
             'message_heading' => (string) get_option('sure_consent_message_heading', ''),
@@ -453,7 +506,8 @@ class Sure_Consent_Ajax {
             'custom_cookies' => $processed_custom_cookies,
             'consent_duration_days' => (int) get_option('sure_consent_consent_duration_days', 365),  // Add consent duration setting
             'geo_rule_type' => (string) $geo_rule_type,  // Geo rule type
-            'geo_selected_countries' => $processed_geo_selected_countries  // Selected countries for geo-targeting
+            'geo_selected_countries' => $processed_geo_selected_countries,  // Selected countries for geo-targeting
+            'compliance_law' => $compliance_law  // Add compliance law setting
         );
         
         wp_send_json_success($settings);
