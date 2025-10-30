@@ -280,9 +280,15 @@ const Dashboard = () => {
     false;
 
   const [consentData, setConsentData] = useState([]);
+  const [consentLogs, setConsentLogs] = useState([]);
+  const [scannedCookies, setScannedCookies] = useState([]);
+  const [scanHistory, setScanHistory] = useState(null);
   const [totalConsents, setTotalConsents] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [logsLoading, setLogsLoading] = useState(true);
+  const [scanLoading, setScanLoading] = useState(true);
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [consentLoggingEnabled, setConsentLoggingEnabled] = useState(true);
 
   const toggleBanner = async () => {
     const newValue = !bannerEnabled;
@@ -373,18 +379,355 @@ const Dashboard = () => {
     fetchConsentData();
   }, []);
 
+  // Check if consent logging is enabled
+  useEffect(() => {
+    const checkConsentLoggingStatus = async () => {
+      try {
+        const response = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_settings",
+              nonce: window.sureConsentAjax?.nonce || "",
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.success && data.data) {
+          // Check if consent_logging_enabled is set, default to true if not found
+          const isEnabled =
+            data.data.consent_logging_enabled !== undefined
+              ? data.data.consent_logging_enabled
+              : true;
+          setConsentLoggingEnabled(isEnabled);
+        }
+      } catch (error) {
+        console.error("Error checking consent logging status:", error);
+        // Default to true if there's an error
+        setConsentLoggingEnabled(true);
+      }
+    };
+
+    checkConsentLoggingStatus();
+  }, []);
+
+  // Fetch recent consent logs
+  useEffect(() => {
+    const fetchConsentLogs = async () => {
+      setLogsLoading(true);
+      try {
+        const response = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_consent_logs",
+              nonce: window.sureConsentAjax?.nonce || "",
+              page: 1,
+              per_page: 5, // Get only 5 recent logs
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.success) {
+          setConsentLogs(data.data.logs);
+        }
+      } catch (error) {
+        console.error("Error fetching consent logs:", error);
+      } finally {
+        setLogsLoading(false);
+      }
+    };
+
+    fetchConsentLogs();
+  }, []);
+
+  // Fetch scanned cookies and scan history
+  useEffect(() => {
+    const fetchScanData = async () => {
+      setScanLoading(true);
+      try {
+        // Fetch scanned cookies
+        const cookiesResponse = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_scanned_cookies",
+              nonce: window.sureConsentAjax?.nonce || "",
+              page: 1,
+              per_page: 1000, // Get all cookies
+            }),
+          }
+        );
+
+        const cookiesData = await cookiesResponse.json();
+        if (cookiesData.success) {
+          setScannedCookies(cookiesData.data.cookies);
+        }
+
+        // Fetch latest scan history
+        const historyResponse = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_scan_history",
+              nonce: window.sureConsentAjax?.nonce || "",
+              page: 1,
+              per_page: 1, // Get only the latest scan
+            }),
+          }
+        );
+
+        const historyData = await historyResponse.json();
+        if (historyData.success && historyData.data.history.length > 0) {
+          setScanHistory(historyData.data.history[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching scan data:", error);
+      } finally {
+        setScanLoading(false);
+      }
+    };
+
+    fetchScanData();
+  }, []);
+
+  // Function to get status display text (same as in ConsentLogs)
+  const getStatusDisplay = (status) => {
+    // Convert status to proper display format
+    // Normalize accept_all and accepted to "Accepted"
+    if (status === "accept_all" || status === "accepted") {
+      return "Accepted";
+    }
+
+    switch (status) {
+      case "decline_all":
+        return "Decline All";
+      case "partially_accepted":
+        return "Partially Accepted";
+      case "declined":
+        return "Declined";
+      default:
+        return status;
+    }
+  };
+
+  // Function to get status color classes (same as in ConsentLogs)
+  const getStatusColor = (status) => {
+    // Return proper color classes based on status
+    // Normalize accept_all and accepted to same color
+    if (status === "accept_all" || status === "accepted") {
+      return "bg-green-100 text-green-800";
+    }
+
+    switch (status) {
+      case "decline_all":
+      case "declined":
+        return "bg-red-100 text-red-800";
+      case "partially_accepted":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  // Function to format date exactly like in consent logs - DD/MM/YYYY, HH:MM:SS
+  const formatDateTime = (dateString) => {
+    // Handle different date formats that might come from the API
+    let date;
+    if (dateString instanceof Date) {
+      date = dateString;
+    } else if (typeof dateString === "string") {
+      // Try to parse the date string
+      date = new Date(dateString);
+      // If invalid, try parsing as timestamp
+      if (isNaN(date.getTime())) {
+        const timestamp = Date.parse(dateString);
+        if (!isNaN(timestamp)) {
+          date = new Date(timestamp);
+        } else {
+          return "Invalid Date";
+        }
+      }
+    } else {
+      return "Invalid Date";
+    }
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "Invalid Date";
+    }
+
+    // Format as DD/MM/YYYY, HH:MM:SS using the same approach as ConsentLogs
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds}`;
+  };
+
+  // Group cookies by category
+  const getCookiesByCategory = () => {
+    const categories = {};
+    scannedCookies.forEach((cookie) => {
+      const category = cookie.category || "Uncategorized";
+      if (!categories[category]) {
+        categories[category] = [];
+      }
+      categories[category].push(cookie);
+    });
+    return categories;
+  };
+
+  // Format date for scan history
+  const formatScanDate = (dateString) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "Invalid Date";
+    }
+    return date
+      .toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+      .replace(/\//g, "/");
+  };
+
   return (
     <Container
-      className="h-full p-5 pb-8 xl:p-8 max-[1920px]:max-w-full mx-auto box-content bg-background-secondary gap-6"
+      className="h-full p-5 pb-8 xl:p-8 max-[1920px]:max-w-full mx-auto box-content bg-background-secondary gap-6 overflow-y-auto max-h-screen"
       cols={12}
       containerType="grid"
       gap="2xl"
     >
       <Container.Item className="col-span-8">
         <Container direction="column" className="gap-8 relative">
+          {/* Banner Status - Enhanced UI (Moved to top) */}
+          <Container
+            className={`w-full h-fit rounded-xl p-6 shadow-lg ${
+              bannerEnabled
+                ? "bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200"
+                : "bg-gradient-to-r from-red-50 to-rose-50 border border-red-200"
+            }`}
+            containerType="flex"
+            direction="column"
+            gap="md"
+          >
+            <Container.Item>
+              <Container align="center" justify="between">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Cookie className="text-indigo-600" />
+                  Cookie Banner Status
+                </Label>
+                <Badge
+                  label={bannerEnabled ? "ACTIVE" : "INACTIVE"}
+                  size="md"
+                  variant={bannerEnabled ? "success" : "destructive"}
+                  className="font-bold px-3 py-1 rounded-full"
+                />
+              </Container>
+            </Container.Item>
+
+            <Container.Item className="mt-4">
+              <Container className="gap-6">
+                <Container.Item className="flex-1">
+                  <Container direction="column" className="gap-3">
+                    <Label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                      Frontend Status
+                    </Label>
+                    <Container align="center" className="gap-3">
+                      <div
+                        className={`w-3 h-3 rounded-full ${
+                          bannerEnabled ? "bg-green-500" : "bg-red-500"
+                        }`}
+                      ></div>
+                      <Label
+                        className={`text-lg font-bold ${
+                          bannerEnabled ? "text-green-700" : "text-red-700"
+                        }`}
+                      >
+                        {bannerEnabled
+                          ? "Banner is running on your website"
+                          : "Banner is not running on your site"}
+                      </Label>
+                    </Container>
+                  </Container>
+                </Container.Item>
+
+                <Container.Item className="flex-1">
+                  <Container direction="column" className="gap-3">
+                    <Label className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                      Compliance
+                    </Label>
+                    <Container align="center" className="gap-3">
+                      <Shield className="text-blue-500" />
+                      <Label className="text-lg font-bold text-blue-700">
+                        GDPR Compliant
+                      </Label>
+                    </Container>
+                  </Container>
+                </Container.Item>
+              </Container>
+            </Container.Item>
+
+            <Container.Item className="mt-4 pt-4 border-t border-gray-200">
+              <Container align="center" justify="between">
+                <Label className="text-sm text-text-secondary">
+                  {bannerEnabled
+                    ? "Your website is compliant with cookie consent regulations"
+                    : "Enable the cookie banner in settings to make your website compliant"}
+                </Label>
+                <Button
+                  size="sm"
+                  variant={bannerEnabled ? "outline" : "primary"}
+                  onClick={() => {
+                    if (bannerEnabled) {
+                      window.location.href =
+                        "admin.php?page=sureconsent&tab=banner#settings";
+                    } else {
+                      window.location.href =
+                        "admin.php?page=sureconsent&tab=settings#settings";
+                    }
+                  }}
+                  className="font-medium"
+                >
+                  {bannerEnabled ? "Configure Banner" : "Enable Banner"}
+                </Button>
+              </Container>
+            </Container.Item>
+          </Container>
+
           {/* Consent Analytics */}
           <Container
-            className="w-full h-fit bg-background-primary border-0.5 border-solid rounded-xl border-border-subtle p-4 shadow-sm"
+            className={`w-full h-fit bg-background-primary border-0.5 border-solid rounded-xl border-border-subtle p-4 shadow-sm relative ${
+              !consentLoggingEnabled ? "opacity-50 filter blur-sm" : ""
+            }`}
             containerType="flex"
             direction="column"
             gap="md"
@@ -453,9 +796,11 @@ const Dashboard = () => {
             </Container.Item>
           </Container>
 
-          {/* Banner Status */}
+          {/* Recent Consent Logs */}
           <Container
-            className="w-full h-fit bg-background-primary border-0.5 border-solid rounded-xl border-border-subtle p-4 shadow-sm"
+            className={`w-full h-fit bg-background-primary border-0.5 border-solid rounded-xl border-border-subtle p-4 shadow-sm relative ${
+              !consentLoggingEnabled ? "opacity-50 filter blur-sm" : ""
+            }`}
             containerType="flex"
             direction="column"
             gap="md"
@@ -463,67 +808,257 @@ const Dashboard = () => {
             <Container.Item>
               <Container align="center" justify="between">
                 <Label className="text-lg font-semibold text-text-primary">
-                  Cookie Banner Status
+                  Recent Consent Logs
                 </Label>
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={bannerEnabled}
-                    onChange={toggleBanner}
-                    className="sr-only"
-                  />
-                  <div
-                    className={`relative w-11 h-6 rounded-full transition-colors ${
-                      bannerEnabled ? "bg-green-600" : "bg-gray-300"
-                    }`}
-                  >
-                    <div
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                        bannerEnabled ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    ></div>
-                  </div>
-                  <span className="ml-3 text-sm font-medium text-gray-700">
-                    {bannerEnabled ? "Enabled" : "Disabled"}
-                  </span>
-                </label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    (window.location.href =
+                      "admin.php?page=sureconsent&tab=analytics#settings")
+                  }
+                  className="font-medium"
+                >
+                  View All Logs
+                </Button>
               </Container>
             </Container.Item>
+
             <Container.Item>
-              <Container className="gap-4">
-                <Container.Item className="flex-1">
-                  <Container direction="column" className="gap-2">
-                    <Label className="text-sm text-text-secondary">
-                      Frontend Status
-                    </Label>
-                    <Container align="center" className="gap-2">
-                      <Badge
-                        label={bannerEnabled ? "Active" : "Inactive"}
-                        size="sm"
-                        variant={bannerEnabled ? "success" : "neutral"}
-                      />
-                      <Label className="text-sm">
-                        {bannerEnabled
-                          ? "Banner is running on your website"
-                          : "Banner is disabled"}
-                      </Label>
-                    </Container>
+              {logsLoading ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  </div>
+                </div>
+              ) : consentLogs.length === 0 ? (
+                <div className="text-center py-6 text-text-secondary">
+                  No consent logs found
+                </div>
+              ) : (
+                <Container direction="column" className="gap-3">
+                  <Container className="grid grid-cols-12 gap-4 px-4 py-2 bg-gray-50 rounded-lg font-semibold text-sm">
+                    <div className="col-span-3">Date & Time</div>
+                    <div className="col-span-3">IP Address</div>
+                    <div className="col-span-3">Country</div>
+                    <div className="col-span-3">Status</div>
                   </Container>
-                </Container.Item>
-                <Container.Item className="flex-1">
-                  <Container direction="column" className="gap-2">
-                    <Label className="text-sm text-text-secondary">
-                      Compliance
-                    </Label>
-                    <Container align="center" className="gap-2">
-                      <Badge label="GDPR" size="sm" variant="neutral" />
-                      <Label className="text-sm">EU compliance enabled</Label>
+
+                  {consentLogs.map((log, index) => (
+                    <Container
+                      key={index}
+                      className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
+                      align="center"
+                    >
+                      <div className="col-span-3 text-sm">
+                        {formatDateTime(log.timestamp)}
+                      </div>
+                      <div className="col-span-3 text-sm font-mono">
+                        {log.ip_address || "N/A"}
+                      </div>
+                      <div className="col-span-3 text-sm">
+                        {log.country || "Localhost"}
+                      </div>
+                      <div className="col-span-3">
+                        <span
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                            log.status
+                          )}`}
+                        >
+                          {getStatusDisplay(log.status)}
+                        </span>
+                      </div>
                     </Container>
-                  </Container>
-                </Container.Item>
-              </Container>
+                  ))}
+                </Container>
+              )}
             </Container.Item>
           </Container>
+
+          {/* Overlay for disabled consent logging */}
+          {!consentLoggingEnabled && (
+            <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+              <div className="bg-white p-6 rounded-lg max-w-md text-center shadow-xl pointer-events-auto">
+                <h3 className="text-lg font-semibold mb-2">
+                  Consent Logging Disabled
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Enable consent logging to view analytics data and recent
+                  consent logs.
+                </p>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() =>
+                    (window.location.href =
+                      "admin.php?page=sureconsent&tab=settings#settings")
+                  }
+                >
+                  Enable Consent Logging
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Cookie Scan Overview - Enhanced UI */}
+          <Container
+            className="w-full h-fit bg-gradient-to-r from-blue-50 to-indigo-50 border-0.5 border-solid rounded-xl border-blue-200 p-6 shadow-lg"
+            containerType="flex"
+            direction="column"
+            gap="md"
+          >
+            <Container.Item>
+              <Container align="center" justify="between">
+                <Label className="text-xl font-bold text-text-primary flex items-center gap-2">
+                  <Cookie className="text-indigo-600" />
+                  Cookie Scan Overview
+                </Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    (window.location.href =
+                      "admin.php?page=sureconsent&tab=cookie-manager&subtab=scan#settings")
+                  }
+                  className="font-medium bg-white hover:bg-gray-50 border-blue-300"
+                >
+                  View Scan Details
+                </Button>
+              </Container>
+            </Container.Item>
+
+            <Container.Item>
+              {scanLoading ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  </div>
+                </div>
+              ) : (
+                <Container direction="column" className="gap-6">
+                  {/* Scanned Cookies by Category */}
+                  <Container.Item>
+                    <Label className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">
+                      Scanned Cookies by Category
+                    </Label>
+                    {scannedCookies.length === 0 ? (
+                      <div className="text-center py-6 text-text-secondary bg-white rounded-lg border border-dashed border-gray-300">
+                        <p className="mb-2">No cookies scanned yet</p>
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() =>
+                            (window.location.href =
+                              "admin.php?page=sureconsent&tab=cookie-manager&subtab=scan#settings")
+                          }
+                        >
+                          Run Cookie Scan
+                        </Button>
+                      </div>
+                    ) : (
+                      <Container className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        {Object.entries(getCookiesByCategory()).map(
+                          ([category, cookies]) => (
+                            <Container
+                              key={category}
+                              className="flex justify-between items-center p-4 bg-white rounded-lg border border-blue-100 shadow-sm hover:shadow-md transition-shadow"
+                              align="center"
+                            >
+                              <Label className="font-medium text-gray-800">
+                                {category}
+                              </Label>
+                              <Badge
+                                label={cookies.length.toString()}
+                                size="md"
+                                variant="primary"
+                                className="font-bold"
+                              />
+                            </Container>
+                          )
+                        )}
+                      </Container>
+                    )}
+                  </Container.Item>
+
+                  {/* Latest Scan History */}
+                  <Container.Item>
+                    <Label className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">
+                      Latest Scan
+                    </Label>
+                    {scanHistory ? (
+                      <Container
+                        className="p-5 bg-white rounded-xl border border-blue-100 shadow-sm hover:shadow-md transition-shadow"
+                        direction="column"
+                        gap="4"
+                      >
+                        <Container
+                          align="center"
+                          justify="between"
+                          className="pb-3 border-b border-gray-100"
+                        >
+                          <Label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4" />
+                            Scan Date
+                          </Label>
+                          <Label className="text-sm font-semibold text-gray-800">
+                            {formatScanDate(scanHistory.scan_date)}
+                          </Label>
+                        </Container>
+
+                        <Container
+                          align="center"
+                          justify="between"
+                          className="py-3 border-b border-gray-100"
+                        >
+                          <Label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                            <Cookie className="w-4 h-4" />
+                            Total Cookies
+                          </Label>
+                          <Badge
+                            label={scanHistory.total_cookies.toString()}
+                            size="md"
+                            variant="primary"
+                            className="font-bold px-3 py-1"
+                          />
+                        </Container>
+
+                        <Container
+                          align="center"
+                          justify="between"
+                          className="pt-3"
+                        >
+                          <Label className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                            <Settings className="w-4 h-4" />
+                            Scan Type
+                          </Label>
+                          <Label className="text-sm font-semibold capitalize bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+                            {scanHistory.scan_type}
+                          </Label>
+                        </Container>
+                      </Container>
+                    ) : (
+                      <div className="text-center py-8 text-text-secondary bg-white rounded-xl border border-dashed border-gray-300">
+                        <BarChart3 className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                        <p className="font-medium mb-1">
+                          No scan history available
+                        </p>
+                        <p className="text-sm">
+                          Run a cookie scan to see results here
+                        </p>
+                      </div>
+                    )}
+                  </Container.Item>
+                </Container>
+              )}
+            </Container.Item>
+          </Container>
+
+          {/* Additional spacing after Cookie Scan Overview */}
+          <div className="h-12"></div>
         </Container>
       </Container.Item>
 
