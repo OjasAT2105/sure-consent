@@ -280,14 +280,27 @@ const CookieCategories = () => {
     setEditForm({ name: "", description: "" });
   };
 
+  // Function to sanitize category name for use as ID
+  const sanitizeCategoryName = (name) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "_")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "");
+  };
+
   const handleAddNew = () => {
     if (!newCategory.name.trim()) {
       alert("Please enter a category name");
       return;
     }
 
+    // Generate ID from sanitized category name
+    const categoryId =
+      sanitizeCategoryName(newCategory.name) || `custom_${Date.now()}`;
+
     const newCat = {
-      id: `custom_${Date.now()}`,
+      id: categoryId,
       name: newCategory.name,
       description: newCategory.description,
       icon: newCategory.icon,
