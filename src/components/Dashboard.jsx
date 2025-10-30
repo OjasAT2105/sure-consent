@@ -9,8 +9,10 @@ import {
   BarChart3,
   Settings,
   Palette,
+  ArrowUpRight,
 } from "lucide-react";
 import { useSettings } from "../contexts/SettingsContext";
+import { useEffect, useState } from "react";
 
 const quickLinks = [
   {
@@ -103,7 +105,7 @@ const SureMailIcon = (props) => (
       fill="#0D7EE8"
     />
     <path
-      d="M6.40292 11.6635C6.61165 11.8145 6.90801 11.7649 7.04455 11.5618C7.19552 11.3531 7.14591 11.0567 6.94285 10.9202L4.93281 9.48016C4.86137 9.42507 4.8676 9.35611 4.87071 9.32164C4.87386 9.28718 4.90015 9.22703 4.98662 9.19317L18.3609 5.78333C18.4386 5.76953 18.4844 5.80148 18.5157 5.83906C18.547 5.87667 18.5784 5.91424 18.5433 5.99446L13.476 18.8162C13.4409 18.8964 13.3776 18.9045 13.3488 18.9158C13.3143 18.9127 13.2454 18.9065 13.2028 18.8401L11.6711 16.0326C11.6228 15.9518 11.5833 15.8509 11.535 15.7701C10.9355 14.4093 10.7842 13.4051 11.9093 12.416L14.806 9.73531C15.0027 9.55853 15.0221 9.26839 14.8509 9.08611C14.6742 8.88942 14.384 8.87007 14.2017 9.04118L11.1593 11.6635C9.62635 13.0119 9.88161 14.6891 10.8516 16.4865L12.3833 19.294C12.5789 19.6661 12.9769 19.8759 13.4023 19.8589C13.5145 19.8482 13.6354 19.8175 13.7363 19.778C14.0101 19.6707 14.2244 19.4538 14.3471 19.1731L19.4144 6.35138C19.5666 5.97597 19.495 5.53861 19.2242 5.22916C18.9534 4.91967 18.5405 4.79884 18.1432 4.88794L4.7545 8.30341C4.34849 8.41257 4.04151 8.73226 3.95519 9.14836C3.86882 9.56446 4.04691 9.97673 4.39289 10.2235L6.40292 11.6635Z"
+      d="M6.40292 11.6635C6.61165 11.8145 6.90801 11.7649 7.04455 11.5618C7.19552 11.3531 7.14591 11.0567 6.94285 10.9202L4.93281 9.48016C4.86137 9.42507 4.8676 9.35611 4.87071 9.32164C4.87386 9.28718 4.90015 9.22703 4.98662 9.19317L18.3609 5.78333C18.4386 5.76953 18.4844 5.80148 18.5157 5.83906C18.547 5.87667 18.5784 5.91424 18.5433 5.99446L13.476 18.8162C13.4409 18.8964 13.3776 13.9045 13.3488 18.9158C13.3143 18.9127 13.2454 18.9065 13.2028 18.8401L11.6711 16.0326C11.6228 15.9518 11.5833 15.8509 11.535 15.7701C10.9355 14.4093 10.7842 13.4051 11.9093 12.416L14.806 9.73531C15.0027 9.55853 15.0221 9.26839 14.8509 9.08611C14.6742 8.88942 14.384 8.87007 14.2017 9.04118L11.1593 11.6635C9.62635 13.0119 9.88161 14.6891 10.8516 16.4865L12.3833 19.294C12.5789 19.6661 12.9769 19.8759 13.4023 19.8589C13.5145 19.8482 13.6354 19.8175 13.7363 19.778C14.0101 19.6707 14.2244 19.4538 14.3471 19.1731L19.4144 6.35138C19.5666 5.97597 19.495 5.53861 19.2242 5.22916C18.9534 4.91967 18.5405 4.79884 18.1432 4.88794L4.7545 8.30341C4.34849 8.41257 4.04151 8.73226 3.95519 9.14836C3.86882 9.56446 4.04691 9.97673 4.39289 10.2235L6.40292 11.6635Z"
       fill="white"
     />
   </svg>
@@ -197,48 +199,75 @@ const PluginCard = ({ item }) => (
   </Container.Item>
 );
 
-const PieChart = ({ data }) => {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+const PieChart = ({
+  data,
+  dataKey,
+  showTooltip,
+  tooltipIndicator,
+  onHover,
+}) => {
+  // Calculate total
+  const total = data.reduce((sum, item) => sum + item[dataKey], 0);
+
+  // Calculate percentages and positions for pie slices
   let cumulativePercentage = 0;
+
+  const chartData = data.map((item, index) => {
+    const percentage = (item[dataKey] / total) * 100;
+    const strokeDasharray = `${percentage} ${100 - percentage}`;
+    const strokeDashoffset = -cumulativePercentage;
+    cumulativePercentage += percentage;
+
+    return {
+      ...item,
+      percentage,
+      strokeDasharray,
+      strokeDashoffset,
+    };
+  });
 
   return (
     <div className="flex items-center justify-center">
-      <svg
-        width="120"
-        height="120"
-        viewBox="0 0 42 42"
-        className="transform -rotate-90"
-      >
-        <circle
-          cx="21"
-          cy="21"
-          r="15.915"
-          fill="transparent"
-          stroke="#e5e7eb"
-          strokeWidth="3"
-        />
-        {data.map((item, index) => {
-          const percentage = (item.value / total) * 100;
-          const strokeDasharray = `${percentage} ${100 - percentage}`;
-          const strokeDashoffset = -cumulativePercentage;
-          cumulativePercentage += percentage;
-
-          return (
+      <div className="relative w-40 h-40">
+        <svg
+          width="160"
+          height="160"
+          viewBox="0 0 42 42"
+          className="transform -rotate-90"
+        >
+          {/* Background circle */}
+          <circle
+            cx="21"
+            cy="21"
+            r="15.915"
+            fill="transparent"
+            stroke="#e5e7eb"
+            strokeWidth="3"
+          />
+          {/* Data slices */}
+          {chartData.map((item, index) => (
             <circle
               key={index}
               cx="21"
               cy="21"
               r="15.915"
               fill="transparent"
-              stroke={item.color}
+              stroke={item.fill}
               strokeWidth="3"
-              strokeDasharray={strokeDasharray}
-              strokeDashoffset={strokeDashoffset}
+              strokeDasharray={item.strokeDasharray}
+              strokeDashoffset={item.strokeDashoffset}
               className="transition-all duration-300"
+              onMouseEnter={() => onHover && onHover(item)}
+              onMouseLeave={() => onHover && onHover(null)}
             />
-          );
-        })}
-      </svg>
+          ))}
+        </svg>
+        {/* Center label */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold">{total}</span>
+          <span className="text-xs text-gray-500">Total Consents</span>
+        </div>
+      </div>
     </div>
   );
 };
@@ -249,6 +278,11 @@ const Dashboard = () => {
     getCurrentValue("banner_enabled") ||
     getCurrentValue("enable_banner") ||
     false;
+
+  const [consentData, setConsentData] = useState([]);
+  const [totalConsents, setTotalConsents] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [hoveredItem, setHoveredItem] = useState(null);
 
   const toggleBanner = async () => {
     const newValue = !bannerEnabled;
@@ -261,11 +295,83 @@ const Dashboard = () => {
     }
   };
 
-  const consentData = [
-    { label: "Accepted", value: 65, color: "#10b981" },
-    { label: "Rejected", value: 25, color: "#ef4444" },
-    { label: "Partially Accepted", value: 10, color: "#f59e0b" },
-  ];
+  // Fetch consent logs data for the pie chart
+  useEffect(() => {
+    const fetchConsentData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          window.sureConsentAjax?.ajaxurl || "/wp-admin/admin-ajax.php",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              action: "sure_consent_get_consent_logs",
+              nonce: window.sureConsentAjax?.nonce || "",
+              page: 1,
+              per_page: 1000, // Get all logs for accurate data
+            }),
+          }
+        );
+
+        const data = await response.json();
+        if (data.success) {
+          // Process the data to get counts for each status
+          const statusCounts = {
+            accepted: 0,
+            declined: 0,
+            partially_accepted: 0,
+          };
+
+          data.data.logs.forEach((log) => {
+            // Normalize status values
+            let status = log.status;
+            if (status === "accept_all") {
+              status = "accepted";
+            } else if (status === "decline_all") {
+              status = "declined";
+            }
+
+            if (status in statusCounts) {
+              statusCounts[status]++;
+            } else {
+              // Handle any other status values
+              statusCounts[status] = (statusCounts[status] || 0) + 1;
+            }
+          });
+
+          const chartData = [
+            {
+              fill: "#10b981",
+              name: "Accepted",
+              visitors: statusCounts.accepted,
+            },
+            {
+              fill: "#ef4444",
+              name: "Declined",
+              visitors: statusCounts.declined,
+            },
+            {
+              fill: "#f59e0b",
+              name: "Partially Accepted",
+              visitors: statusCounts.partially_accepted,
+            },
+          ];
+
+          setConsentData(chartData);
+          setTotalConsents(data.data.total);
+        }
+      } catch (error) {
+        console.error("Error fetching consent data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConsentData();
+  }, []);
 
   return (
     <Container
@@ -289,29 +395,61 @@ const Dashboard = () => {
               </Label>
             </Container.Item>
             <Container.Item>
-              <Container className="gap-6" align="center">
-                <Container.Item>
-                  <PieChart data={consentData} />
-                </Container.Item>
-                <Container.Item className="flex-1">
-                  <Container direction="column" className="gap-3">
-                    {consentData.map((item, index) => (
-                      <Container.Item key={index}>
-                        <Container align="center" className="gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <Label className="text-sm">{item.label}</Label>
-                          <Label className="text-sm font-semibold ml-auto">
-                            {item.value}%
-                          </Label>
-                        </Container>
-                      </Container.Item>
-                    ))}
-                  </Container>
-                </Container.Item>
-              </Container>
+              {loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="rounded-full bg-gray-200 h-40 w-40 mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                  </div>
+                </div>
+              ) : (
+                <Container className="gap-6" align="center">
+                  <Container.Item className="w-1/2">
+                    <PieChart
+                      data={consentData}
+                      dataKey="visitors"
+                      showTooltip
+                      tooltipIndicator="dot"
+                      onHover={setHoveredItem}
+                    />
+                  </Container.Item>
+                  <Container.Item className="w-1/2">
+                    <Container direction="column" className="gap-4">
+                      {consentData.map((item, index) => (
+                        <Container.Item key={index}>
+                          <Container
+                            align="center"
+                            className={`gap-3 p-3 rounded-lg transition-all duration-200 ${
+                              hoveredItem && hoveredItem.name === item.name
+                                ? "bg-blue-50 border border-blue-200 scale-105"
+                                : "bg-gray-50"
+                            }`}
+                            onMouseEnter={() => setHoveredItem(item)}
+                            onMouseLeave={() => setHoveredItem(null)}
+                          >
+                            <div
+                              className="w-4 h-4 rounded-full"
+                              style={{ backgroundColor: item.fill }}
+                            />
+                            <Label className="text-sm font-medium flex-1">
+                              {item.name}
+                            </Label>
+                            <Label className="text-sm font-semibold">
+                              {item.visitors} (
+                              {totalConsents > 0
+                                ? Math.round(
+                                    (item.visitors / totalConsents) * 100
+                                  )
+                                : 0}
+                              %)
+                            </Label>
+                          </Container>
+                        </Container.Item>
+                      ))}
+                    </Container>
+                  </Container.Item>
+                </Container>
+              )}
             </Container.Item>
           </Container>
 
