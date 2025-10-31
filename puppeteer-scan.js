@@ -65,8 +65,17 @@ function categorizeCookie(cookieName) {
     "jsessionid",
     "connect.sid",
     "cookie_consent",
+    "cf_clearance", // Cloudflare security
+    "__cf_bm", // Cloudflare bot management
+    "cf_chl_", // Cloudflare challenge
+    "shield_",
+    "wpnonce",
+    "site_session",
+    "auth_token",
+    "x_auth_",
+    "csrf_token",
+    "session_id",
   ];
-
   if (essentialKeywords.some((keyword) => name.includes(keyword))) {
     return "Essential Cookies";
   }
@@ -91,6 +100,16 @@ function categorizeCookie(cookieName) {
     "site_lang",
     "display",
     "consent_choice",
+    "contrast",
+    "color_scheme",
+    "sound",
+    "volume",
+    "sidebar",
+    "layout",
+    "cookies_accepted",
+    "ui_theme",
+    "last_visited",
+    "preferred_language",
   ];
 
   if (functionalKeywords.some((keyword) => name.includes(keyword))) {
@@ -101,9 +120,12 @@ function categorizeCookie(cookieName) {
   // Used by tracking and analytics tools to measure site performance or user behavior
   const analyticsKeywords = [
     "_ga",
+    "_ga_",
     "_gid",
     "_gat",
     "_gcl",
+    "_gac",
+    "_gac_gb_",
     "utm_",
     "analytics",
     "collect",
@@ -125,8 +147,36 @@ function categorizeCookie(cookieName) {
     "_ym",
     "yandex_metrika",
     "_fbp_analytic",
+    "_gaexp",
+    "_gaexp_rc",
+    "ga4",
+    "gtag",
+    "_hjid",
+    "_hjSession",
+    "_hjIncludedInSessionSample",
+    "_hjAbsoluteSessionInProgress",
+    "_hjTLDTest",
+    "_hjFirstSeen",
+    "_hjSessionUser",
+    "ajs_",
+    "heap_",
+    "segment_",
+    "clarity",
+    "_cltk",
+    "_clskid",
+    "cluid",
+    "ms_clarity",
+    "quantserve",
+    "statcounter",
+    "_sc_",
+    "pendo_",
+    "mixpanel_",
+    "kissmetrics",
+    "plausible_",
+    "simple_analytics",
+    "umami_",
+    "vercel_analytics",
   ];
-
   if (analyticsKeywords.some((keyword) => name.includes(keyword))) {
     return "Analytics Cookies";
   }
@@ -164,6 +214,38 @@ function categorizeCookie(cookieName) {
     "criteo",
     "_scid",
     "sc_fb",
+    "tiktok_ads",
+    "ttclid",
+    "_ttp",
+    "tldid",
+    "snaptr",
+    "pinterest_",
+    "_pinterest_ct_",
+    "_pinterest_sess",
+    "reddit_",
+    "rtd_",
+    "sm_",
+    "_gads",
+    "_gpi",
+    "ga_audiences",
+    "_gcl_au",
+    "adroll_",
+    "optimizely",
+    "mc_anon_id",
+    "marketo",
+    "_mkto",
+    "pardot",
+    "_uetmsclkid",
+    "msclkid",
+    "ig_did",
+    "ig_nrcb",
+    "ig_fb",
+    "meta_pixel",
+    "li_fat_id",
+    "bcookie",
+    "UserMatchHistory",
+    "AnalyticsSyncHistory",
+    "personalization_id",
   ];
 
   if (marketingKeywords.some((keyword) => name.includes(keyword))) {
